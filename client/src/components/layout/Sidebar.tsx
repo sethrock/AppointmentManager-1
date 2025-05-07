@@ -41,46 +41,52 @@ export default function Sidebar({ onNavItemClick }: SidebarProps) {
         <div className="px-4 py-3">
           <h5 className="text-xs uppercase tracking-wider text-gray-400">Main</h5>
           <div className="mt-2 -mx-3">
-            {navItems.slice(0, 4).map((item) => (
-              <Link 
-                key={item.path} 
-                href={item.path}
-                onClick={onNavItemClick}
-              >
-                <a className={cn(
-                  "flex items-center px-3 py-2 rounded-md mt-1",
-                  isActive(item.path) 
-                    ? "text-white bg-primary" 
-                    : "text-gray-300 hover:text-white hover:bg-primary-dark"
-                )}>
-                  <item.icon className="mr-3 h-5 w-5" />
-                  <span>{item.name}</span>
-                </a>
-              </Link>
-            ))}
+            {navItems.slice(0, 4).map((item) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.path} className="mt-1">
+                  <Link 
+                    href={item.path}
+                    onClick={onNavItemClick}
+                    className={cn(
+                      "flex items-center px-3 py-2 rounded-md",
+                      isActive(item.path) 
+                        ? "text-white bg-primary" 
+                        : "text-gray-300 hover:text-white hover:bg-primary-dark"
+                    )}
+                  >
+                    <Icon className="mr-3 h-5 w-5" />
+                    <span>{item.name}</span>
+                  </Link>
+                </div>
+              );
+            })}
           </div>
         </div>
         
         <div className="px-4 py-3 mt-6">
           <h5 className="text-xs uppercase tracking-wider text-gray-400">Admin</h5>
           <div className="mt-2 -mx-3">
-            {navItems.slice(4).map((item) => (
-              <Link 
-                key={item.path} 
-                href={item.path}
-                onClick={onNavItemClick}
-              >
-                <a className={cn(
-                  "flex items-center px-3 py-2 rounded-md mt-1",
-                  isActive(item.path) 
-                    ? "text-white bg-primary" 
-                    : "text-gray-300 hover:text-white hover:bg-primary-dark"
-                )}>
-                  <item.icon className="mr-3 h-5 w-5" />
-                  <span>{item.name}</span>
-                </a>
-              </Link>
-            ))}
+            {navItems.slice(4).map((item) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.path} className="mt-1">
+                  <Link 
+                    href={item.path}
+                    onClick={onNavItemClick}
+                    className={cn(
+                      "flex items-center px-3 py-2 rounded-md",
+                      isActive(item.path) 
+                        ? "text-white bg-primary" 
+                        : "text-gray-300 hover:text-white hover:bg-primary-dark"
+                    )}
+                  >
+                    <Icon className="mr-3 h-5 w-5" />
+                    <span>{item.name}</span>
+                  </Link>
+                </div>
+              );
+            })}
           </div>
         </div>
       </nav>
