@@ -250,10 +250,15 @@ function CompleteForm({
       return;
     }
     
-    // Calculate total collected
-    data.totalCollected = cashAmount + digitalAmount;
+    // Prepare data with proper number types
+    const submissionData = {
+      ...data,
+      totalCollectedCash: cashAmount,
+      totalCollectedDigital: digitalAmount,
+      totalCollected: cashAmount + digitalAmount
+    };
     
-    updateMutation.mutate(data);
+    updateMutation.mutate(submissionData);
   }
   
   return (
