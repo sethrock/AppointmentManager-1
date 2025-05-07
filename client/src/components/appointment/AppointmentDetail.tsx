@@ -1,5 +1,6 @@
 import { Appointment } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   Phone,
   Mail,
@@ -7,13 +8,29 @@ import {
   Building,
   User,
   Calendar,
+  RefreshCw,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 
 interface AppointmentDetailProps {
   appointment: Appointment;
+  onReschedule?: () => void;
+  onComplete?: () => void;
+  onCancel?: () => void;
 }
 
-export default function AppointmentDetail({ appointment }: AppointmentDetailProps) {
+export default function AppointmentDetail({ 
+  appointment, 
+  onReschedule,
+  onComplete,
+  onCancel
+}: AppointmentDetailProps) {
+  // Determine if status buttons should be disabled based on current status
+  const isCompleted = appointment.dispositionStatus === "Complete";
+  const isCanceled = appointment.dispositionStatus === "Cancel";
+  const isFinalized = isCompleted || isCanceled;
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -135,6 +152,47 @@ export default function AppointmentDetail({ appointment }: AppointmentDetailProp
           </CardContent>
         </Card>
       )}
+
+      {/* Disposition Status Action Buttons */}
+      <Card>
+        <CardContent className="pt-6">
+          <h3 className="text-lg font-medium mb-4">Update Appointment Status</h3>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button 
+              onClick={onReschedule} 
+              variant="outline" 
+              className="flex-1"
+              disabled={isFinalized}
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Reschedule
+            </Button>
+            <Button 
+              onClick={onComplete} 
+              variant="default" 
+              className="flex-1 bg-green-600 hover:bg-green-700"
+              disabled={isFinalized}
+            >
+              <CheckCircle className="mr-2 h-4 w-4" />
+              Complete
+            </Button>
+            <Button 
+              onClick={onCancel} 
+              variant="destructive" 
+              className="flex-1"
+              disabled={isFinalized}
+            >
+              <XCircle className="mr-2 h-4 w-4" />
+              Cancel
+            </Button>
+          </div>
+          {isFinalized && (
+            <p className="text-sm text-muted-foreground mt-3 text-center">
+              This appointment has been {isCompleted ? "completed" : "canceled"} and cannot be modified.
+            </p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -17,6 +17,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertCircle, Calendar, Clock, ArrowLeft, Trash2 } from "lucide-react";
 import AppointmentDetail from "@/components/appointment/AppointmentDetail";
+import AppointmentStatus from "@/components/appointment/AppointmentStatus";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +37,9 @@ export default function AppointmentDetailPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  
+  // State for appointment status modals
+  const [statusAction, setStatusAction] = useState<"Reschedule" | "Complete" | "Cancel" | null>(null);
 
   const { data: appointment, isLoading, error } = useQuery<Appointment>({
     queryKey: [`/api/appointments/${id}`],
@@ -63,6 +67,35 @@ export default function AppointmentDetailPage() {
     }
   });
 
+  const handleDelete = () => {
+    deleteAppointmentMutation.mutate();
+  };
+  
+  // Handlers for status updates
+  const handleReschedule = () => {
+    setStatusAction("Reschedule");
+  };
+  
+  const handleComplete = () => {
+    setStatusAction("Complete");
+  };
+  
+  const handleCancel = () => {
+    setStatusAction("Cancel");
+  };
+  
+  const handleStatusDialogClose = () => {
+    setStatusAction(null);
+  };
+  
+  const handleStatusSuccess = () => {
+    // This will be called after successful status update
+    toast({
+      title: "Success",
+      description: `Appointment ${statusAction?.toLowerCase()}d successfully`,
+    });
+  };
+
   if (isNaN(id)) {
     return (
       <div className="p-6">
@@ -88,10 +121,6 @@ export default function AppointmentDetailPage() {
       </div>
     );
   }
-
-  const handleDelete = () => {
-    deleteAppointmentMutation.mutate();
-  };
 
   return (
     <div className="p-6">
@@ -227,7 +256,12 @@ export default function AppointmentDetailPage() {
             </TabsList>
             
             <TabsContent value="details">
-              <AppointmentDetail appointment={appointment} />
+              <AppointmentDetail 
+                appointment={appointment} 
+                onReschedule={handleReschedule}
+                onComplete={handleComplete}
+                onCancel={handleCancel}
+              />
             </TabsContent>
             
             <TabsContent value="financials">
@@ -346,6 +380,18 @@ export default function AppointmentDetailPage() {
               </TabsContent>
             )}
           </Tabs>
+          
+          {/* Status update modals */}
+          {statusAction && appointment && (
+            <AppointmentStatus 
+              appointmentId={id}
+              appointment={appointment}
+              action={statusAction}
+              isOpen={!!statusAction}
+              onClose={handleStatusDialogClose}
+              onSuccess={handleStatusSuccess}
+            />
+          )}
         </>
       ) : (
         <Card className="bg-destructive/10">
