@@ -1,6 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { storage, DatabaseStorage } from "./storage";
+import { db } from "./db";
 
 const app = express();
 app.use(express.json());
@@ -37,6 +39,27 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  try {
+    // Push schema to database
+    log("Pushing database schema...");
+    await db.execute(
+      `CREATE TABLE IF NOT EXISTS _drizzle_migrations (
+        id SERIAL PRIMARY KEY,
+        hash text NOT NULL,
+        created_at timestamp with time zone DEFAULT now()
+      )`
+    );
+    
+    // Initialize default data
+    log("Initializing default data...");
+    if (storage instanceof DatabaseStorage) {
+      await storage.initializeDefaultProviders();
+    }
+  } catch (error) {
+    log(`Error initializing database: ${(error as Error).message}`);
+    console.error(error);
+  }
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

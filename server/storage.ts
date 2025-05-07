@@ -8,6 +8,8 @@ import {
   providers,
   type Provider
 } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 // Interface for all storage operations
 export interface IStorage {
@@ -19,6 +21,7 @@ export interface IStorage {
   // Provider operations
   getProviders(): Promise<Provider[]>;
   getProvider(id: number): Promise<Provider | undefined>;
+  createProvider(name: string, active?: boolean): Promise<Provider>;
   
   // Appointment operations
   getAppointments(): Promise<Appointment[]>;
@@ -28,138 +31,127 @@ export interface IStorage {
   deleteAppointment(id: number): Promise<boolean>;
 }
 
-// In-memory storage implementation
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private providers: Map<number, Provider>;
-  private appointments: Map<number, Appointment>;
-  
-  private currentUserId: number;
-  private currentProviderId: number;
-  private currentAppointmentId: number;
-  
-  constructor() {
-    this.users = new Map();
-    this.providers = new Map();
-    this.appointments = new Map();
-    
-    this.currentUserId = 1;
-    this.currentProviderId = 1;
-    this.currentAppointmentId = 1;
-    
-    this.initializeData();
-  }
-  
-  private initializeData() {
-    // Add some default providers
-    const defaultProviders = [
-      { id: this.currentProviderId++, name: 'Sera', active: true },
-      { id: this.currentProviderId++, name: 'Courtesan Couple', active: true },
-      { id: this.currentProviderId++, name: 'Chloe', active: true },
-      { id: this.currentProviderId++, name: 'Alexa', active: true },
-      { id: this.currentProviderId++, name: 'Frenchie', active: true }
-    ];
-    
-    defaultProviders.forEach(provider => {
-      this.providers.set(provider.id, provider);
-    });
-  }
-  
+// Database storage implementation
+export class DatabaseStorage implements IStorage {
   // User methods
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const result = await db.select().from(users).where(eq(users.id, id));
+    return result[0];
   }
   
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const result = await db.select().from(users).where(eq(users.username, username));
+    return result[0];
   }
   
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentUserId++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+    const result = await db.insert(users).values(insertUser).returning();
+    return result[0];
   }
   
   // Provider methods
   async getProviders(): Promise<Provider[]> {
-    return Array.from(this.providers.values());
+    return await db.select().from(providers);
   }
   
   async getProvider(id: number): Promise<Provider | undefined> {
-    return this.providers.get(id);
+    const result = await db.select().from(providers).where(eq(providers.id, id));
+    return result[0];
+  }
+  
+  async createProvider(name: string, active: boolean = true): Promise<Provider> {
+    const result = await db.insert(providers).values({ name, active }).returning();
+    return result[0];
   }
   
   // Appointment methods
   async getAppointments(): Promise<Appointment[]> {
-    return Array.from(this.appointments.values());
+    return await db.select().from(appointments);
   }
   
   async getAppointment(id: number): Promise<Appointment | undefined> {
-    return this.appointments.get(id);
+    const result = await db.select().from(appointments).where(eq(appointments.id, id));
+    return result[0];
   }
   
   async createAppointment(insertAppointment: InsertAppointment): Promise<Appointment> {
-    const id = this.currentAppointmentId++;
-    const now = new Date();
-    
     // Calculate derived values
     const totalExpenses = (insertAppointment.travelExpense || 0) + (insertAppointment.hostingExpense || 0);
     const dueToProvider = (insertAppointment.grossRevenue || 0) - (insertAppointment.depositAmount || 0);
     const totalCollected = (insertAppointment.totalCollectedCash || 0) + (insertAppointment.totalCollectedDigital || 0);
     
-    const appointment: Appointment = {
+    const now = new Date();
+    
+    const result = await db.insert(appointments).values({
       ...insertAppointment,
-      id,
       totalExpenses,
       dueToProvider,
       totalCollected,
       createdAt: now,
       updatedAt: now
-    };
+    }).returning();
     
-    this.appointments.set(id, appointment);
-    return appointment;
+    return result[0];
   }
   
   async updateAppointment(id: number, updateData: Partial<InsertAppointment>): Promise<Appointment | undefined> {
-    const appointment = this.appointments.get(id);
+    // Get the current appointment
+    const currentAppointment = await this.getAppointment(id);
     
-    if (!appointment) {
+    if (!currentAppointment) {
       return undefined;
     }
     
     // Calculate derived values
-    const travelExpense = updateData.travelExpense !== undefined ? updateData.travelExpense : appointment.travelExpense;
-    const hostingExpense = updateData.hostingExpense !== undefined ? updateData.hostingExpense : appointment.hostingExpense;
-    const totalExpenses = travelExpense + hostingExpense;
+    const travelExpense = updateData.travelExpense !== undefined ? updateData.travelExpense : currentAppointment.travelExpense;
+    const hostingExpense = updateData.hostingExpense !== undefined ? updateData.hostingExpense : currentAppointment.hostingExpense;
+    const totalExpenses = (travelExpense || 0) + (hostingExpense || 0);
     
-    const grossRevenue = updateData.grossRevenue !== undefined ? updateData.grossRevenue : appointment.grossRevenue;
-    const depositAmount = updateData.depositAmount !== undefined ? updateData.depositAmount : appointment.depositAmount;
+    const grossRevenue = updateData.grossRevenue !== undefined ? updateData.grossRevenue : currentAppointment.grossRevenue;
+    const depositAmount = updateData.depositAmount !== undefined ? updateData.depositAmount : currentAppointment.depositAmount;
     const dueToProvider = (grossRevenue || 0) - (depositAmount || 0);
     
-    const totalCollectedCash = updateData.totalCollectedCash !== undefined ? updateData.totalCollectedCash : appointment.totalCollectedCash;
-    const totalCollectedDigital = updateData.totalCollectedDigital !== undefined ? updateData.totalCollectedDigital : appointment.totalCollectedDigital;
-    const totalCollected = totalCollectedCash + totalCollectedDigital;
+    const totalCollectedCash = updateData.totalCollectedCash !== undefined ? updateData.totalCollectedCash : currentAppointment.totalCollectedCash;
+    const totalCollectedDigital = updateData.totalCollectedDigital !== undefined ? updateData.totalCollectedDigital : currentAppointment.totalCollectedDigital;
+    const totalCollected = (totalCollectedCash || 0) + (totalCollectedDigital || 0);
     
-    const updated: Appointment = {
-      ...appointment,
-      ...updateData,
-      totalExpenses,
-      dueToProvider,
-      totalCollected,
-      updatedAt: new Date()
-    };
+    const result = await db.update(appointments)
+      .set({
+        ...updateData,
+        totalExpenses,
+        dueToProvider,
+        totalCollected,
+        updatedAt: new Date()
+      })
+      .where(eq(appointments.id, id))
+      .returning();
     
-    this.appointments.set(id, updated);
-    return updated;
+    return result[0];
   }
   
   async deleteAppointment(id: number): Promise<boolean> {
-    return this.appointments.delete(id);
+    const result = await db.delete(appointments).where(eq(appointments.id, id)).returning();
+    return result.length > 0;
+  }
+  
+  // Initialize default data if needed
+  async initializeDefaultProviders(): Promise<void> {
+    const existingProviders = await this.getProviders();
+    
+    if (existingProviders.length === 0) {
+      const defaultProviders = [
+        { name: 'Sera', active: true },
+        { name: 'Courtesan Couple', active: true },
+        { name: 'Chloe', active: true },
+        { name: 'Alexa', active: true },
+        { name: 'Frenchie', active: true }
+      ];
+      
+      for (const provider of defaultProviders) {
+        await this.createProvider(provider.name, provider.active);
+      }
+    }
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
