@@ -7,7 +7,7 @@ import { sendEmail } from './emailService';
  */
 export async function testCalendarConnection(): Promise<boolean> {
   try {
-    const auth = getAuthClient();
+    const auth = await getAuthClient();
     if (!auth) {
       log('Failed to initialize Google auth client', 'testService');
       return false;
