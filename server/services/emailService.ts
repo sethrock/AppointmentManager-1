@@ -1,19 +1,28 @@
 import nodemailer from 'nodemailer';
-import { google } from 'googleapis';
 import { Appointment } from '@shared/schema';
 import { log } from '../vite';
+import { formatDate, formatTime } from '../../client/src/lib/format';
 
-// Configure OAuth2 client
-const oAuth2Client = new google.auth.OAuth2(
-  process.env.GMAIL_CLIENT_ID,
-  process.env.GMAIL_CLIENT_SECRET,
-  process.env.GMAIL_REDIRECT_URI
-);
-
-// Set refresh token
-oAuth2Client.setCredentials({
-  refresh_token: process.env.GMAIL_REFRESH_TOKEN,
-});
+// Create reusable transporter object using SMTP transport
+const createTransporter = () => {
+  // We need to get credentials from environment variables
+  // These will be set using the ask_secrets tool when needed
+  const email = process.env.GMAIL_EMAIL;
+  const password = process.env.GMAIL_APP_PASSWORD;
+  
+  if (!email || !password) {
+    log('Gmail credentials not found in environment variables', 'emailService');
+    return null;
+  }
+  
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: email,
+      pass: password
+    }
+  });
+};
 
 /**
  * Send an email notification
@@ -24,31 +33,24 @@ export async function sendEmail(
   html: string
 ): Promise<boolean> {
   try {
-    // Get access token
-    const accessToken = await oAuth2Client.getAccessToken();
-
-    // Create transporter
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        type: 'OAuth2',
-        user: process.env.GMAIL_EMAIL,
-        clientId: process.env.GMAIL_CLIENT_ID,
-        clientSecret: process.env.GMAIL_CLIENT_SECRET,
-        refreshToken: process.env.GMAIL_REFRESH_TOKEN,
-        accessToken: accessToken?.token || '',
-      },
-    });
-
-    // Send email
-    const result = await transporter.sendMail({
-      from: `"Appointment Manager" <${process.env.GMAIL_EMAIL}>`,
+    const transporter = createTransporter();
+    if (!transporter) {
+      return false;
+    }
+    
+    const from = process.env.GMAIL_EMAIL;
+    
+    // Set up email options
+    const mailOptions = {
+      from: `"Appointment System" <${from}>`,
       to,
       subject,
-      html,
-    });
-
-    log(`Email sent: ${result.messageId}`, 'emailService');
+      html
+    };
+    
+    // Send email
+    await transporter.sendMail(mailOptions);
+    log(`Email sent to ${to}`, 'emailService');
     return true;
   } catch (error) {
     log(`Error sending email: ${error}`, 'emailService');
@@ -60,33 +62,28 @@ export async function sendEmail(
  * Generate email content for new appointment
  */
 export function generateNewAppointmentEmail(appointment: Appointment): string {
+  const timeInfo = `${formatDate(appointment.startDate)} at ${formatTime(appointment.startTime)}`;
+  const provider = appointment.provider;
+  
   return `
-    <h1>New Appointment Created</h1>
-    <p>A new appointment has been scheduled:</p>
-    <ul>
-      <li><strong>Client:</strong> ${appointment.clientName}</li>
-      <li><strong>Provider:</strong> ${appointment.provider}</li>
-      <li><strong>Date:</strong> ${appointment.startDate}</li>
-      <li><strong>Time:</strong> ${appointment.startTime}${
-    appointment.endTime ? ` - ${appointment.endTime}` : ''
-  }</li>
-      <li><strong>Type:</strong> ${
-        appointment.callType === 'in-call' ? 'In-Call' : 'Out-Call'
-      }</li>
-    </ul>
-    ${
-      appointment.callType === 'out-call' && appointment.streetAddress
-        ? `
-    <h2>Location:</h2>
-    <p>
-      ${appointment.streetAddress}<br>
-      ${appointment.addressLine2 ? appointment.addressLine2 + '<br>' : ''}
-      ${appointment.city}, ${appointment.state} ${appointment.zipCode}
-    </p>
-    `
-        : ''
-    }
-    <p>Please log in to the Appointment Manager for more details.</p>
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+      <h2 style="color: #2c3e50;">New Appointment Scheduled</h2>
+      <p>A new appointment has been scheduled with ${provider}.</p>
+      
+      <div style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #2c3e50;">Appointment Details</h3>
+        <p><strong>Provider:</strong> ${provider}</p>
+        <p><strong>Date & Time:</strong> ${timeInfo}</p>
+        <p><strong>Client:</strong> ${appointment.clientName || 'Not specified'}</p>
+        <p><strong>Type:</strong> ${appointment.callType === 'in-call' ? 'In-Call' : 'Out-Call'}</p>
+      </div>
+      
+      <p>Please log in to the appointment management system to view the full details.</p>
+      
+      <p style="margin-top: 30px; font-size: 12px; color: #7f8c8d;">
+        This is an automated message. Please do not reply to this email.
+      </p>
+    </div>
   `;
 }
 
@@ -95,57 +92,56 @@ export function generateNewAppointmentEmail(appointment: Appointment): string {
  */
 export function generateStatusUpdateEmail(
   appointment: Appointment,
-  newStatus: string
+  status: string
 ): string {
-  let statusSpecificDetails = '';
-
-  switch (newStatus) {
-    case 'Reschedule':
-      statusSpecificDetails = `
-        <h2>New Schedule:</h2>
-        <ul>
-          <li><strong>Date:</strong> ${appointment.updatedStartDate}</li>
-          <li><strong>Time:</strong> ${appointment.updatedStartTime}${
-        appointment.updatedEndTime ? ` - ${appointment.updatedEndTime}` : ''
-      }</li>
-        </ul>
-      `;
-      break;
+  const timeInfo = `${formatDate(appointment.startDate)} at ${formatTime(appointment.startTime)}`;
+  const provider = appointment.provider;
+  
+  let statusMessage = '';
+  let statusColor = '';
+  
+  switch (status) {
     case 'Complete':
-      statusSpecificDetails = `
-        <h2>Completion Details:</h2>
-        <ul>
-          <li><strong>Total Collected:</strong> $${appointment.totalCollected || 0}</li>
-        </ul>
-      `;
+      statusMessage = 'has been marked as completed';
+      statusColor = '#27ae60'; // Green
+      break;
+    case 'Reschedule':
+      statusMessage = 'has been rescheduled';
+      statusColor = '#f39c12'; // Orange
       break;
     case 'Cancel':
-      statusSpecificDetails = `
-        <h2>Cancellation Details:</h2>
-        <p>Canceled by: ${appointment.whoCanceled || 'Not specified'}</p>
-        ${
-          appointment.cancellationDetails
-            ? `<p>Reason: ${appointment.cancellationDetails}</p>`
-            : ''
-        }
-      `;
+      statusMessage = 'has been cancelled';
+      statusColor = '#e74c3c'; // Red
       break;
+    default:
+      statusMessage = 'has been updated';
+      statusColor = '#3498db'; // Blue
   }
-
+  
   return `
-    <h1>Appointment Status Updated</h1>
-    <p>An appointment has been updated to: <strong>${newStatus}</strong></p>
-    <h2>Appointment Details:</h2>
-    <ul>
-      <li><strong>Client:</strong> ${appointment.clientName}</li>
-      <li><strong>Provider:</strong> ${appointment.provider}</li>
-      <li><strong>Original Date:</strong> ${appointment.startDate}</li>
-      <li><strong>Original Time:</strong> ${appointment.startTime}${
-    appointment.endTime ? ` - ${appointment.endTime}` : ''
-  }</li>
-    </ul>
-    ${statusSpecificDetails}
-    <p>Please log in to the Appointment Manager for more details.</p>
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+      <h2 style="color: #2c3e50;">Appointment Status Update</h2>
+      <p>Your appointment with ${provider} on ${timeInfo} ${statusMessage}.</p>
+      
+      <div style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: ${statusColor};">Status: ${status}</h3>
+        
+        ${status === 'Reschedule' && appointment.updatedStartDate ? `
+          <p><strong>New Date & Time:</strong> ${formatDate(appointment.updatedStartDate)} at ${formatTime(appointment.updatedStartTime || '')}</p>
+        ` : ''}
+        
+        ${status === 'Cancel' && appointment.whoCanceled ? `
+          <p><strong>Cancelled by:</strong> ${appointment.whoCanceled === 'client' ? 'Client' : 'Provider'}</p>
+          ${appointment.cancellationDetails ? `<p><strong>Reason:</strong> ${appointment.cancellationDetails}</p>` : ''}
+        ` : ''}
+      </div>
+      
+      <p>Please log in to the appointment management system for more details.</p>
+      
+      <p style="margin-top: 30px; font-size: 12px; color: #7f8c8d;">
+        This is an automated message. Please do not reply to this email.
+      </p>
+    </div>
   `;
 }
 
@@ -155,32 +151,28 @@ export function generateStatusUpdateEmail(
 export async function sendNewAppointmentNotification(
   appointment: Appointment
 ): Promise<boolean> {
-  // Get notification recipient (admin email)
-  const adminEmail = process.env.ADMIN_EMAIL || process.env.GMAIL_EMAIL;
-  
-  // Check if we have a recipient and client email
-  if (!adminEmail) {
-    log('No admin email configured for notifications', 'emailService');
+  try {
+    // First determine who to send the email to
+    let recipientEmail = process.env.NOTIFICATION_EMAIL; // Default notification email
+    
+    // If client has email and wants to receive notifications
+    if (appointment.clientEmail && appointment.clientUsesEmail) {
+      recipientEmail = appointment.clientEmail;
+    }
+    
+    if (!recipientEmail) {
+      log('No recipient email found for appointment notification', 'emailService');
+      return false;
+    }
+    
+    const subject = 'New Appointment Scheduled';
+    const html = generateNewAppointmentEmail(appointment);
+    
+    return await sendEmail(recipientEmail, subject, html);
+  } catch (error) {
+    log(`Error sending new appointment notification: ${error}`, 'emailService');
     return false;
   }
-
-  // Email subject
-  const subject = `New Appointment: ${appointment.clientName} - ${appointment.startDate}`;
-  
-  // Email content
-  const html = generateNewAppointmentEmail(appointment);
-  
-  // Send to admin
-  const adminEmailSent = await sendEmail(adminEmail, subject, html);
-  
-  // Also send to client if email is available
-  let clientEmailSent = false;
-  if (appointment.clientEmail) {
-    const clientSubject = `Your Appointment Confirmation - ${appointment.startDate}`;
-    clientEmailSent = await sendEmail(appointment.clientEmail, clientSubject, html);
-  }
-  
-  return adminEmailSent || clientEmailSent;
 }
 
 /**
@@ -188,32 +180,28 @@ export async function sendNewAppointmentNotification(
  */
 export async function sendStatusUpdateNotification(
   appointment: Appointment,
-  newStatus: string
+  status: string
 ): Promise<boolean> {
-  // Get notification recipient (admin email)
-  const adminEmail = process.env.ADMIN_EMAIL || process.env.GMAIL_EMAIL;
-  
-  // Check if we have a recipient
-  if (!adminEmail) {
-    log('No admin email configured for notifications', 'emailService');
+  try {
+    // Determine who to send the email to
+    let recipientEmail = process.env.NOTIFICATION_EMAIL; // Default notification email
+    
+    // If client has email and wants to receive notifications
+    if (appointment.clientEmail && appointment.clientUsesEmail) {
+      recipientEmail = appointment.clientEmail;
+    }
+    
+    if (!recipientEmail) {
+      log('No recipient email found for status update notification', 'emailService');
+      return false;
+    }
+    
+    const subject = `Appointment ${status} Notification`;
+    const html = generateStatusUpdateEmail(appointment, status);
+    
+    return await sendEmail(recipientEmail, subject, html);
+  } catch (error) {
+    log(`Error sending status update notification: ${error}`, 'emailService');
     return false;
   }
-
-  // Email subject
-  const subject = `Appointment ${newStatus}: ${appointment.clientName} - ${appointment.startDate}`;
-  
-  // Email content
-  const html = generateStatusUpdateEmail(appointment, newStatus);
-  
-  // Send to admin
-  const adminEmailSent = await sendEmail(adminEmail, subject, html);
-  
-  // Also send to client if email is available
-  let clientEmailSent = false;
-  if (appointment.clientEmail) {
-    const clientSubject = `Your Appointment Has Been ${newStatus}d`;
-    clientEmailSent = await sendEmail(appointment.clientEmail, clientSubject, html);
-  }
-  
-  return adminEmailSent || clientEmailSent;
 }

@@ -28,6 +28,7 @@ export interface IStorage {
   getAppointment(id: number): Promise<Appointment | undefined>;
   createAppointment(appointment: InsertAppointment): Promise<Appointment>;
   updateAppointment(id: number, appointment: Partial<InsertAppointment>): Promise<Appointment | undefined>;
+  updateCalendarEventId(id: number, calendarEventId: string): Promise<Appointment | undefined>;
   deleteAppointment(id: number): Promise<boolean>;
 }
 
@@ -90,6 +91,21 @@ export class DatabaseStorage implements IStorage {
       createdAt: now,
       updatedAt: now
     }).returning();
+    
+    return result[0];
+  }
+  
+  /**
+   * Update the calendar event ID for an appointment
+   */
+  async updateCalendarEventId(id: number, calendarEventId: string): Promise<Appointment | undefined> {
+    const result = await db.update(appointments)
+      .set({
+        calendarEventId,
+        updatedAt: new Date()
+      })
+      .where(eq(appointments.id, id))
+      .returning();
     
     return result[0];
   }

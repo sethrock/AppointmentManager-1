@@ -4,6 +4,8 @@ import { storage } from "./storage";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { insertAppointmentSchema } from "@shared/schema";
+import { handleNewAppointmentNotifications, handleAppointmentStatusNotifications } from "./services/notificationService";
+import { log } from "./vite";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API Routes - all prefixed with /api
@@ -67,6 +69,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const newAppointment = await storage.createAppointment(parsedData.data);
+      
+      // Send notifications for the new appointment (async)
+      handleNewAppointmentNotifications(newAppointment)
+        .then(async (result) => {
+          log(`Notifications processed for new appointment ${newAppointment.id}`, 'routes');
+        })
+        .catch(error => {
+          log(`Error processing notifications for appointment ${newAppointment.id}: ${error}`, 'routes');
+        });
+      
       res.status(201).json(newAppointment);
     } catch (error) {
       console.error("Error creating appointment:", error);
@@ -81,6 +93,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(id)) {
         return res.status(400).json({ message: "Invalid appointment ID" });
       }
+      
+      // Get the current appointment to track status changes
+      const currentAppointment = await storage.getAppointment(id);
+      if (!currentAppointment) {
+        return res.status(404).json({ message: "Appointment not found" });
+      }
+      
+      // Store the previous status to detect changes
+      const previousStatus = currentAppointment.dispositionStatus || null;
       
       // Partial validation - only validate fields that are included
       const partialSchema = insertAppointmentSchema.partial();
@@ -97,6 +118,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedAppointment = await storage.updateAppointment(id, parsedData.data);
       if (!updatedAppointment) {
         return res.status(404).json({ message: "Appointment not found" });
+      }
+      
+      // Handle notifications when disposition status changes
+      if (parsedData.data.dispositionStatus && 
+          parsedData.data.dispositionStatus !== previousStatus) {
+        
+        // Process notifications asynchronously to not block the response
+        handleAppointmentStatusNotifications(updatedAppointment, previousStatus)
+          .then(() => {
+            log(`Status notifications processed for appointment ${id} (${previousStatus} -> ${updatedAppointment.dispositionStatus})`, 'routes');
+          })
+          .catch(error => {
+            log(`Error processing status notifications for appointment ${id}: ${error}`, 'routes');
+          });
       }
       
       res.json(updatedAppointment);
