@@ -1,138 +1,175 @@
-import { google } from 'googleapis';
 import { Appointment } from '@shared/schema';
 import { log } from '../vite';
+import { google, Auth, calendar_v3 } from 'googleapis';
+import { storage } from '../storage';
+import { formatDate, formatTime } from '../../client/src/lib/format';
 
-// Configure OAuth2 client
-const oAuth2Client = new google.auth.OAuth2(
-  process.env.GMAIL_CLIENT_ID,
-  process.env.GMAIL_CLIENT_SECRET,
-  process.env.GMAIL_REDIRECT_URI
-);
+// Calendar IDs for different appointment statuses
+const CALENDARS = {
+  // Main calendar for active appointments
+  active: process.env.GOOGLE_CALENDAR_ID,
+  // Archive calendar for completed/cancelled appointments
+  archive: process.env.GOOGLE_ARCHIVE_CALENDAR_ID
+};
 
-// Set refresh token
-oAuth2Client.setCredentials({
-  refresh_token: process.env.GMAIL_REFRESH_TOKEN,
-});
+// Time zone to use for calendar events
+const TIME_ZONE = 'America/New_York'; // or process.env.TIME_ZONE
 
-// Create calendar API client
-const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
+// Initialize Google Auth
+let auth: Auth.OAuth2Client | null = null;
 
-// Calendar IDs (these will come from environment variables)
-const ACTIVE_CALENDAR_ID = process.env.GOOGLE_CALENDAR_ACTIVE_ID || 'primary';
-const COMPLETED_CALENDAR_ID = process.env.GOOGLE_CALENDAR_COMPLETED_ID || 'primary';
+/**
+ * Initialize the Google API auth client
+ */
+function getAuthClient(): Auth.OAuth2Client | null {
+  try {
+    // Check if we already have an auth client
+    if (auth) return auth;
+    
+    // Get credentials from environment variables
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
+    
+    // Verify required credentials exist
+    if (!clientId || !clientSecret || !refreshToken) {
+      log('Missing Google API credentials in environment variables', 'calendarService');
+      return null;
+    }
+    
+    // Create a new OAuth client
+    auth = new google.auth.OAuth2(clientId, clientSecret);
+    
+    // Set credentials using refresh token
+    auth.setCredentials({
+      refresh_token: refreshToken
+    });
+    
+    return auth;
+  } catch (error) {
+    log(`Error initializing Google Auth: ${error}`, 'calendarService');
+    return null;
+  }
+}
+
+/**
+ * Get Google Calendar API
+ */
+function getCalendarAPI(): calendar_v3.Calendar | null {
+  const authClient = getAuthClient();
+  if (!authClient) return null;
+  
+  return google.calendar({ version: 'v3', auth: authClient });
+}
+
+/**
+ * Get appropriate calendar ID based on appointment status
+ */
+function getCalendarId(status: string | null | undefined): string | null {
+  // Check if we have calendar IDs
+  if (!CALENDARS.active) {
+    log('Missing Google Calendar ID in environment variables', 'calendarService');
+    return null;
+  }
+  
+  // Use archive calendar for completed or cancelled appointments
+  if (status === 'Complete' || status === 'Cancel') {
+    return CALENDARS.archive || CALENDARS.active;
+  }
+  
+  // Default to active calendar
+  return CALENDARS.active;
+}
 
 /**
  * Format date and time strings to RFC3339 format for Google Calendar
  */
 function formatDateTime(dateStr: string, timeStr: string): string {
-  // Parse date (YYYY-MM-DD) and time (HH:MM)
-  const [year, month, day] = dateStr.split('-').map(n => parseInt(n));
-  const [hours, minutes] = timeStr.split(':').map(n => parseInt(n));
+  // Parse the date and time strings
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const [hours, minutes] = timeStr.split(':').map(Number);
   
-  // Create date object (month is 0-indexed in JavaScript)
+  // Create a new Date object
   const date = new Date(year, month - 1, day, hours, minutes);
   
-  // Return in RFC3339 format
+  // Return RFC3339 formatted date-time string
   return date.toISOString();
 }
 
 /**
  * Create an event in Google Calendar
  */
-export async function createCalendarEvent(
+async function createCalendarEvent(
   appointment: Appointment, 
-  isCompleteOrCancelled: boolean = false
+  calendarId: string
 ): Promise<string | null> {
   try {
-    // Determine which calendar to use
-    const calendarId = isCompleteOrCancelled ? COMPLETED_CALENDAR_ID : ACTIVE_CALENDAR_ID;
+    // Get Google Calendar API
+    const calendar = getCalendarAPI();
+    if (!calendar) return null;
     
-    // Format event dates
+    // Format start and end dates/times
     const startDateTime = formatDateTime(
-      appointment.startDate, 
+      appointment.startDate,
       appointment.startTime
     );
     
-    // Calculate end time (use end time if provided, otherwise add 1 hour)
-    let endDateTime: string;
-    if (appointment.endDate && appointment.endTime) {
-      endDateTime = formatDateTime(appointment.endDate, appointment.endTime);
-    } else {
-      const endDate = new Date(new Date(startDateTime).getTime() + 60 * 60 * 1000); // Add 1 hour
-      endDateTime = endDate.toISOString();
-    }
+    // If end date/time is not specified, use start time + 1 hour as default
+    const endDate = appointment.endDate || appointment.startDate;
+    const endTime = appointment.endTime || (() => {
+      const [hours, minutes] = appointment.startTime.split(':').map(Number);
+      return `${hours + 1}:${minutes.toString().padStart(2, '0')}`;
+    })();
     
-    // Create event details
-    const eventSummary = `${appointment.clientName} - ${appointment.provider}`;
-    let eventDescription = `Type: ${appointment.callType === 'in-call' ? 'In-Call' : 'Out-Call'}\n`;
+    const endDateTime = formatDateTime(endDate, endTime);
     
-    if (appointment.clientEmail) {
-      eventDescription += `Email: ${appointment.clientEmail}\n`;
-    }
-    
-    if (appointment.phoneNumber) {
-      eventDescription += `Phone: ${appointment.phoneNumber}\n`;
-    }
-    
-    // Add location details for out-call
-    let eventLocation: string | undefined = undefined;
-    if (appointment.callType === 'out-call' && appointment.streetAddress) {
-      eventLocation = `${appointment.streetAddress}, ${appointment.city}, ${appointment.state} ${appointment.zipCode}`;
-      
-      // Add address details to description
-      eventDescription += `\nLocation:\n${appointment.streetAddress}\n`;
-      if (appointment.addressLine2) eventDescription += `${appointment.addressLine2}\n`;
-      eventDescription += `${appointment.city}, ${appointment.state} ${appointment.zipCode}\n`;
-      
-      if (appointment.outcallDetails) {
-        eventDescription += `\nDetails: ${appointment.outcallDetails}\n`;
-      }
-    }
-    
-    // Add disposition status if available
-    if (appointment.dispositionStatus) {
-      eventDescription += `\nStatus: ${appointment.dispositionStatus}\n`;
-      
-      // Add status-specific details
-      if (appointment.dispositionStatus === 'Complete' && appointment.totalCollected) {
-        eventDescription += `\nTotal Collected: $${appointment.totalCollected}\n`;
-        if (appointment.appointmentNotes) {
-          eventDescription += `Notes: ${appointment.appointmentNotes}\n`;
-        }
-      } else if (appointment.dispositionStatus === 'Cancel' && appointment.whoCanceled) {
-        eventDescription += `\nCanceled by: ${appointment.whoCanceled}\n`;
-        if (appointment.cancellationDetails) {
-          eventDescription += `Reason: ${appointment.cancellationDetails}\n`;
-        }
-      }
+    // Build the location string
+    let location: string | undefined;
+    if (appointment.callType === 'in-call') {
+      location = 'Office';
+    } else if (appointment.streetAddress) {
+      const parts = [
+        appointment.streetAddress,
+        appointment.addressLine2,
+        appointment.city,
+        appointment.state,
+        appointment.zipCode
+      ].filter(Boolean);
+      location = parts.join(', ');
     }
     
     // Create the event
     const event = {
-      summary: eventSummary,
-      description: eventDescription,
-      location: eventLocation,
+      summary: `Appointment with ${appointment.clientName || 'Client'}`,
+      description: `Provider: ${appointment.provider}\nSet by: ${appointment.setBy}\nMarketing Channel: ${appointment.marketingChannel}`,
+      location,
       start: {
         dateTime: startDateTime,
-        timeZone: 'America/New_York', // Use appropriate timezone
+        timeZone: TIME_ZONE
       },
       end: {
         dateTime: endDateTime,
-        timeZone: 'America/New_York', // Use appropriate timezone
+        timeZone: TIME_ZONE
       },
-      attendees: [
-        appointment.clientEmail ? { email: appointment.clientEmail } : null,
-      ].filter(Boolean),
+      // Add attendees if the client has an email
+      attendees: appointment.clientEmail ? [
+        { email: appointment.clientEmail }
+      ] : undefined
     };
     
-    // Insert the event
-    const result = await calendar.events.insert({
+    // Insert the event into the calendar
+    const response = await calendar.events.insert({
       calendarId,
-      requestBody: event,
+      requestBody: event as any
     });
     
-    log(`Event created: ${result.data.htmlLink}`, 'calendarService');
-    return result.data.id || null;
+    // Log success and return the event ID
+    if (response.data && response.data.id) {
+      log(`Created calendar event ${response.data.id} in calendar ${calendarId}`, 'calendarService');
+      return response.data.id;
+    }
+    
+    return null;
   } catch (error) {
     log(`Error creating calendar event: ${error}`, 'calendarService');
     return null;
@@ -142,141 +179,133 @@ export async function createCalendarEvent(
 /**
  * Update an existing calendar event
  */
-export async function updateCalendarEvent(
-  eventId: string,
+async function updateCalendarEvent(
   appointment: Appointment,
-  calendarId: string = ACTIVE_CALENDAR_ID
-): Promise<boolean> {
+  eventId: string,
+  calendarId: string
+): Promise<string | null> {
   try {
-    // Format event dates (use updated dates if available)
-    const startDateTime = formatDateTime(
-      appointment.updatedStartDate || appointment.startDate, 
-      appointment.updatedStartTime || appointment.startTime
-    );
+    // Get Google Calendar API
+    const calendar = getCalendarAPI();
+    if (!calendar) return null;
     
-    // Calculate end time (use end time if provided, otherwise add 1 hour)
-    let endDateTime: string;
-    const endDate = appointment.updatedEndDate || appointment.endDate;
-    const endTime = appointment.updatedEndTime || appointment.endTime;
+    // Format start and end dates/times - using updated ones if available
+    const startDate = appointment.updatedStartDate || appointment.startDate;
+    const startTime = appointment.updatedStartTime || appointment.startTime;
+    const startDateTime = formatDateTime(startDate, startTime);
     
-    if (endDate && endTime) {
-      endDateTime = formatDateTime(endDate, endTime);
-    } else {
-      const end = new Date(new Date(startDateTime).getTime() + 60 * 60 * 1000); // Add 1 hour
-      endDateTime = end.toISOString();
+    // If end date/time is not specified, use start time + 1 hour as default
+    const endDate = appointment.updatedEndDate || appointment.endDate || startDate;
+    const endTime = appointment.updatedEndTime || appointment.endTime || (() => {
+      const [hours, minutes] = startTime.split(':').map(Number);
+      return `${hours + 1}:${minutes.toString().padStart(2, '0')}`;
+    })();
+    
+    const endDateTime = formatDateTime(endDate, endTime);
+    
+    // Build the location string
+    let location: string | undefined;
+    if (appointment.callType === 'in-call') {
+      location = 'Office';
+    } else if (appointment.streetAddress) {
+      const parts = [
+        appointment.streetAddress,
+        appointment.addressLine2,
+        appointment.city,
+        appointment.state,
+        appointment.zipCode
+      ].filter(Boolean);
+      location = parts.join(', ');
     }
     
-    // Create event details
-    const eventSummary = `${appointment.clientName} - ${appointment.provider}`;
-    let eventDescription = `Type: ${appointment.callType === 'in-call' ? 'In-Call' : 'Out-Call'}\n`;
-    
-    if (appointment.clientEmail) {
-      eventDescription += `Email: ${appointment.clientEmail}\n`;
-    }
-    
-    if (appointment.phoneNumber) {
-      eventDescription += `Phone: ${appointment.phoneNumber}\n`;
-    }
-    
-    // Add location details for out-call
-    let eventLocation: string | undefined = undefined;
-    if (appointment.callType === 'out-call' && appointment.streetAddress) {
-      eventLocation = `${appointment.streetAddress}, ${appointment.city}, ${appointment.state} ${appointment.zipCode}`;
-      
-      // Add address details to description
-      eventDescription += `\nLocation:\n${appointment.streetAddress}\n`;
-      if (appointment.addressLine2) eventDescription += `${appointment.addressLine2}\n`;
-      eventDescription += `${appointment.city}, ${appointment.state} ${appointment.zipCode}\n`;
-      
-      if (appointment.outcallDetails) {
-        eventDescription += `\nDetails: ${appointment.outcallDetails}\n`;
-      }
-    }
-    
-    // Add disposition status if available
-    if (appointment.dispositionStatus) {
-      eventDescription += `\nStatus: ${appointment.dispositionStatus}\n`;
-      
-      // Add status-specific details
-      if (appointment.dispositionStatus === 'Complete' && appointment.totalCollected) {
-        eventDescription += `\nTotal Collected: $${appointment.totalCollected}\n`;
-        if (appointment.appointmentNotes) {
-          eventDescription += `Notes: ${appointment.appointmentNotes}\n`;
-        }
-      } else if (appointment.dispositionStatus === 'Cancel' && appointment.whoCanceled) {
-        eventDescription += `\nCanceled by: ${appointment.whoCanceled}\n`;
-        if (appointment.cancellationDetails) {
-          eventDescription += `Reason: ${appointment.cancellationDetails}\n`;
-        }
-      }
-    }
-    
-    // Update the event
+    // Create the updated event
     const event = {
-      summary: eventSummary,
-      description: eventDescription,
-      location: eventLocation,
+      summary: `Appointment with ${appointment.clientName || 'Client'}`,
+      description: `Provider: ${appointment.provider}\nSet by: ${appointment.setBy}\nMarketing Channel: ${appointment.marketingChannel}`,
+      location,
       start: {
         dateTime: startDateTime,
-        timeZone: 'America/New_York', // Use appropriate timezone
+        timeZone: TIME_ZONE
       },
       end: {
         dateTime: endDateTime,
-        timeZone: 'America/New_York', // Use appropriate timezone
+        timeZone: TIME_ZONE
       },
-      attendees: [
-        appointment.clientEmail ? { email: appointment.clientEmail } : null,
-      ].filter(Boolean),
+      // Add attendees if the client has an email
+      attendees: appointment.clientEmail ? [
+        { email: appointment.clientEmail }
+      ] : undefined
     };
     
-    // Update the event
-    await calendar.events.update({
+    // Update the event in the calendar
+    const response = await calendar.events.update({
       calendarId,
       eventId,
-      requestBody: event,
+      requestBody: event as any
     });
     
-    log(`Event updated: ${eventId}`, 'calendarService');
-    return true;
+    // Log success and return the event ID
+    if (response.data && response.data.id) {
+      log(`Updated calendar event ${response.data.id} in calendar ${calendarId}`, 'calendarService');
+      return response.data.id;
+    }
+    
+    return null;
   } catch (error) {
     log(`Error updating calendar event: ${error}`, 'calendarService');
-    return false;
+    return null;
   }
 }
 
 /**
  * Move an event from one calendar to another
  */
-export async function moveEventToCalendar(
+async function moveEventToCalendar(
   eventId: string,
-  sourceCalendarId: string = ACTIVE_CALENDAR_ID,
-  destinationCalendarId: string = COMPLETED_CALENDAR_ID
+  sourceCalendarId: string,
+  destinationCalendarId: string
 ): Promise<string | null> {
   try {
-    // First, get the event from the source calendar
-    const event = await calendar.events.get({
-      calendarId: sourceCalendarId,
-      eventId,
-    });
-    
-    if (!event.data) {
-      throw new Error('Event not found');
+    // Don't move if source and destination are the same
+    if (sourceCalendarId === destinationCalendarId) {
+      return eventId;
     }
     
-    // Create the event in the destination calendar
-    const result = await calendar.events.insert({
-      calendarId: destinationCalendarId,
-      requestBody: event.data,
+    // Get Google Calendar API
+    const calendar = getCalendarAPI();
+    if (!calendar) return null;
+    
+    // First, get the event from the source calendar
+    const eventResponse = await calendar.events.get({
+      calendarId: sourceCalendarId,
+      eventId
     });
     
-    // Delete the event from the source calendar
+    if (!eventResponse.data) {
+      log(`Event ${eventId} not found in calendar ${sourceCalendarId}`, 'calendarService');
+      return null;
+    }
+    
+    // Insert event into destination calendar
+    const insertResponse = await calendar.events.insert({
+      calendarId: destinationCalendarId,
+      requestBody: eventResponse.data as any
+    });
+    
+    if (!insertResponse.data || !insertResponse.data.id) {
+      log(`Failed to insert event into destination calendar ${destinationCalendarId}`, 'calendarService');
+      return null;
+    }
+    
+    // Delete event from source calendar
     await calendar.events.delete({
       calendarId: sourceCalendarId,
-      eventId,
+      eventId
     });
     
-    log(`Event moved from ${sourceCalendarId} to ${destinationCalendarId}`, 'calendarService');
-    return result.data.id || null;
+    // Log success and return the new event ID
+    log(`Moved event from calendar ${sourceCalendarId} to ${destinationCalendarId}`, 'calendarService');
+    return insertResponse.data.id;
   } catch (error) {
     log(`Error moving calendar event: ${error}`, 'calendarService');
     return null;
@@ -287,7 +316,25 @@ export async function moveEventToCalendar(
  * Handle appointment creation (create new calendar event)
  */
 export async function handleAppointmentCreated(appointment: Appointment): Promise<string | null> {
-  return createCalendarEvent(appointment);
+  try {
+    // Determine which calendar to use
+    const calendarId = getCalendarId(appointment.dispositionStatus);
+    if (!calendarId) return null;
+    
+    // Create the event in the calendar
+    const eventId = await createCalendarEvent(appointment, calendarId);
+    
+    if (eventId) {
+      // Update the appointment with the calendar event ID
+      await storage.updateCalendarEventId(appointment.id, eventId);
+      return eventId;
+    }
+    
+    return null;
+  } catch (error) {
+    log(`Error handling appointment creation: ${error}`, 'calendarService');
+    return null;
+  }
 }
 
 /**
@@ -295,28 +342,45 @@ export async function handleAppointmentCreated(appointment: Appointment): Promis
  */
 export async function handleAppointmentUpdated(
   appointment: Appointment,
-  previousEventId?: string
+  currentEventId: string
 ): Promise<string | null> {
-  const isCompleteOrCancelled = 
-    appointment.dispositionStatus === 'Complete' || 
-    appointment.dispositionStatus === 'Cancel';
-  
-  // If the appointment is complete/cancelled and we have a previous event ID,
-  // move it to the completed calendar
-  if (isCompleteOrCancelled && previousEventId) {
-    return moveEventToCalendar(
-      previousEventId,
-      ACTIVE_CALENDAR_ID,
-      COMPLETED_CALENDAR_ID
-    );
-  } 
-  // If rescheduled and we have a previous event ID, update the existing event
-  else if (appointment.dispositionStatus === 'Reschedule' && previousEventId) {
-    await updateCalendarEvent(previousEventId, appointment);
-    return previousEventId;
-  } 
-  // Otherwise, create a new event in the appropriate calendar
-  else {
-    return createCalendarEvent(appointment, isCompleteOrCancelled);
+  try {
+    // Determine source and destination calendars
+    const currentCalendarId = CALENDARS.active;
+    const targetCalendarId = getCalendarId(appointment.dispositionStatus);
+    
+    if (!currentCalendarId || !targetCalendarId) return null;
+    
+    // Check if we need to move the event to a different calendar
+    if (currentCalendarId !== targetCalendarId) {
+      // Move event to the appropriate calendar based on status
+      const newEventId = await moveEventToCalendar(
+        currentEventId,
+        currentCalendarId,
+        targetCalendarId
+      );
+      
+      if (newEventId && newEventId !== currentEventId) {
+        // Update the appointment with the new calendar event ID
+        await storage.updateCalendarEventId(appointment.id, newEventId);
+        return newEventId;
+      }
+    } else {
+      // Just update the event in the current calendar
+      const updatedEventId = await updateCalendarEvent(
+        appointment,
+        currentEventId,
+        currentCalendarId
+      );
+      
+      if (updatedEventId) {
+        return updatedEventId;
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    log(`Error handling appointment update: ${error}`, 'calendarService');
+    return null;
   }
 }
