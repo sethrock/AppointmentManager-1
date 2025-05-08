@@ -21,7 +21,7 @@ let auth: Auth.OAuth2Client | null = null;
 /**
  * Initialize the Google API auth client
  */
-export function getAuthClient(): Auth.OAuth2Client | null {
+export async function getAuthClient(): Promise<Auth.OAuth2Client | null> {
   try {
     // Check if we already have an auth client
     if (auth) return auth;
@@ -38,12 +38,25 @@ export function getAuthClient(): Auth.OAuth2Client | null {
     }
     
     // Create a new OAuth client
-    auth = new google.auth.OAuth2(clientId, clientSecret);
+    auth = new google.auth.OAuth2(
+      clientId,
+      clientSecret,
+      'https://developers.google.com/oauthplayground' // Redirect URI used in oauthplayground
+    );
     
     // Set credentials using refresh token
     auth.setCredentials({
       refresh_token: refreshToken
     });
+    
+    // Attempt to refresh the token immediately to validate it
+    try {
+      await auth.refreshAccessToken();
+      log('Successfully refreshed Google OAuth token', 'calendarService');
+    } catch (refreshError) {
+      log(`Failed to refresh token: ${refreshError}`, 'calendarService');
+      // Don't return null here, let's still try to use the client
+    }
     
     return auth;
   } catch (error) {
@@ -55,11 +68,16 @@ export function getAuthClient(): Auth.OAuth2Client | null {
 /**
  * Get Google Calendar API
  */
-function getCalendarAPI(): calendar_v3.Calendar | null {
-  const authClient = getAuthClient();
-  if (!authClient) return null;
-  
-  return google.calendar({ version: 'v3', auth: authClient });
+async function getCalendarAPI(): Promise<calendar_v3.Calendar | null> {
+  try {
+    const authClient = await getAuthClient();
+    if (!authClient) return null;
+    
+    return google.calendar({ version: 'v3', auth: authClient });
+  } catch (error) {
+    log(`Error getting calendar API: ${error}`, 'calendarService');
+    return null;
+  }
 }
 
 /**
@@ -105,7 +123,7 @@ async function createCalendarEvent(
 ): Promise<string | null> {
   try {
     // Get Google Calendar API
-    const calendar = getCalendarAPI();
+    const calendar = await getCalendarAPI();
     if (!calendar) return null;
     
     // Format start and end dates/times
@@ -186,7 +204,7 @@ async function updateCalendarEvent(
 ): Promise<string | null> {
   try {
     // Get Google Calendar API
-    const calendar = getCalendarAPI();
+    const calendar = await getCalendarAPI();
     if (!calendar) return null;
     
     // Format start and end dates/times - using updated ones if available
@@ -272,7 +290,7 @@ async function moveEventToCalendar(
     }
     
     // Get Google Calendar API
-    const calendar = getCalendarAPI();
+    const calendar = await getCalendarAPI();
     if (!calendar) return null;
     
     // First, get the event from the source calendar
