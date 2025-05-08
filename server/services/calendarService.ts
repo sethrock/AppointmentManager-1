@@ -21,7 +21,7 @@ let auth: Auth.OAuth2Client | null = null;
 /**
  * Initialize the Google API auth client
  */
-function getAuthClient(): Auth.OAuth2Client | null {
+export function getAuthClient(): Auth.OAuth2Client | null {
   try {
     // Check if we already have an auth client
     if (auth) return auth;
