@@ -13,10 +13,26 @@ export async function testCalendarConnection(): Promise<boolean> {
       return false;
     }
 
+    log(`Auth client credentials: refresh_token exists: ${Boolean(auth.credentials.refresh_token)}`, 'testService');
+
+    try {
+      // Force-refresh the token
+      const response = await auth.refreshAccessToken();
+      log(`Token refreshed successfully, new expiry: ${response.credentials.expiry_date}`, 'testService');
+    } catch (refreshError) {
+      log(`Error refreshing token: ${refreshError}`, 'testService');
+      return false;
+    }
+
     // Test getting token info - this will validate the refresh token
-    const tokenInfo = await auth.getTokenInfo(auth.credentials.access_token || '');
-    log(`Successfully connected to Google API (scopes: ${tokenInfo.scopes.join(', ')})`, 'testService');
-    return true;
+    try {
+      const tokenInfo = await auth.getTokenInfo(auth.credentials.access_token || '');
+      log(`Successfully connected to Google API (scopes: ${tokenInfo.scopes.join(', ')})`, 'testService');
+      return true;
+    } catch (tokenError) {
+      log(`Error getting token info: ${tokenError}`, 'testService');
+      return false;
+    }
   } catch (error) {
     log(`Error testing calendar connection: ${error}`, 'testService');
     return false;

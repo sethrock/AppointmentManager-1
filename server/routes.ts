@@ -5,6 +5,7 @@ import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { insertAppointmentSchema } from "@shared/schema";
 import { handleNewAppointmentNotifications, handleAppointmentStatusNotifications } from "./services/notificationService";
+import { testEmailSending, testCalendarConnection } from "./services/testService";
 import { log } from "./vite";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -158,6 +159,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting appointment:", error);
       res.status(500).json({ message: "Failed to delete appointment" });
+    }
+  });
+  
+  // ===== Test Endpoints ===== //
+  
+  // Test email notification
+  app.post("/api/test/email", async (req: Request, res: Response) => {
+    try {
+      const success = await testEmailSending();
+      if (success) {
+        res.json({ 
+          success: true, 
+          message: "Test email sent successfully. Check the email address configured in NOTIFICATION_EMAIL." 
+        });
+      } else {
+        res.status(500).json({ 
+          success: false, 
+          message: "Failed to send test email. Check server logs for details." 
+        });
+      }
+    } catch (error) {
+      console.error("Error sending test email:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: `Error sending test email: ${error}` 
+      });
+    }
+  });
+  
+  // Test Google Calendar connection
+  app.post("/api/test/calendar", async (req: Request, res: Response) => {
+    try {
+      const success = await testCalendarConnection();
+      if (success) {
+        res.json({ 
+          success: true, 
+          message: "Successfully connected to Google Calendar API." 
+        });
+      } else {
+        res.status(500).json({ 
+          success: false, 
+          message: "Failed to connect to Google Calendar API. Check server logs for details or make sure GOOGLE_REFRESH_TOKEN is configured." 
+        });
+      }
+    } catch (error) {
+      console.error("Error testing calendar connection:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: `Error testing calendar connection: ${error}` 
+      });
     }
   });
   
