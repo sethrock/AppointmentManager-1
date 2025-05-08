@@ -87,6 +87,9 @@ export const appointments = pgTable("appointments", {
   whoCanceled: text("who_canceled"), // 'client' or 'provider'
   cancellationDetails: text("cancellation_details"),
   
+  // Calendar integration
+  calendarEventId: text("calendar_event_id"),
+  
   // Metadata
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
