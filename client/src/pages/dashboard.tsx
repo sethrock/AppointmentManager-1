@@ -1,28 +1,97 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { Appointment } from "@shared/schema";
-import { Calendar, Clock, DollarSign, Users, Plus } from "lucide-react";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { Calendar, Clock, DollarSign, Users, Plus, Search, ArrowUpDown, Filter } from "lucide-react";
+import { formatCurrency, formatDate, formatPhoneNumber } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
+import { useState, useMemo } from "react";
+import { Input } from "@/components/ui/input";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 
 export default function Dashboard() {
   const { data: appointments, isLoading } = useQuery<Appointment[]>({
     queryKey: ["/api/appointments"],
   });
 
-  // Calculate summary stats
-  const stats = {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sortOption, setSortOption] = useState("dateDesc");
+
+  // Filter appointments based on search term and status
+  const filteredAppointments = useMemo(() => {
+    return appointments?.filter(appointment => {
+      // Search matches
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch = !searchTerm || 
+        (appointment.clientName?.toLowerCase().includes(searchLower)) ||
+        (appointment.provider.toLowerCase().includes(searchLower)) ||
+        (appointment.phoneNumber?.includes(searchTerm)) || // Exact match for phone digits
+        (appointment.phoneNumber && formatPhoneNumber(appointment.phoneNumber).includes(searchTerm)); // Match formatted phone
+      
+      // Status filter matches  
+      const matchesStatus = statusFilter === "all" || 
+        (statusFilter === "upcoming" && appointment.dispositionStatus !== "Complete" && appointment.dispositionStatus !== "Cancel") ||
+        (statusFilter === "completed" && appointment.dispositionStatus === "Complete") ||
+        (statusFilter === "canceled" && appointment.dispositionStatus === "Cancel");
+      
+      return matchesSearch && matchesStatus;
+    });
+  }, [appointments, searchTerm, statusFilter]);
+  
+  // Sort filtered appointments based on sort option
+  const sortedAppointments = useMemo(() => {
+    if (!filteredAppointments) return [];
+    
+    return [...filteredAppointments].sort((a, b) => {
+      switch (sortOption) {
+        case "dateAsc":
+          return a.startDate.localeCompare(b.startDate) || 
+                 a.startTime.localeCompare(b.startTime);
+        case "dateDesc":
+          return b.startDate.localeCompare(a.startDate) || 
+                 b.startTime.localeCompare(a.startTime);
+        case "clientAsc":
+          const nameA = a.clientName || "Unnamed";
+          const nameB = b.clientName || "Unnamed";
+          return nameA.localeCompare(nameB);
+        case "clientDesc":
+          const nameC = a.clientName || "Unnamed";
+          const nameD = b.clientName || "Unnamed";
+          return nameD.localeCompare(nameC);
+        case "providerAsc":
+          return a.provider.localeCompare(b.provider);
+        case "providerDesc":
+          return b.provider.localeCompare(a.provider);
+        case "revenueDesc":
+          return (b.grossRevenue || 0) - (a.grossRevenue || 0);
+        case "revenueAsc":
+          return (a.grossRevenue || 0) - (b.grossRevenue || 0);
+        default:
+          return 0;
+      }
+    });
+  }, [filteredAppointments, sortOption]);
+  
+  // Calculate summary stats using filtered appointments
+  const stats = useMemo(() => ({
     total: appointments?.length || 0,
     upcoming: appointments?.filter(a => 
       a.dispositionStatus !== "Complete" && 
       a.dispositionStatus !== "Cancel"
     ).length || 0,
     completed: appointments?.filter(a => a.dispositionStatus === "Complete").length || 0,
-    revenue: appointments?.reduce((sum, a) => sum + (a.totalCollected || 0), 0) || 0
-  };
+    revenue: appointments?.reduce((sum, a) => sum + (a.totalCollected || 0), 0) || 0,
+    filtered: filteredAppointments?.length || 0
+  }), [appointments, filteredAppointments]);
 
   return (
     <div className="p-6">
@@ -136,7 +205,64 @@ export default function Dashboard() {
       <div className="mb-8">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4">
           <h2 className="text-xl font-bold">Recent Appointments</h2>
-          <div className="h-0.5 w-12 bg-gradient-to-r from-primary to-accent rounded-full hidden sm:block"></div>
+          <div className="hidden sm:flex items-center gap-4">
+            <div className="h-0.5 w-12 bg-gradient-to-r from-primary to-accent rounded-full"></div>
+            {stats.filtered < stats.total && (
+              <p className="text-xs text-muted-foreground">
+                Showing {stats.filtered} of {stats.total} appointments
+              </p>
+            )}
+          </div>
+        </div>
+        
+        <div className="bg-white shadow rounded-lg p-4 mb-6">
+          <div className="flex flex-col md:flex-row gap-4 mb-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search clients, providers, or phone numbers..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full md:w-auto">
+              <div className="w-full">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger>
+                    <Calendar className="mr-2 h-4 w-4" />
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="upcoming">Upcoming</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="canceled">Canceled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="w-full">
+                <Select value={sortOption} onValueChange={setSortOption}>
+                  <SelectTrigger>
+                    <ArrowUpDown className="mr-2 h-4 w-4" />
+                    <SelectValue placeholder="Sort By" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="dateDesc">Newest First</SelectItem>
+                    <SelectItem value="dateAsc">Oldest First</SelectItem>
+                    <SelectItem value="clientAsc">Client (A-Z)</SelectItem>
+                    <SelectItem value="clientDesc">Client (Z-A)</SelectItem>
+                    <SelectItem value="providerAsc">Provider (A-Z)</SelectItem>
+                    <SelectItem value="providerDesc">Provider (Z-A)</SelectItem>
+                    <SelectItem value="revenueDesc">Highest Revenue</SelectItem>
+                    <SelectItem value="revenueAsc">Lowest Revenue</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
         </div>
         
         {isLoading ? (
@@ -151,9 +277,9 @@ export default function Dashboard() {
               </Card>
             ))}
           </div>
-        ) : appointments && appointments.length > 0 ? (
+        ) : sortedAppointments.length > 0 ? (
           <div className="space-y-4">
-            {appointments.slice(0, 5).map((appointment) => (
+            {sortedAppointments.slice(0, 5).map((appointment) => (
               <Card key={appointment.id} className="border-border bg-card/50 backdrop-blur-sm overflow-hidden hover:shadow-md transition-shadow">
                 <CardContent className="p-5">
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
@@ -170,9 +296,17 @@ export default function Dashboard() {
                       {appointment.dispositionStatus || "Scheduled"}
                     </Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {formatDate(appointment.startDate)} at {appointment.startTime} • Provider: {appointment.provider}
-                  </p>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-muted-foreground mt-1">
+                    <span>{formatDate(appointment.startDate)} at {appointment.startTime}</span>
+                    <span className="hidden sm:inline">•</span>
+                    <span>Provider: {appointment.provider}</span>
+                    {appointment.phoneNumber && (
+                      <>
+                        <span className="hidden sm:inline">•</span>
+                        <span>{formatPhoneNumber(appointment.phoneNumber)}</span>
+                      </>
+                    )}
+                  </div>
                   <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mt-4 pt-3 border-t border-border">
                     <span className="text-sm font-medium">
                       Revenue: {formatCurrency(appointment.grossRevenue || 0)}
@@ -191,21 +325,44 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             ))}
+            
+            {sortedAppointments.length > 5 && (
+              <div className="text-center pt-2">
+                <Button variant="outline" asChild>
+                  <Link href="/appointments" className="flex items-center gap-1.5">
+                    <Calendar className="h-4 w-4" />
+                    View All {sortedAppointments.length} Appointments
+                  </Link>
+                </Button>
+              </div>
+            )}
           </div>
         ) : (
           <Card className="border-border bg-card/50 backdrop-blur-sm overflow-hidden">
             <CardContent className="p-12 text-center">
-              <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                <Calendar className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-medium mb-2">No appointments yet</h3>
-              <p className="text-muted-foreground mb-6">Get started by creating your first appointment</p>
-              <Button className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white" asChild>
-                <Link href="/appointments/new" className="flex items-center gap-1.5">
-                  <Plus className="h-4 w-4" />
-                  Create Your First Appointment
-                </Link>
-              </Button>
+              {appointments && appointments.length > 0 ? (
+                <>
+                  <h3 className="text-lg font-medium mb-2">No appointments match your search</h3>
+                  <p className="text-muted-foreground mb-6">Try adjusting your search filters</p>
+                  <Button variant="outline" onClick={() => {setSearchTerm(""); setStatusFilter("all"); setSortOption("dateDesc");}}>
+                    Clear Filters
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                    <Calendar className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-medium mb-2">No appointments yet</h3>
+                  <p className="text-muted-foreground mb-6">Get started by creating your first appointment</p>
+                  <Button className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white" asChild>
+                    <Link href="/appointments/new" className="flex items-center gap-1.5">
+                      <Plus className="h-4 w-4" />
+                      Create Your First Appointment
+                    </Link>
+                  </Button>
+                </>
+              )}
             </CardContent>
           </Card>
         )}
