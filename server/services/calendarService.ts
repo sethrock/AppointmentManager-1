@@ -13,7 +13,7 @@ const CALENDARS = {
 };
 
 // Time zone to use for calendar events
-const TIME_ZONE = 'America/New_York'; // or process.env.TIME_ZONE
+const TIME_ZONE = 'America/Los_Angeles'; // California timezone
 
 // Initialize Google Auth
 let auth: Auth.OAuth2Client | null = null;
@@ -101,17 +101,14 @@ function getCalendarId(status: string | null | undefined): string | null {
 
 /**
  * Format date and time strings to RFC3339 format for Google Calendar
+ * This function creates a date/time string for the specified local time,
+ * correctly handling the timezone specified in the TIME_ZONE constant.
  */
 function formatDateTime(dateStr: string, timeStr: string): string {
-  // Parse the date and time strings
-  const [year, month, day] = dateStr.split('-').map(Number);
-  const [hours, minutes] = timeStr.split(':').map(Number);
-  
-  // Create a new Date object
-  const date = new Date(year, month - 1, day, hours, minutes);
-  
-  // Return RFC3339 formatted date-time string
-  return date.toISOString();
+  // Format as YYYY-MM-DDTHH:MM:00
+  // Google Calendar API expects this format with the timezone specified separately
+  // in the event object, not in this string
+  return `${dateStr}T${timeStr}:00`;
 }
 
 /**
