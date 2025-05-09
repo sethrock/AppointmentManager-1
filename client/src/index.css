@@ -76,3 +76,12 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+/* Custom components */
+.readonly-field {
+  @apply bg-secondary/30 text-foreground border-input;
+}
+
+.currency-symbol {
+  @apply text-foreground/60;
+}

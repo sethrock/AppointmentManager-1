@@ -1290,7 +1290,7 @@ export default function AppointmentForm({
           {/* Reschedule Section */}
           {dispositionStatus === "Reschedule" && (
             <div>
-              <h4 className="font-medium text-gray-700 mb-3">Reschedule</h4>
+              <h4 className="font-medium text-foreground/80 mb-3">Reschedule</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <FormField
                   control={form.control}
@@ -1356,7 +1356,7 @@ export default function AppointmentForm({
           {/* Cancel Section */}
           {dispositionStatus === "Cancel" && (
             <div>
-              <h4 className="font-medium text-gray-700 mb-3">Canceled</h4>
+              <h4 className="font-medium text-foreground/80 mb-3">Canceled</h4>
               <div className="mb-6">
                 <FormField
                   control={form.control}
