@@ -216,7 +216,8 @@ export default function Dashboard() {
         </div>
         
         <div className="bg-white shadow rounded-lg p-4 mb-6">
-          <div className="flex flex-col md:flex-row gap-4 mb-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Search input - Always visible */}
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
@@ -224,10 +225,39 @@ export default function Dashboard() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9"
+                onClick={() => {
+                  // For mobile - expand the filter section when search is clicked
+                  const filterSection = document.getElementById('dashboard-filter-section');
+                  if (filterSection && window.innerWidth < 768) {
+                    filterSection.classList.remove('hidden');
+                  }
+                }}
               />
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full md:w-auto">
+            {/* Filter button - Only visible on mobile */}
+            <div className="md:hidden flex justify-end">
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="ml-2"
+                onClick={() => {
+                  const filterSection = document.getElementById('dashboard-filter-section');
+                  if (filterSection) {
+                    filterSection.classList.toggle('hidden');
+                  }
+                }}
+              >
+                <Filter className="h-4 w-4 mr-2" />
+                Filters {(statusFilter !== "all" || sortOption !== "dateDesc") && '•'}
+              </Button>
+            </div>
+            
+            {/* Filter section - Always visible on desktop, toggleable on mobile */}
+            <div 
+              id="dashboard-filter-section" 
+              className="hidden md:grid grid-cols-1 sm:grid-cols-2 gap-4 w-full md:w-auto mt-3 md:mt-0"
+            >
               <div className="w-full">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger>
@@ -261,6 +291,39 @@ export default function Dashboard() {
                   </SelectContent>
                 </Select>
               </div>
+              
+              {/* Active filters summary and clear button - Only shown on mobile when filters are active */}
+              {(statusFilter !== "all" || sortOption !== "dateDesc") && (
+                <div className="md:hidden col-span-2 flex justify-between items-center pt-2">
+                  <div className="text-xs text-muted-foreground">
+                    <span className="font-medium">Active filters:</span>
+                    {statusFilter !== "all" && (
+                      <span className="ml-2">Status: {statusFilter}</span>
+                    )}
+                    {sortOption !== "dateDesc" && (
+                      <span className="ml-2">Sort: {
+                        sortOption === "dateAsc" ? "Oldest First" :
+                        sortOption === "clientAsc" ? "Client (A-Z)" :
+                        sortOption === "clientDesc" ? "Client (Z-A)" :
+                        sortOption === "providerAsc" ? "Provider (A-Z)" :
+                        sortOption === "providerDesc" ? "Provider (Z-A)" :
+                        sortOption === "revenueDesc" ? "Highest Revenue" :
+                        sortOption === "revenueAsc" ? "Lowest Revenue" : ""
+                      }</span>
+                    )}
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => {
+                      setStatusFilter("all");
+                      setSortOption("dateDesc");
+                    }}
+                  >
+                    Clear
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>

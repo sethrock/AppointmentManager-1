@@ -105,18 +105,51 @@ export default function AppointmentsPage() {
       </div>
       
       <div className="bg-white shadow rounded-lg p-6 mb-6">
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              placeholder="Search clients, providers, or phone numbers..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9"
-            />
+        <div className="flex flex-col md:flex-row gap-4">
+          {/* Search and filter header */}
+          <div className="flex flex-1 items-center">
+            {/* Search input - Always visible */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search clients, providers, or phone numbers..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+                onClick={() => {
+                  // For mobile - expand the filter section when search is clicked
+                  const filterSection = document.getElementById('appointments-filter-section');
+                  if (filterSection && window.innerWidth < 768) {
+                    filterSection.classList.remove('hidden');
+                  }
+                }}
+              />
+            </div>
+            
+            {/* Filter buttons - Only visible on mobile */}
+            <div className="md:hidden flex">
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="ml-2"
+                onClick={() => {
+                  const filterSection = document.getElementById('appointments-filter-section');
+                  if (filterSection) {
+                    filterSection.classList.toggle('hidden');
+                  }
+                }}
+              >
+                <Filter className="h-4 w-4 mr-2" />
+                Filters {(statusFilter !== "all" || callTypeFilter !== "all" || sortOption !== "dateDesc") && '•'}
+              </Button>
+            </div>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full md:w-auto">
+          {/* Filter controls - Always visible on desktop, toggleable on mobile */}
+          <div 
+            id="appointments-filter-section" 
+            className="hidden md:grid grid-cols-1 sm:grid-cols-3 gap-4 w-full md:w-auto mt-3 md:mt-0"
+          >
             <div className="w-full">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>
@@ -164,13 +197,59 @@ export default function AppointmentsPage() {
                 </SelectContent>
               </Select>
             </div>
+            
+            {/* Active filters summary and clear button - Only shown on mobile when filters are active */}
+            {(statusFilter !== "all" || callTypeFilter !== "all" || sortOption !== "dateDesc") && (
+              <div className="md:hidden col-span-3 flex justify-between items-center pt-2">
+                <div className="text-xs text-muted-foreground">
+                  <span className="font-medium">Active filters:</span>
+                  {statusFilter !== "all" && (
+                    <span className="ml-1">Status: {statusFilter}</span>
+                  )}
+                  {callTypeFilter !== "all" && (
+                    <span className="ml-1">Call: {callTypeFilter}</span>
+                  )}
+                  {sortOption !== "dateDesc" && (
+                    <span className="ml-1">Sort: {
+                      sortOption === "dateAsc" ? "Oldest First" :
+                      sortOption === "clientAsc" ? "Client (A-Z)" :
+                      sortOption === "clientDesc" ? "Client (Z-A)" :
+                      sortOption === "providerAsc" ? "Provider (A-Z)" :
+                      sortOption === "providerDesc" ? "Provider (Z-A)" :
+                      sortOption === "revenueDesc" ? "Highest Revenue" :
+                      sortOption === "revenueAsc" ? "Lowest Revenue" : ""
+                    }</span>
+                  )}
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => {
+                    setStatusFilter("all");
+                    setCallTypeFilter("all");
+                    setSortOption("dateDesc");
+                  }}
+                >
+                  Clear
+                </Button>
+              </div>
+            )}
           </div>
         </div>
         
-        <AppointmentList 
-          appointments={sortedAppointments} 
-          isLoading={isLoading} 
-        />
+        {/* Results count for filtered results */}
+        {sortedAppointments.length > 0 && appointments && sortedAppointments.length !== appointments.length && (
+          <div className="text-xs text-muted-foreground mt-4 mb-4">
+            Showing {sortedAppointments.length} of {appointments.length} appointments
+          </div>
+        )}
+        
+        <div className="mt-6">
+          <AppointmentList 
+            appointments={sortedAppointments} 
+            isLoading={isLoading} 
+          />
+        </div>
       </div>
     </div>
   );
