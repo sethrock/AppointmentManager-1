@@ -366,7 +366,7 @@ export default function AppointmentForm({
         
         {/* Client Information Section */}
         <div className="form-section mb-8">
-          <h3 className="text-lg font-medium text-gray-900 mb-4 pb-2 border-b border-gray-200">Client Information</h3>
+          <h3 className="text-lg font-medium text-foreground mb-4 pb-2 border-b border-border">Client Information</h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
             <FormField
@@ -437,7 +437,7 @@ export default function AppointmentForm({
         
         {/* Appointment Location Section */}
         <div className="form-section mb-8">
-          <h3 className="text-lg font-medium text-gray-900 mb-4 pb-2 border-b border-gray-200">Appointment Location</h3>
+          <h3 className="text-lg font-medium text-foreground mb-4 pb-2 border-b border-border">Appointment Location</h3>
           
           <div className="mb-6">
             <FormField
@@ -634,7 +634,7 @@ export default function AppointmentForm({
         
         {/* Appointment Date/Time Section */}
         <div className="form-section mb-8">
-          <h3 className="text-lg font-medium text-gray-900 mb-4 pb-2 border-b border-gray-200">Appointment Date/Time</h3>
+          <h3 className="text-lg font-medium text-foreground mb-4 pb-2 border-b border-border">Appointment Date/Time</h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <FormField

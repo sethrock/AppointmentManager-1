@@ -42,19 +42,19 @@ export default function NewAppointment() {
     <div className="p-6">
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <Button variant="outline" asChild>
+          <Button variant="outline" asChild className="hover:bg-accent hover:text-accent-foreground transition-colors">
             <Link href="/appointments">
               <span className="mr-2">←</span> Back to Appointments
             </Link>
           </Button>
         </div>
-        <h1 className="text-2xl font-semibold">New Appointment</h1>
+        <h1 className="text-2xl font-semibold text-foreground">New Appointment</h1>
       </div>
 
-      <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        <div className="bg-primary text-white px-6 py-4">
-          <h2 className="text-xl font-medium">Appointment Details</h2>
-          <p className="text-sm opacity-80">Create a new appointment by filling out the form below</p>
+      <div className="bg-card text-card-foreground border border-border shadow-lg rounded-lg overflow-hidden">
+        <div className="bg-gradient-to-r from-primary to-accent px-6 py-4">
+          <h2 className="text-xl font-medium text-primary-foreground">Appointment Details</h2>
+          <p className="text-sm text-primary-foreground/80">Create a new appointment by filling out the form below</p>
         </div>
 
         <AppointmentForm 
