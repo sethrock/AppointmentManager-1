@@ -733,9 +733,9 @@ export default function AppointmentForm({
         
         {/* Appointment Financials Section */}
         <div className="form-section mb-8">
-          <h3 className="text-lg font-medium text-gray-900 mb-4 pb-2 border-b border-gray-200">Appointment Financials</h3>
+          <h3 className="text-lg font-medium text-foreground mb-4 pb-2 border-b border-border">Appointment Financials</h3>
           
-          <h4 className="font-medium text-gray-700 mb-3">Gross Income</h4>
+          <h4 className="font-medium text-foreground/90 mb-3">Gross Income</h4>
           <div className="mb-6">
             <FormField
               control={form.control}
@@ -767,7 +767,7 @@ export default function AppointmentForm({
             />
           </div>
           
-          <h4 className="font-medium text-gray-700 mb-3">Expenses</h4>
+          <h4 className="font-medium text-foreground/90 mb-3">Expenses</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <FormField
               control={form.control}
@@ -879,7 +879,7 @@ export default function AppointmentForm({
                 Calculate
               </Button>
             </div>
-            <Label className="mt-1 text-sm text-gray-500">Total Expenses</Label>
+            <Label className="mt-1 text-sm text-foreground/60">Total Expenses</Label>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -934,7 +934,7 @@ export default function AppointmentForm({
                   Calculate
                 </Button>
               </div>
-              <Label className="mt-1 text-sm text-gray-500">Deposit Amount Calculated</Label>
+              <Label className="mt-1 text-sm text-foreground/60">Deposit Amount Calculated</Label>
             </div>
           </div>
           
@@ -1023,7 +1023,7 @@ export default function AppointmentForm({
                 Calculate
               </Button>
             </div>
-            <Label className="mt-1 text-sm text-gray-500">Due To Provider Upon Arrival</Label>
+            <Label className="mt-1 text-sm text-foreground/60">Due To Provider Upon Arrival</Label>
           </div>
           
           <div className="mb-6">
@@ -1098,7 +1098,7 @@ export default function AppointmentForm({
           {/* Complete Section */}
           {dispositionStatus === "Complete" && (
             <div>
-              <h4 className="font-medium text-gray-700 mb-3">Complete</h4>
+              <h4 className="font-medium text-foreground/80 mb-3">Complete</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <FormField
                   control={form.control}
@@ -1181,7 +1181,7 @@ export default function AppointmentForm({
                     Calculate
                   </Button>
                 </div>
-                <Label className="mt-1 text-sm text-gray-500">Total Collected</Label>
+                <Label className="mt-1 text-sm text-foreground/60">Total Collected</Label>
               </div>
               
               <div className="mb-6">
