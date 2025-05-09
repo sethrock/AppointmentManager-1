@@ -6,6 +6,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { z } from 'zod';
 import { fromZodError } from 'zod-validation-error';
+import { transformAppointmentData } from './transformImportData';
 
 /**
  * Import appointments from a JSON file
@@ -22,13 +23,17 @@ export async function importAppointmentsFromJson(filePath: string): Promise<{
     
     // Read and parse the file
     const fileContent = await fs.readFile(filePath, 'utf-8');
-    const appointmentsData = JSON.parse(fileContent);
+    const rawAppointmentsData = JSON.parse(fileContent);
     
-    if (!Array.isArray(appointmentsData)) {
+    if (!Array.isArray(rawAppointmentsData)) {
       throw new Error('Import file must contain an array of appointments');
     }
     
-    log(`Found ${appointmentsData.length} appointments to import`, 'importService');
+    log(`Found ${rawAppointmentsData.length} appointments to import`, 'importService');
+    
+    // Transform the data to match our schema
+    const appointmentsData = transformAppointmentData(rawAppointmentsData);
+    log(`Transformed ${appointmentsData.length} appointments to match schema format`, 'importService');
     
     // Track import stats
     const result = {
@@ -95,11 +100,15 @@ export async function validateImportFile(filePath: string): Promise<{
   try {
     // Read and parse the file
     const fileContent = await fs.readFile(filePath, 'utf-8');
-    const appointmentsData = JSON.parse(fileContent);
+    const rawAppointmentsData = JSON.parse(fileContent);
     
-    if (!Array.isArray(appointmentsData)) {
+    if (!Array.isArray(rawAppointmentsData)) {
       throw new Error('Import file must contain an array of appointments');
     }
+    
+    // Transform the data to match our schema
+    const appointmentsData = transformAppointmentData(rawAppointmentsData);
+    log(`Transformed ${appointmentsData.length} appointments for validation`, 'importService');
     
     // Track validation stats
     const result = {

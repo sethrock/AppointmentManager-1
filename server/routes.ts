@@ -172,7 +172,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     dest: 'uploads/',
     limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
     fileFilter: (req, file, cb) => {
-      if (file.mimetype === 'application/json') {
+      // Accept any file with .json extension regardless of mimetype
+      if (file.originalname.toLowerCase().endsWith('.json')) {
         cb(null, true);
       } else {
         cb(new Error('Only JSON files are allowed'));
