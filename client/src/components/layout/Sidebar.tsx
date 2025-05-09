@@ -6,7 +6,8 @@ import {
   Users, 
   UserCircle, 
   Settings, 
-  FileText 
+  FileText,
+  FileUp
 } from "lucide-react";
 
 interface SidebarProps {
@@ -25,6 +26,7 @@ export default function Sidebar({ onNavItemClick }: SidebarProps) {
   const navItems = [
     { name: "Dashboard", path: "/", icon: BarChart },
     { name: "Appointments", path: "/appointments", icon: Calendar },
+    { name: "Import Data", path: "/import", icon: FileUp },
     { name: "Clients", path: "/clients", icon: Users },
     { name: "Providers", path: "/providers", icon: UserCircle },
     { name: "Reports", path: "/reports", icon: FileText },
