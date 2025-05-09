@@ -9,6 +9,7 @@ import Dashboard from "@/pages/dashboard";
 import AppointmentList from "@/pages/appointments/index";
 import NewAppointment from "@/pages/appointments/new";
 import AppointmentDetail from "@/pages/appointments/[id]";
+import ImportPage from "./pages/import";
 import AppLayout from "@/components/layout/AppLayout";
 
 function Router() {
@@ -18,6 +19,7 @@ function Router() {
       <Route path="/appointments" component={AppointmentList} />
       <Route path="/appointments/new" component={NewAppointment} />
       <Route path="/appointments/:id" component={AppointmentDetail} />
+      <Route path="/import" component={ImportPage} />
       <Route component={NotFound} />
     </Switch>
   );

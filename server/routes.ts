@@ -6,7 +6,10 @@ import { fromZodError } from "zod-validation-error";
 import { insertAppointmentSchema } from "@shared/schema";
 import { handleNewAppointmentNotifications, handleAppointmentStatusNotifications } from "./services/notificationService";
 import { testEmailSending, testCalendarConnection } from "./services/testService";
+import { importAppointmentsFromJson, validateImportFile } from "./services/importService";
 import { log } from "./vite";
+import multer from "multer";
+import path from "path";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API Routes - all prefixed with /api
@@ -159,6 +162,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting appointment:", error);
       res.status(500).json({ message: "Failed to delete appointment" });
+    }
+  });
+  
+  // ===== Import Data ===== //
+  
+  // Configure multer for file uploads
+  const upload = multer({
+    dest: 'uploads/',
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+    fileFilter: (req, file, cb) => {
+      if (file.mimetype === 'application/json') {
+        cb(null, true);
+      } else {
+        cb(new Error('Only JSON files are allowed'));
+      }
+    }
+  });
+  
+  // Validate import file
+  app.post("/api/import/validate", upload.single('file'), async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file provided" });
+      }
+      
+      const filePath = req.file.path;
+      const result = await validateImportFile(filePath);
+      
+      res.json({
+        message: `Validation completed. Valid: ${result.valid}, Invalid: ${result.invalid}`,
+        ...result
+      });
+    } catch (error) {
+      console.error("Error validating import file:", error);
+      res.status(500).json({ 
+        message: `Error validating import file: ${error instanceof Error ? error.message : String(error)}` 
+      });
+    }
+  });
+  
+  // Import appointments from file
+  app.post("/api/import/appointments", upload.single('file'), async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file provided" });
+      }
+      
+      const filePath = req.file.path;
+      const result = await importAppointmentsFromJson(filePath);
+      
+      res.json({
+        message: `Import completed. Imported ${result.success} appointments, Failed: ${result.failed}`,
+        ...result
+      });
+    } catch (error) {
+      console.error("Error importing appointments:", error);
+      res.status(500).json({ 
+        message: `Error importing appointments: ${error instanceof Error ? error.message : String(error)}` 
+      });
     }
   });
   

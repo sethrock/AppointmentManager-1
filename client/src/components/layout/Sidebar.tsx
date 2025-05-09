@@ -38,7 +38,7 @@ export default function Sidebar({ onNavItemClick }: SidebarProps) {
           Appointment Manager
         </h2>
       </div>
-      
+
       <nav className="mt-6 space-y-8">
         <div className="px-4">
           <h5 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-3 ml-2">Main</h5>
@@ -74,7 +74,7 @@ export default function Sidebar({ onNavItemClick }: SidebarProps) {
             })}
           </div>
         </div>
-        
+
         <div className="px-4">
           <h5 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-3 ml-2">Admin</h5>
           <div className="space-y-1">
