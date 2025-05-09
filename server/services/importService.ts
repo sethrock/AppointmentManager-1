@@ -7,6 +7,7 @@ import path from 'path';
 import { z } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import { transformAppointmentData } from './transformImportData';
+import { fixJsonData } from './fixJsonData';
 
 /**
  * Import appointments from a JSON file
@@ -22,7 +23,9 @@ export async function importAppointmentsFromJson(filePath: string): Promise<{
     log(`Starting import from ${filePath}`, 'importService');
     
     // Read and parse the file
-    const fileContent = await fs.readFile(filePath, 'utf-8');
+    let fileContent = await fs.readFile(filePath, 'utf-8');
+    // Fix JSON data (replace NaN values, etc.)
+    fileContent = fixJsonData(fileContent);
     const rawAppointmentsData = JSON.parse(fileContent);
     
     if (!Array.isArray(rawAppointmentsData)) {
@@ -99,7 +102,9 @@ export async function validateImportFile(filePath: string): Promise<{
 }> {
   try {
     // Read and parse the file
-    const fileContent = await fs.readFile(filePath, 'utf-8');
+    let fileContent = await fs.readFile(filePath, 'utf-8');
+    // Fix JSON data (replace NaN values, etc.)
+    fileContent = fixJsonData(fileContent);
     const rawAppointmentsData = JSON.parse(fileContent);
     
     if (!Array.isArray(rawAppointmentsData)) {

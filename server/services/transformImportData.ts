@@ -9,14 +9,18 @@ export function transformAppointmentData(inputData: any[]): any[] {
     const transformed: any = {
       ...item,
       // Fix phoneNumber format (convert from number to string)
-      phoneNumber: item.phoneNumber ? String(item.phoneNumber) : null,
+      phoneNumber: item.phoneNumber !== undefined ? String(item.phoneNumber) : null,
       
       // Fix callType format (convert "Out" to "out-call" and "In" to "in-call")
       callType: item.callType === "Out" ? "out-call" : 
                 item.callType === "In" ? "in-call" : item.callType,
       
       // Fix zipCode format (convert from number to string)
-      zipCode: item.zipCode ? String(item.zipCode) : null,
+      zipCode: item.zipCode !== undefined ? String(item.zipCode) : null,
+      
+      // Fix addressLine2 (convert from number to string if needed)
+      addressLine2: item.addressLine2 !== null && typeof item.addressLine2 === 'number' ? 
+                   String(item.addressLine2) : item.addressLine2,
       
       // Fix date format (extract just the date part from ISO format)
       startDate: item.startDate ? item.startDate.split('T')[0] : null,
@@ -41,7 +45,13 @@ export function transformAppointmentData(inputData: any[]): any[] {
       
       // Ensure seeClientAgain is a boolean
       seeClientAgain: typeof item.seeClientAgain === 'string' ? 
-                       item.seeClientAgain === 'Yes' : item.seeClientAgain
+                       item.seeClientAgain === 'Yes' : item.seeClientAgain,
+      
+      // Ensure all numeric values that should be strings are converted
+      totalCollectedCash: typeof item.totalCollectedCash === 'number' ? 
+                         String(item.totalCollectedCash) : item.totalCollectedCash,
+      totalCollectedDigital: typeof item.totalCollectedDigital === 'number' ? 
+                            String(item.totalCollectedDigital) : item.totalCollectedDigital
     };
     
     return transformed;
