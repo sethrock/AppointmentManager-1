@@ -33,58 +33,78 @@ export default function Sidebar({ onNavItemClick }: SidebarProps) {
 
   return (
     <>
-      <div className="flex items-center justify-center h-16 border-b border-secondary-light">
-        <h2 className="text-xl font-semibold">Appointment Manager</h2>
+      <div className="flex items-center justify-center h-20 border-b border-border">
+        <h2 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          Appointment Manager
+        </h2>
       </div>
       
-      <nav className="mt-6">
-        <div className="px-4 py-3">
-          <h5 className="text-xs uppercase tracking-wider text-gray-400">Main</h5>
-          <div className="mt-2 -mx-3">
+      <nav className="mt-6 space-y-8">
+        <div className="px-4">
+          <h5 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-3 ml-2">Main</h5>
+          <div className="space-y-1">
             {navItems.slice(0, 4).map((item) => {
               const Icon = item.icon;
               return (
-                <div key={item.path} className="mt-1">
-                  <Link 
-                    href={item.path}
-                    onClick={onNavItemClick}
-                    className={cn(
-                      "flex items-center px-3 py-2 rounded-md",
-                      isActive(item.path) 
-                        ? "text-white bg-primary" 
-                        : "text-gray-300 hover:text-white hover:bg-primary-dark"
-                    )}
-                  >
-                    <Icon className="mr-3 h-5 w-5" />
-                    <span>{item.name}</span>
-                  </Link>
-                </div>
+                <Link 
+                  key={item.path}
+                  href={item.path}
+                  onClick={onNavItemClick}
+                  className={cn(
+                    "flex items-center px-3 py-2.5 rounded-lg transition-all duration-200 group",
+                    isActive(item.path) 
+                      ? "bg-primary/10 text-primary font-medium" 
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  )}
+                >
+                  <span className={cn(
+                    "flex items-center justify-center w-9 h-9 rounded-lg mr-3",
+                    isActive(item.path)
+                      ? "bg-primary/20 text-primary" 
+                      : "bg-background text-muted-foreground group-hover:text-foreground"
+                  )}>
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <span>{item.name}</span>
+                  {isActive(item.path) && (
+                    <div className="ml-auto w-1.5 h-6 rounded-full bg-gradient-to-b from-primary to-accent"></div>
+                  )}
+                </Link>
               );
             })}
           </div>
         </div>
         
-        <div className="px-4 py-3 mt-6">
-          <h5 className="text-xs uppercase tracking-wider text-gray-400">Admin</h5>
-          <div className="mt-2 -mx-3">
+        <div className="px-4">
+          <h5 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-3 ml-2">Admin</h5>
+          <div className="space-y-1">
             {navItems.slice(4).map((item) => {
               const Icon = item.icon;
               return (
-                <div key={item.path} className="mt-1">
-                  <Link 
-                    href={item.path}
-                    onClick={onNavItemClick}
-                    className={cn(
-                      "flex items-center px-3 py-2 rounded-md",
-                      isActive(item.path) 
-                        ? "text-white bg-primary" 
-                        : "text-gray-300 hover:text-white hover:bg-primary-dark"
-                    )}
-                  >
-                    <Icon className="mr-3 h-5 w-5" />
-                    <span>{item.name}</span>
-                  </Link>
-                </div>
+                <Link 
+                  key={item.path}
+                  href={item.path}
+                  onClick={onNavItemClick}
+                  className={cn(
+                    "flex items-center px-3 py-2.5 rounded-lg transition-all duration-200 group",
+                    isActive(item.path) 
+                      ? "bg-primary/10 text-primary font-medium" 
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  )}
+                >
+                  <span className={cn(
+                    "flex items-center justify-center w-9 h-9 rounded-lg mr-3",
+                    isActive(item.path)
+                      ? "bg-primary/20 text-primary" 
+                      : "bg-background text-muted-foreground group-hover:text-foreground"
+                  )}>
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <span>{item.name}</span>
+                  {isActive(item.path) && (
+                    <div className="ml-auto w-1.5 h-6 rounded-full bg-gradient-to-b from-primary to-accent"></div>
+                  )}
+                </Link>
               );
             })}
           </div>
