@@ -162,10 +162,10 @@ export default function Dashboard() {
                     </h3>
                     <Badge className={
                       appointment.dispositionStatus === "Complete" 
-                        ? "bg-[hsl(150,83%,54%)]/10 text-[hsl(150,83%,54%)] hover:bg-[hsl(150,83%,54%)]/20" 
+                        ? "bg-[hsl(150,83%,54%)]/20 text-[hsl(150,83%,54%)] border border-[hsl(150,83%,54%)]/30 hover:bg-[hsl(150,83%,54%)]/30" 
                         : appointment.dispositionStatus === "Cancel"
-                          ? "bg-destructive/10 text-destructive hover:bg-destructive/20"
-                          : "bg-primary/10 text-primary hover:bg-primary/20"
+                          ? "bg-destructive/20 text-destructive border border-destructive/30 hover:bg-destructive/30"
+                          : "bg-[hsl(315,90%,67%)]/20 text-[hsl(315,90%,67%)] border border-[hsl(315,90%,67%)]/30 hover:bg-[hsl(315,90%,67%)]/30"
                     }>
                       {appointment.dispositionStatus || "Scheduled"}
                     </Badge>
@@ -178,12 +178,12 @@ export default function Dashboard() {
                       Revenue: {formatCurrency(appointment.grossRevenue || 0)}
                     </span>
                     <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="border-primary/20 text-primary hover:text-primary hover:bg-primary/10" 
+                      size="sm"
+                      className="bg-primary text-white hover:bg-primary/90 shadow-sm flex items-center gap-1.5" 
                       asChild
                     >
                       <Link href={`/appointments/${appointment.id}`}>
+                        <Calendar className="h-3.5 w-3.5" />
                         View Details
                       </Link>
                     </Button>
@@ -213,11 +213,11 @@ export default function Dashboard() {
 
       <div className="flex justify-end">
         <Button 
-          variant="outline" 
-          className="border-primary/20 text-primary hover:text-primary hover:bg-primary/10" 
+          className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white shadow" 
           asChild
         >
-          <Link href="/appointments">
+          <Link href="/appointments" className="flex items-center gap-1.5">
+            <Calendar className="h-4 w-4" />
             View All Appointments
           </Link>
         </Button>
