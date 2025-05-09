@@ -85,3 +85,28 @@
 .currency-symbol {
   @apply text-foreground/60;
 }
+
+/* Dark theme enhancements */
+.dark .form-section {
+  @apply bg-background border-primary/10 rounded-md p-6 mb-6 shadow-md;
+}
+
+.dark .form-section-title {
+  @apply text-lg font-medium text-primary mb-4 pb-2 border-b border-primary/20;
+}
+
+.dark .input-field {
+  @apply bg-secondary/20 border-input;
+}
+
+.dark .field-label {
+  @apply text-foreground/70;
+}
+
+.dark .form-button {
+  @apply bg-primary/80 hover:bg-primary;
+}
+
+.dark .section-header {
+  @apply bg-gradient-to-r from-primary/20 to-secondary rounded-md px-4 py-3 mb-4 text-foreground font-medium;
+}

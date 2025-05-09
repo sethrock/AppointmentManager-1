@@ -276,7 +276,7 @@ export default function AppointmentForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="p-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="p-6 bg-background/60 border border-border rounded-lg shadow-lg">
         {/* Initial Setup Section */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <FormField
@@ -1098,7 +1098,7 @@ export default function AppointmentForm({
           {/* Complete Section */}
           {dispositionStatus === "Complete" && (
             <div>
-              <h4 className="font-medium text-foreground/80 mb-3">Complete</h4>
+              <h4 className="section-header">Complete</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <FormField
                   control={form.control}
@@ -1290,7 +1290,7 @@ export default function AppointmentForm({
           {/* Reschedule Section */}
           {dispositionStatus === "Reschedule" && (
             <div>
-              <h4 className="font-medium text-foreground/80 mb-3">Reschedule</h4>
+              <h4 className="section-header">Reschedule</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <FormField
                   control={form.control}
@@ -1356,7 +1356,7 @@ export default function AppointmentForm({
           {/* Cancel Section */}
           {dispositionStatus === "Cancel" && (
             <div>
-              <h4 className="font-medium text-foreground/80 mb-3">Canceled</h4>
+              <h4 className="section-header">Canceled</h4>
               <div className="mb-6">
                 <FormField
                   control={form.control}
