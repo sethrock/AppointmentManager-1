@@ -29,7 +29,6 @@ export default function Sidebar({ onNavItemClick }: SidebarProps) {
     { name: "Clients", path: "/clients", icon: Users },
     { name: "Providers", path: "/providers", icon: UserCircle },
     { name: "Reports", path: "/reports", icon: FileText },
-    { name: "Import Data", path: "/import", icon: FileUp },
     { name: "Settings", path: "/settings", icon: Settings },
   ];
 
