@@ -861,13 +861,13 @@ export default function AppointmentForm({
             <div className="flex items-center">
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <span className="text-gray-500">$</span>
+                  <span className="currency-symbol">$</span>
                 </div>
                 <Input 
                   type="text"
                   readOnly 
                   value={totalExpenses.toFixed(2)} 
-                  className="bg-gray-100 pl-7 w-40"
+                  className="readonly-field pl-7 w-40"
                 />
               </div>
               <Button 
@@ -916,13 +916,13 @@ export default function AppointmentForm({
               <div className="flex items-center">
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <span className="text-gray-500">$</span>
+                    <span className="currency-symbol">$</span>
                   </div>
                   <Input 
                     type="text"
                     readOnly 
                     value={(form.watch("depositAmount") || 0).toFixed(2)} 
-                    className="bg-gray-100 pl-7 w-40"
+                    className="readonly-field pl-7 w-40"
                   />
                 </div>
                 <Button 
@@ -1005,13 +1005,13 @@ export default function AppointmentForm({
             <div className="flex items-center">
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <span className="text-gray-500">$</span>
+                  <span className="currency-symbol">$</span>
                 </div>
                 <Input 
                   type="text"
                   readOnly 
                   value={dueToProvider.toFixed(2)} 
-                  className="bg-gray-100 pl-7 w-40"
+                  className="readonly-field pl-7 w-40"
                 />
               </div>
               <Button 
@@ -1163,13 +1163,13 @@ export default function AppointmentForm({
                 <div className="flex items-center">
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                      <span className="text-gray-500">$</span>
+                      <span className="currency-symbol">$</span>
                     </div>
                     <Input 
                       type="text"
                       readOnly 
                       value={totalCollected.toFixed(2)} 
-                      className="bg-gray-100 pl-7 w-40"
+                      className="readonly-field pl-7 w-40"
                     />
                   </div>
                   <Button 
