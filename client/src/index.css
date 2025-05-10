@@ -203,3 +203,16 @@
 .status-reschedule {
   @apply bg-amber-500 text-white dark:bg-amber-600;
 }
+
+/* Action buttons with consistent styling */
+.action-reschedule {
+  @apply bg-amber-500 hover:bg-amber-600 text-white;
+}
+
+.action-complete {
+  @apply bg-emerald-500 hover:bg-emerald-600 text-white;
+}
+
+.action-cancel {
+  @apply bg-red-500 hover:bg-red-600 text-white;
+}

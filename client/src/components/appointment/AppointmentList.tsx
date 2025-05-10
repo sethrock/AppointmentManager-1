@@ -95,12 +95,12 @@ export default function AppointmentList({
               <TableCell>
                 <span className={`px-2 py-1 rounded text-xs font-medium ${
                   appointment.dispositionStatus === "Complete" 
-                    ? "bg-emerald-500 text-white dark:bg-emerald-600" 
+                    ? "status-complete" 
                     : appointment.dispositionStatus === "Cancel"
-                      ? "bg-red-500 text-white dark:bg-red-600"
+                      ? "status-cancel"
                       : appointment.dispositionStatus === "Reschedule"
-                        ? "bg-amber-500 text-white dark:bg-amber-600"
-                        : "bg-blue-500 text-white dark:bg-blue-600"
+                        ? "status-reschedule"
+                        : "status-scheduled"
                 }`}>
                   {appointment.dispositionStatus || "Scheduled"}
                 </span>
@@ -135,12 +135,12 @@ export default function AppointmentList({
               </div>
               <span className={`px-2 py-1 rounded text-xs font-medium ${
                 appointment.dispositionStatus === "Complete" 
-                  ? "bg-emerald-500 text-white dark:bg-emerald-600" 
+                  ? "status-complete" 
                   : appointment.dispositionStatus === "Cancel"
-                    ? "bg-red-500 text-white dark:bg-red-600"
+                    ? "status-cancel"
                     : appointment.dispositionStatus === "Reschedule"
-                      ? "bg-amber-500 text-white dark:bg-amber-600"
-                      : "bg-blue-500 text-white dark:bg-blue-600"
+                      ? "status-reschedule"
+                      : "status-scheduled"
               }`}>
                 {appointment.dispositionStatus || "Scheduled"}
               </span>

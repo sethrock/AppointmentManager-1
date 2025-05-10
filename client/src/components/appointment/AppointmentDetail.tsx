@@ -97,6 +97,24 @@ export default function AppointmentDetail({
                   </p>
                 </div>
               </div>
+              
+              <div className="flex items-start">
+                <div className="h-5 w-5 mr-2 shrink-0 mt-0.5"></div>
+                <div>
+                  <p className="font-medium">Status</p>
+                  <span className={`px-2 py-1 mt-1 inline-block rounded text-xs font-medium ${
+                    appointment.dispositionStatus === "Complete" 
+                      ? "status-complete" 
+                      : appointment.dispositionStatus === "Cancel"
+                        ? "status-cancel"
+                        : appointment.dispositionStatus === "Reschedule"
+                          ? "status-reschedule"
+                          : "status-scheduled"
+                  }`}>
+                    {appointment.dispositionStatus || "Scheduled"}
+                  </span>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -161,7 +179,7 @@ export default function AppointmentDetail({
             <Button 
               onClick={onReschedule} 
               variant="outline" 
-              className="flex-1"
+              className="flex-1 bg-amber-500 hover:bg-amber-600 text-white"
               disabled={isFinalized}
             >
               <RefreshCw className="mr-2 h-4 w-4" />
@@ -170,7 +188,7 @@ export default function AppointmentDetail({
             <Button 
               onClick={onComplete} 
               variant="default" 
-              className="flex-1 bg-green-600 hover:bg-green-700"
+              className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white"
               disabled={isFinalized}
             >
               <CheckCircle className="mr-2 h-4 w-4" />
@@ -179,7 +197,7 @@ export default function AppointmentDetail({
             <Button 
               onClick={onCancel} 
               variant="destructive" 
-              className="flex-1"
+              className="flex-1 bg-red-500 hover:bg-red-600 text-white"
               disabled={isFinalized}
             >
               <XCircle className="mr-2 h-4 w-4" />
