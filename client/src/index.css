@@ -82,6 +82,10 @@
   @apply bg-secondary/30 text-foreground border-input;
 }
 
+.dark .readonly-field {
+  @apply bg-primary/10 text-foreground border-primary/20 font-medium;
+}
+
 .currency-symbol {
   @apply text-foreground font-medium;
 }
@@ -93,23 +97,90 @@
 
 /* Dark theme enhancements */
 .dark .form-section {
-  @apply bg-background border-primary/10 rounded-md p-6 mb-6 shadow-md;
+  @apply bg-background border border-primary/10 rounded-md p-6 mb-6 shadow-md;
+}
+
+/* Enhanced form card styling */
+.dark form {
+  @apply bg-secondary/5 p-6 rounded-lg shadow-md;
+}
+
+/* Improved form organization */
+.dark .grid {
+  @apply gap-6;
+}
+
+.dark .form-group {
+  @apply mb-8;
+}
+
+/* Add subtle separators between form sections */
+.dark .form-divider {
+  @apply border-t border-border/30 my-8;
 }
 
 .dark .form-section-title {
   @apply text-lg font-medium text-primary mb-4 pb-2 border-b border-primary/20;
 }
 
-.dark .input-field {
-  @apply bg-secondary/20 border-input;
+.dark .input-field,
+.dark input, 
+.dark textarea, 
+.dark select {
+  @apply bg-secondary/20 border-border text-foreground;
+}
+
+/* Improved focus state for form elements */
+.dark input:focus, 
+.dark textarea:focus, 
+.dark select:focus,
+.dark [data-radix-select-trigger]:focus,
+.dark [data-state="focused"] {
+  @apply ring-2 ring-primary/50 ring-offset-0 border-primary;
+}
+
+/* Improve checkbox and radio contrast in dark mode */
+.dark [role="checkbox"],
+.dark [role="radio"] {
+  @apply border-primary/50 bg-secondary/30;
+}
+
+.dark [data-state="checked"] {
+  @apply bg-primary border-primary text-primary-foreground;
+}
+
+.dark [data-radix-select-trigger] {
+  @apply bg-secondary/20 border-border text-foreground;
+}
+
+.dark [data-placeholder] {
+  @apply text-foreground/50;
 }
 
 .dark .field-label {
-  @apply text-foreground/70;
+  @apply text-foreground font-medium;
 }
 
-.dark .form-button {
-  @apply bg-primary/80 hover:bg-primary;
+.dark label {
+  @apply text-foreground font-medium;
+}
+
+.dark .required::after {
+  content: "*";
+  @apply text-destructive ml-1;
+}
+
+.dark .form-button,
+.dark button[type="submit"] {
+  @apply bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm;
+}
+
+.dark button[type="button"] {
+  @apply bg-secondary hover:bg-secondary/80 text-secondary-foreground shadow-sm;
+}
+
+.dark .form-actions {
+  @apply mt-8 flex justify-end gap-4;
 }
 
 .dark .section-header {
