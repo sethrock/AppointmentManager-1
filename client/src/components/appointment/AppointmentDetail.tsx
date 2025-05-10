@@ -179,7 +179,7 @@ export default function AppointmentDetail({
             <Button 
               onClick={onReschedule} 
               variant="outline" 
-              className="flex-1 bg-amber-500 hover:bg-amber-600 text-white"
+              className="flex-1 action-reschedule"
               disabled={isFinalized}
             >
               <RefreshCw className="mr-2 h-4 w-4" />
@@ -188,7 +188,7 @@ export default function AppointmentDetail({
             <Button 
               onClick={onComplete} 
               variant="default" 
-              className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white"
+              className="flex-1 action-complete"
               disabled={isFinalized}
             >
               <CheckCircle className="mr-2 h-4 w-4" />
@@ -197,7 +197,7 @@ export default function AppointmentDetail({
             <Button 
               onClick={onCancel} 
               variant="destructive" 
-              className="flex-1 bg-red-500 hover:bg-red-600 text-white"
+              className="flex-1 action-cancel"
               disabled={isFinalized}
             >
               <XCircle className="mr-2 h-4 w-4" />
