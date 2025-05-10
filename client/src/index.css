@@ -186,3 +186,20 @@
 .dark .section-header {
   @apply bg-gradient-to-r from-primary/20 to-secondary rounded-md px-4 py-3 mb-4 text-foreground font-medium;
 }
+
+/* Status badges with consistent coloring for all components */
+.status-scheduled {
+  @apply bg-blue-500 text-white dark:bg-blue-600;
+}
+
+.status-complete {
+  @apply bg-emerald-500 text-white dark:bg-emerald-600;
+}
+
+.status-cancel {
+  @apply bg-red-500 text-white dark:bg-red-600;
+}
+
+.status-reschedule {
+  @apply bg-amber-500 text-white dark:bg-amber-600;
+}
