@@ -83,7 +83,12 @@
 }
 
 .currency-symbol {
-  @apply text-foreground/60;
+  @apply text-foreground font-medium;
+}
+
+/* Make all dollar signs visible in dark mode */
+.dark span[class*="text-gray-500"] {
+  @apply text-foreground/90 font-medium;
 }
 
 /* Dark theme enhancements */
