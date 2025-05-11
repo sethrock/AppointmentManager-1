@@ -89,7 +89,7 @@ export default function Dashboard() {
       a.dispositionStatus !== "Cancel"
     ).length || 0,
     completed: appointments?.filter(a => a.dispositionStatus === "Complete").length || 0,
-    revenue: appointments?.reduce((sum, a) => sum + (a.grossRevenue || 0), 0) || 0,
+    revenue: appointments?.reduce((sum, a) => sum + (a.totalCollected || 0) + (a.depositAmount || 0), 0) || 0,
     filtered: filteredAppointments?.length || 0
   }), [appointments, filteredAppointments]);
 
