@@ -104,13 +104,13 @@ export default function AppointmentsPage() {
         </Button>
       </div>
       
-      <div className="bg-white shadow rounded-lg p-6 mb-6">
+      <div className="bg-card text-card-foreground shadow-lg rounded-lg p-6 mb-6 border border-border">
         <div className="flex flex-col md:flex-row gap-4">
           {/* Search and filter header */}
           <div className="flex flex-1 items-center">
             {/* Search input - Always visible */}
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 placeholder="Search clients, providers, or phone numbers..."
                 value={searchTerm}

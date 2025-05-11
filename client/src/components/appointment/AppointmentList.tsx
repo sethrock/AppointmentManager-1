@@ -60,21 +60,21 @@ export default function AppointmentList({
 
   // Desktop view - Table
   const desktopView = (
-    <div className="hidden md:block rounded-md border">
+    <div className="hidden md:block rounded-md border border-border overflow-hidden">
       <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Client</TableHead>
-            <TableHead>Date & Time</TableHead>
-            <TableHead>Provider</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Revenue</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+        <TableHeader className="bg-muted/30">
+          <TableRow className="hover:bg-muted/50">
+            <TableHead className="font-semibold">Client</TableHead>
+            <TableHead className="font-semibold">Date & Time</TableHead>
+            <TableHead className="font-semibold">Provider</TableHead>
+            <TableHead className="font-semibold">Status</TableHead>
+            <TableHead className="font-semibold">Revenue</TableHead>
+            <TableHead className="text-right font-semibold">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {appointments.map((appointment) => (
-            <TableRow key={appointment.id}>
+            <TableRow key={appointment.id} className="hover:bg-muted/20">
               <TableCell className="font-medium">
                 {appointment.clientName || "Unnamed Client"}
                 <div className="text-xs text-muted-foreground">
@@ -107,7 +107,12 @@ export default function AppointmentList({
               </TableCell>
               <TableCell>{formatCurrency(appointment.grossRevenue || 0)}</TableCell>
               <TableCell className="text-right">
-                <Button size="sm" variant="outline" asChild>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="bg-primary/10 hover:bg-primary/20 border-primary/20 text-primary"
+                  asChild
+                >
                   <Link href={`/appointments/${appointment.id}`}>
                     <Eye className="h-4 w-4 mr-1" /> View
                   </Link>
@@ -124,11 +129,11 @@ export default function AppointmentList({
   const mobileView = (
     <div className="md:hidden space-y-4">
       {appointments.map((appointment) => (
-        <Card key={appointment.id}>
+        <Card key={appointment.id} className="border-border/50 bg-card shadow-md hover:shadow-lg transition-shadow">
           <CardContent className="p-4">
             <div className="flex justify-between items-start mb-2">
               <div>
-                <h3 className="font-medium">{appointment.clientName || "Unnamed Client"}</h3>
+                <h3 className="font-medium text-foreground">{appointment.clientName || "Unnamed Client"}</h3>
                 <div className="text-xs text-muted-foreground">
                   Provider: {appointment.provider}
                 </div>
