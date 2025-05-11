@@ -96,8 +96,8 @@ export default function AppointmentsPage() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">Appointments</h1>
-        <Button asChild>
+        <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Appointments</h1>
+        <Button className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white" asChild>
           <Link href="/appointments/new">
             <Plus className="mr-2 h-4 w-4" /> New Appointment
           </Link>
@@ -200,9 +200,9 @@ export default function AppointmentsPage() {
             
             {/* Active filters summary and clear button - Only shown on mobile when filters are active */}
             {(statusFilter !== "all" || callTypeFilter !== "all" || sortOption !== "dateDesc") && (
-              <div className="md:hidden col-span-3 flex justify-between items-center pt-2">
+              <div className="md:hidden col-span-3 flex justify-between items-center pt-2 mt-2 border-t border-border/30">
                 <div className="text-xs text-muted-foreground">
-                  <span className="font-medium">Active filters:</span>
+                  <span className="font-medium text-foreground">Active filters:</span>
                   {statusFilter !== "all" && (
                     <span className="ml-1">Status: {statusFilter}</span>
                   )}
@@ -222,15 +222,16 @@ export default function AppointmentsPage() {
                   )}
                 </div>
                 <Button 
-                  variant="ghost" 
+                  variant="outline" 
                   size="sm" 
+                  className="text-primary border-primary/30 hover:bg-primary/10"
                   onClick={() => {
                     setStatusFilter("all");
                     setCallTypeFilter("all");
                     setSortOption("dateDesc");
                   }}
                 >
-                  Clear
+                  Clear Filters
                 </Button>
               </div>
             )}
@@ -239,7 +240,7 @@ export default function AppointmentsPage() {
         
         {/* Results count for filtered results */}
         {sortedAppointments.length > 0 && appointments && sortedAppointments.length !== appointments.length && (
-          <div className="text-xs text-muted-foreground mt-4 mb-4">
+          <div className="text-xs font-medium text-primary mt-4 mb-4 p-2 bg-primary/5 border border-primary/10 rounded-md inline-block">
             Showing {sortedAppointments.length} of {appointments.length} appointments
           </div>
         )}

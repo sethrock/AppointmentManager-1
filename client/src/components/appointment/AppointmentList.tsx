@@ -30,13 +30,13 @@ export default function AppointmentList({
     return (
       <div className="space-y-4">
         {[...Array(5)].map((_, index) => (
-          <div key={index} className="flex items-center space-x-4 p-4 border rounded-lg">
-            <Skeleton className="h-12 w-12 rounded-full" />
+          <div key={index} className="flex items-center space-x-4 p-4 border border-border/40 rounded-lg bg-card/50 backdrop-blur-sm">
+            <Skeleton className="h-12 w-12 rounded-full bg-muted/50" />
             <div className="space-y-2 flex-1">
-              <Skeleton className="h-4 w-48" />
-              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-4 w-48 bg-muted/50" />
+              <Skeleton className="h-4 w-32 bg-muted/50" />
             </div>
-            <Skeleton className="h-8 w-16" />
+            <Skeleton className="h-8 w-16 bg-muted/50" />
           </div>
         ))}
       </div>
@@ -45,10 +45,14 @@ export default function AppointmentList({
 
   if (appointments.length === 0) {
     return (
-      <Card>
-        <CardContent className="p-6 text-center">
-          <p className="text-muted-foreground">No appointments found.</p>
-          <Button className="mt-4" asChild>
+      <Card className="border-border/50 bg-card shadow-md">
+        <CardContent className="p-8 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+            <Calendar className="h-8 w-8 text-primary" />
+          </div>
+          <h3 className="text-lg font-medium mb-2 text-foreground">No appointments found</h3>
+          <p className="text-muted-foreground mb-6">Start by creating your first appointment</p>
+          <Button className="bg-primary hover:bg-primary/90 text-primary-foreground" asChild>
             <Link href="/appointments/new">
               Create Your First Appointment
             </Link>
@@ -183,11 +187,16 @@ export default function AppointmentList({
               )}
             </div>
             
-            <div className="flex justify-between items-center mt-3 pt-3 border-t">
-              <div className="font-medium">
+            <div className="flex justify-between items-center mt-3 pt-3 border-t border-border/30">
+              <div className="font-medium text-foreground">
                 {formatCurrency(appointment.grossRevenue || 0)}
               </div>
-              <Button size="sm" variant="outline" asChild>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="bg-primary/10 hover:bg-primary/20 border-primary/20 text-primary"
+                asChild
+              >
                 <Link href={`/appointments/${appointment.id}`}>
                   <Eye className="h-4 w-4 mr-1" /> Details
                 </Link>

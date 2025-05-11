@@ -154,7 +154,19 @@
 }
 
 .dark [data-placeholder] {
-  @apply text-foreground/50;
+  @apply text-foreground/70;
+}
+
+.dark [data-radix-select-content] {
+  @apply bg-card border-border shadow-lg;
+}
+
+.dark [data-radix-select-item] {
+  @apply text-foreground focus:bg-primary/20 focus:text-foreground;
+}
+
+.dark [data-radix-select-item][data-highlighted] {
+  @apply bg-primary/20 text-foreground;
 }
 
 .dark .field-label {
