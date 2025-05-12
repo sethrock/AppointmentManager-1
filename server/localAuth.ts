@@ -74,22 +74,34 @@ export function setupLocalAuth(app: Express) {
  * Get a user by email address
  */
 async function getUserByEmail(email: string) {
-  const [user] = await db.select().from(users).where(eq(users.email, email));
-  return user;
+  try {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    console.log('Found user by email:', user);
+    return user;
+  } catch (error) {
+    console.error('Error getting user by email:', error);
+    return null;
+  }
 }
 
 /**
  * Create a new user with local authentication
  */
 async function createLocalUser(email: string) {
-  // Use a numeric ID since that seems to be what the table expects
-  const uniqueId = Date.now().toString();
+  // Use a smaller ID that fits in PostgreSQL integer range (max 2147483647)
+  const uniqueId = "999999";
+  
+  console.log(`Creating user with ID: ${uniqueId}`);
+  
+  // Username is required, extract from email
+  const username = email.split('@')[0];
   
   // Create a new user
   const newUser = await storage.upsertUser({
     id: uniqueId,
+    username: username, // Add required username field
     email: email,
-    firstName: email.split('@')[0], // Simple default name
+    firstName: username, // Simple default name
     lastName: '',
     profileImageUrl: '',
   });

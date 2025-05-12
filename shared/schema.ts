@@ -16,6 +16,8 @@ export const sessions = pgTable(
 // User schema for authentication (Replit Auth)
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull(),
+  username: varchar("username").notNull(), // Required username field
+  password: varchar("password"), // For local auth
   email: varchar("email").unique(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
