@@ -36,9 +36,7 @@ function App() {
       <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
         <TooltipProvider>
           <Toaster />
-          <AppLayout>
-            <Router />
-          </AppLayout>
+          <Router />
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>
