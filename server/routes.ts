@@ -30,7 +30,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API Routes - all prefixed with /api
   
   // ===== Providers ===== //
-  app.get("/api/providers", async (req: Request, res: Response) => {
+  app.get("/api/providers", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const providers = await storage.getProviders();
       res.json(providers);
@@ -43,7 +43,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ===== Appointments ===== //
   
   // Get all appointments
-  app.get("/api/appointments", async (req: Request, res: Response) => {
+  app.get("/api/appointments", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const appointments = await storage.getAppointments();
       res.json(appointments);
@@ -54,7 +54,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get a single appointment
-  app.get("/api/appointments/:id", async (req: Request, res: Response) => {
+  app.get("/api/appointments/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -74,7 +74,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Create a new appointment
-  app.post("/api/appointments", async (req: Request, res: Response) => {
+  app.post("/api/appointments", isAuthenticated, async (req: Request, res: Response) => {
     try {
       // Validate request body against schema
       const parsedData = insertAppointmentSchema.safeParse(req.body);
@@ -106,7 +106,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Update an appointment
-  app.patch("/api/appointments/:id", async (req: Request, res: Response) => {
+  app.patch("/api/appointments/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -161,7 +161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Delete an appointment
-  app.delete("/api/appointments/:id", async (req: Request, res: Response) => {
+  app.delete("/api/appointments/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -197,7 +197,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Validate import file
-  app.post("/api/import/validate", upload.single('file'), async (req: Request, res: Response) => {
+  app.post("/api/import/validate", isAuthenticated, upload.single('file'), async (req: Request, res: Response) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No file provided" });
@@ -219,7 +219,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Import appointments from file
-  app.post("/api/import/appointments", upload.single('file'), async (req: Request, res: Response) => {
+  app.post("/api/import/appointments", isAuthenticated, upload.single('file'), async (req: Request, res: Response) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No file provided" });
@@ -243,7 +243,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ===== Test Endpoints ===== //
   
   // Test email notification
-  app.post("/api/test/email", async (req: Request, res: Response) => {
+  app.post("/api/test/email", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const success = await testEmailSending();
       if (success) {
@@ -267,7 +267,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Test Google Calendar connection
-  app.post("/api/test/calendar", async (req: Request, res: Response) => {
+  app.post("/api/test/calendar", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const success = await testCalendarConnection();
       if (success) {

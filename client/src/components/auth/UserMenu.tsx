@@ -9,7 +9,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
-import { LogOut, User } from "lucide-react";
+import { LogOut, User as UserIcon } from "lucide-react";
+import type { User } from "@shared/schema";
 
 export function UserMenu() {
   const { user, isAuthenticated } = useAuth();
@@ -18,7 +19,7 @@ export function UserMenu() {
   if (!isAuthenticated || !user) {
     return (
       <Button variant="outline" className="gap-2" onClick={() => window.location.href = "/api/login"}>
-        <User className="h-4 w-4" />
+        <UserIcon className="h-4 w-4" />
         <span>Sign In</span>
       </Button>
     );

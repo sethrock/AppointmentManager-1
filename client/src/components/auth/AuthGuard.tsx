@@ -11,8 +11,10 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
+    // Only redirect if we've confirmed they're not authenticated
+    // after loading completes
     if (!isLoading && !isAuthenticated) {
-      // Redirect to login if not authenticated
+      console.log("User not authenticated, redirecting to login...");
       window.location.href = "/api/login";
     }
   }, [isAuthenticated, isLoading, setLocation]);

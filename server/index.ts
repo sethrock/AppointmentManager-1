@@ -50,6 +50,32 @@ app.use((req, res, next) => {
       )`
     );
     
+    // Ensure sessions table exists for authentication
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS sessions (
+        sid VARCHAR(255) PRIMARY KEY,
+        sess JSONB NOT NULL,
+        expire TIMESTAMP NOT NULL
+      )
+    `);
+    
+    await db.execute(`
+      CREATE INDEX IF NOT EXISTS IDX_session_expire ON sessions (expire)
+    `);
+    
+    // Create users table for authentication
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS users (
+        id VARCHAR(255) PRIMARY KEY NOT NULL,
+        email VARCHAR(255) UNIQUE,
+        first_name VARCHAR(255),
+        last_name VARCHAR(255),
+        profile_image_url VARCHAR(255),
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+    
     // Initialize default data
     log("Initializing default data...");
     if (storage instanceof DatabaseStorage) {
@@ -66,8 +92,13 @@ app.use((req, res, next) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
-    res.status(status).json({ message });
-    throw err;
+    // Log the error but don't throw it after sending the response
+    console.error('Error caught in global handler:', err);
+    
+    // Only send a response if headers haven't been sent yet
+    if (!res.headersSent) {
+      res.status(status).json({ message });
+    }
   });
 
   // importantly only setup vite in development and after
