@@ -215,7 +215,7 @@ export default function Dashboard() {
           </div>
         </div>
         
-        <div className="bg-white shadow rounded-lg p-4 mb-6">
+        <div className="search-container-gradient">
           <div className="flex flex-col md:flex-row gap-4">
             {/* Search input - Always visible */}
             <div className="relative flex-1">

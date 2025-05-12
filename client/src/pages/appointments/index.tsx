@@ -104,7 +104,7 @@ export default function AppointmentsPage() {
         </Button>
       </div>
       
-      <div className="bg-card text-card-foreground shadow-lg rounded-lg p-6 mb-6 border border-border">
+      <div className="search-container-gradient">
         <div className="flex flex-col md:flex-row gap-4">
           {/* Search and filter header */}
           <div className="flex flex-1 items-center">
