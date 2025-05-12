@@ -42,6 +42,7 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
+      // In development, allow non-HTTPS cookies
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: sessionTtl,
@@ -106,6 +107,11 @@ export async function setupAuth(app: Express) {
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
+    // Store the returnTo URL in the session if provided
+    if (req.query.returnTo) {
+      req.session.returnTo = req.query.returnTo as string;
+    }
+    
     passport.authenticate(`replitauth:${req.hostname}`, {
       prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],

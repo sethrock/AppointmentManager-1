@@ -15,7 +15,8 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     // after loading completes
     if (!isLoading && !isAuthenticated) {
       console.log("User not authenticated, redirecting to login...");
-      window.location.href = "/api/login";
+      // We need to use window.location.href for API routes since they're not client routes
+      window.location.href = "/api/login?returnTo=" + encodeURIComponent(window.location.pathname);
     }
   }, [isAuthenticated, isLoading, setLocation]);
 

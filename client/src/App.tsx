@@ -89,11 +89,7 @@ function Router() {
           <Dashboard />
         </AuthGuard>
       )} />
-      <Route path="/appointments" component={() => (
-        <AuthGuard>
-          <AppointmentList />
-        </AuthGuard>
-      )} />
+      {/* Specific appointment routes must come before the general appointments route */}
       <Route path="/appointments/new" component={() => (
         <AuthGuard>
           <NewAppointment />
@@ -102,6 +98,11 @@ function Router() {
       <Route path="/appointments/:id" component={(params) => (
         <AuthGuard>
           <AppointmentDetail />
+        </AuthGuard>
+      )} />
+      <Route path="/appointments" component={() => (
+        <AuthGuard>
+          <AppointmentList />
         </AuthGuard>
       )} />
       <Route path="/import" component={() => (
