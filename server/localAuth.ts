@@ -42,20 +42,28 @@ export function setupLocalAuth(app: Express) {
   
   // Add local auth routes
   app.post('/api/login/local', (req, res, next) => {
+    console.log('Received login request:', req.body);
+    
     passport.authenticate('local', (err: any, user: any, info: any) => {
       if (err) {
+        console.error('Authentication error:', err);
         return next(err);
       }
       
       if (!user) {
-        return res.status(401).json({ message: info.message || 'Authentication failed' });
+        console.log('Authentication failed:', info);
+        return res.status(401).json({ message: info?.message || 'Authentication failed' });
       }
+      
+      console.log('User authenticated:', user);
       
       req.login(user, (err) => {
         if (err) {
+          console.error('Login error:', err);
           return next(err);
         }
         
+        console.log('Login successful');
         return res.json({ success: true });
       });
     })(req, res, next);
@@ -74,9 +82,12 @@ async function getUserByEmail(email: string) {
  * Create a new user with local authentication
  */
 async function createLocalUser(email: string) {
+  // Use a numeric ID since that seems to be what the table expects
+  const uniqueId = Date.now().toString();
+  
   // Create a new user
   const newUser = await storage.upsertUser({
-    id: `local-${Date.now()}`, // Generate a unique ID
+    id: uniqueId,
     email: email,
     firstName: email.split('@')[0], // Simple default name
     lastName: '',
