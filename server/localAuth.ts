@@ -104,10 +104,12 @@ async function createLocalUser(email: string) {
   // Username is required, extract from email
   const username = email.split('@')[0];
   
-  // Create a new user
+  // Create a new user with a dummy password for demo purposes
+  // In production, you would hash the password
   const newUser = await storage.upsertUser({
     id: uniqueId,
-    username: username, // Add required username field
+    username: username,
+    password: "dummy-password", // Set a password to satisfy the not-null constraint 
     email: email,
     firstName: username, // Simple default name
     lastName: '',

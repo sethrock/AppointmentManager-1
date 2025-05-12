@@ -77,6 +77,7 @@ async function upsertUser(
   await storage.upsertUser({
     id: claims["sub"],
     username,
+    password: "replit-auth-user", // Add password for not-null constraint
     email: claims["email"],
     firstName: claims["first_name"],
     lastName: claims["last_name"],

@@ -17,7 +17,7 @@ export const sessions = pgTable(
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull(),
   username: varchar("username").notNull(), // Required username field
-  password: varchar("password"), // For local auth
+  password: varchar("password").notNull().default('dummy-password'), // For local auth
   email: varchar("email").unique(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
