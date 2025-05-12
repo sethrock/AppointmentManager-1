@@ -11,17 +11,20 @@ import NewAppointment from "@/pages/appointments/new";
 import AppointmentDetail from "@/pages/appointments/[id]";
 import ImportPage from "./pages/import";
 import Settings from "./pages/settings";
+import AuthPage from "./pages/auth-page";
 import AppLayout from "@/components/layout/AppLayout";
+import { ProtectedRoute } from "./lib/protected-route";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/appointments" component={AppointmentList} />
-      <Route path="/appointments/new" component={NewAppointment} />
-      <Route path="/appointments/:id" component={AppointmentDetail} />
-      <Route path="/import" component={ImportPage} />
-      <Route path="/settings" component={Settings} />
+      <ProtectedRoute path="/" component={Dashboard} />
+      <ProtectedRoute path="/appointments" component={AppointmentList} />
+      <ProtectedRoute path="/appointments/new" component={NewAppointment} />
+      <ProtectedRoute path="/appointments/:id" component={AppointmentDetail} />
+      <ProtectedRoute path="/import" component={ImportPage} />
+      <ProtectedRoute path="/settings" component={Settings} />
+      <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
   );
