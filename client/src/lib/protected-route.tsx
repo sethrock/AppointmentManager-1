@@ -1,6 +1,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
 import { Redirect, Route } from "wouter";
+import AppLayout from "@/components/layout/AppLayout";
 
 /**
  * Protected Route component that redirects to login if user is not authenticated
@@ -33,6 +34,10 @@ export function ProtectedRoute({
   }
 
   return (
-    <Route path={path} component={Component} />
+    <Route path={path}>
+      <AppLayout>
+        <Component />
+      </AppLayout>
+    </Route>
   );
 }
