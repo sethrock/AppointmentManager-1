@@ -11,10 +11,12 @@ import { log } from "./vite";
 import multer from "multer";
 import path from "path";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupLocalAuth } from "./localAuth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
+  setupLocalAuth(app);
 
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {

@@ -67,23 +67,34 @@ function HomePage() {
             </Button>
           </div>
         ) : (
-          <Button 
-            variant="outline" 
-            className="mt-2" 
-            onClick={() => window.location.href = "/api/login"}
-          >
-            Sign In
-          </Button>
+          <div className="flex flex-col gap-2 mt-4">
+            <Button 
+              variant="outline"
+              onClick={() => window.location.href = "/login"}
+            >
+              Sign In with Email
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => window.location.href = "/api/login"}
+            >
+              Sign In with Replit
+            </Button>
+          </div>
         )}
       </div>
     </div>
   );
 }
 
+import LoginPage from "./pages/login";
+
 function Router() {
   return (
     <Switch>
       <Route path="/" component={HomePage} />
+      <Route path="/login" component={LoginPage} />
       <Route path="/dashboard" component={() => (
         <AuthGuard>
           <Dashboard />

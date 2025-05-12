@@ -3,10 +3,17 @@ import { Strategy, type VerifyFunction } from "openid-client/passport";
 
 import passport from "passport";
 import session from "express-session";
-import type { Express, RequestHandler } from "express";
+import type { Express, RequestHandler, Request } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
+
+// Extend the Express session
+declare module 'express-session' {
+  interface SessionData {
+    returnTo?: string;
+  }
+}
 
 if (!process.env.REPLIT_DOMAINS) {
   throw new Error("Environment variable REPLIT_DOMAINS not provided");
@@ -121,8 +128,15 @@ export async function setupAuth(app: Express) {
   app.get("/api/callback", (req, res, next) => {
     passport.authenticate(`replitauth:${req.hostname}`, {
       successReturnToOrRedirect: "/",
-      failureRedirect: "/api/login",
-    })(req, res, next);
+      failureRedirect: "/",
+      failWithError: true
+    })(req, res, (err: any) => {
+      if (err) {
+        console.error('Authentication error:', err);
+        return res.redirect('/');
+      }
+      next();
+    });
   });
 
   app.get("/api/logout", (req, res) => {
