@@ -3,17 +3,53 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Loader2 } from "lucide-react";
 import { Redirect } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import { useState } from "react";
+import { toast } from "@/hooks/use-toast";
 
 /**
  * Authentication page for login/registration
  */
 export default function AuthPage() {
-  const { isAuthenticated, isLoading, login } = useAuth();
+  const { isAuthenticated, isLoading, login, refetch } = useAuth();
+  const [isDevLoginLoading, setIsDevLoginLoading] = useState(false);
   
   // If already logged in, redirect to dashboard
   if (isAuthenticated) {
     return <Redirect to="/" />;
   }
+  
+  // For development testing only - create and login as a test user
+  const handleDevLogin = async () => {
+    setIsDevLoginLoading(true);
+    try {
+      const response = await fetch('/api/auth/dev-login', { 
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to log in with dev account');
+      }
+      
+      await refetch();
+      toast({
+        title: "Development Login",
+        description: "Successfully logged in with development account.",
+      });
+    } catch (error) {
+      console.error('Dev login error:', error);
+      toast({
+        title: "Login failed",
+        description: "Could not log in with dev account. See console for details.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDevLoginLoading(false);
+    }
+  };
 
   return (
     <div className="flex min-h-screen bg-gradient-to-b from-white to-gray-100 dark:from-gray-900 dark:to-gray-800">
@@ -40,7 +76,7 @@ export default function AuthPage() {
               <Button 
                 className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white w-full"
                 onClick={login}
-                disabled={isLoading}
+                disabled={isLoading || isDevLoginLoading}
               >
                 {isLoading ? (
                   <>
@@ -51,6 +87,37 @@ export default function AuthPage() {
                   "Sign in with Replit"
                 )}
               </Button>
+              
+              {/* Development login option - only visible in development */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="mt-2">
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs">
+                      <span className="bg-card px-2 text-muted-foreground">
+                        Development Only
+                      </span>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="outline"
+                    className="w-full mt-2"
+                    onClick={handleDevLogin}
+                    disabled={isLoading || isDevLoginLoading}
+                  >
+                    {isDevLoginLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating dev account...
+                      </>
+                    ) : (
+                      "Use Development Account"
+                    )}
+                  </Button>
+                </div>
+              )}
             </CardContent>
             <CardFooter className="flex flex-col">
               <p className="text-xs text-center text-muted-foreground mt-2">

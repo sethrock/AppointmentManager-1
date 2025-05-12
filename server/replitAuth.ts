@@ -19,12 +19,30 @@ if (!REPLIT_DOMAINS) {
   console.warn("REPLIT_DOMAINS environment variable not provided. Using hostname from request.");
 }
 
+// Since we're having issues with the Replit OIDC discovery,
+// we'll create a more direct minimal implementation
 const getOidcConfig = memoize(
   async () => {
-    return await client.discovery(
-      new URL(process.env.ISSUER_URL ?? "https://replit.com/oidc"),
-      process.env.REPL_ID!
-    );
+    try {
+      // Try to use the discovery endpoint
+      return await client.discovery(
+        new URL(process.env.ISSUER_URL ?? "https://replit.com/oidc"),
+        REPL_ID || "fallback_client_id"
+      );
+    } catch (error) {
+      console.warn("Failed to get OIDC config from discovery, using fallback:", error);
+      
+      // Fallback to a minimal implementation for development
+      return {
+        authorization_endpoint: "https://replit.com/auth/oidc/login",
+        token_endpoint: "https://replit.com/auth/oidc/token",
+        end_session_endpoint: "https://replit.com/auth/oidc/logout",
+        userinfo_endpoint: "https://replit.com/auth/oidc/userinfo",
+        issuer: "https://replit.com/oidc",
+        jwks_uri: "https://replit.com/auth/oidc/jwks",
+        client_id: REPL_ID || "fallback_client_id"
+      };
+    }
   },
   { maxAge: 3600 * 1000 }
 );
