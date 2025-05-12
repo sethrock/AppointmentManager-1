@@ -17,7 +17,8 @@ export default function EmailLoginForm() {
     setIsLoading(true);
 
     try {
-      const response = await apiRequest("/api/login/local", {
+      // Use fetch directly for this case instead of apiRequest
+      const response = await fetch("/api/login/local", {
         method: "POST",
         body: JSON.stringify({ email, password }),
         headers: {
