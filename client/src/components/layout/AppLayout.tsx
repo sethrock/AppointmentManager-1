@@ -1,7 +1,8 @@
 import { useState, ReactNode } from "react";
 import Sidebar from "./Sidebar";
-import { Menu, X, User } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { UserMenu } from "@/components/auth/UserMenu";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -36,9 +37,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             </h2>
           </div>
           <div>
-            <button className="text-foreground hover:text-primary transition-colors rounded-full bg-background p-2">
-              <User className="h-5 w-5" />
-            </button>
+            <UserMenu />
           </div>
         </div>
       </div>
@@ -50,11 +49,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
             <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               Appointment Manager
             </h1>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-muted-foreground">Welcome, Admin</span>
-              <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center text-foreground hover:bg-primary/20 transition-colors">
-                <User className="h-5 w-5" />
-              </div>
+            <div className="flex items-center">
+              <UserMenu />
             </div>
           </div>
         </header>
