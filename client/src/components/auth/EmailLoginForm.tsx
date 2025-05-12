@@ -40,9 +40,20 @@ export default function EmailLoginForm() {
           title: "Login Successful",
           description: "You're now logged in!",
         });
+        
+        // Fetch user data to confirm login worked
+        try {
+          const userResponse = await fetch("/api/auth/user");
+          console.log("User response after login:", await userResponse.json().catch(() => null));
+        } catch (e) {
+          console.error("Error fetching user after login:", e);
+        }
+        
+        // Add a delay so user can see the success message
         setTimeout(() => {
+          // Use full reload to ensure proper session state
           window.location.href = "/dashboard";
-        }, 500);
+        }, 1000);
       } else {
         const data = await response.json();
         toast({

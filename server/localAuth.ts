@@ -10,6 +10,23 @@ import { Express, RequestHandler } from "express";
  * Set up the local email/password authentication strategy
  */
 export function setupLocalAuth(app: Express) {
+  // Set up passport serialization/deserialization for local auth sessions
+  passport.serializeUser((user: any, done) => {
+    console.log("Serializing user:", user.id);
+    done(null, user.id);
+  });
+  
+  passport.deserializeUser(async (id: string, done) => {
+    console.log("Deserializing user:", id);
+    try {
+      const user = await storage.getUser(id);
+      done(null, user);
+    } catch (err) {
+      console.error("Error deserializing user:", err);
+      done(err, null);
+    }
+  });
+  
   // Local strategy for email/password authentication
   passport.use('local', new LocalStrategy(
     {

@@ -53,6 +53,9 @@ export function getSession() {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: sessionTtl,
+      // Make sure cookies are accessible in the Replit environment
+      domain: process.env.NODE_ENV === 'production' ? undefined : undefined,
+      path: '/',
     },
   });
 }
