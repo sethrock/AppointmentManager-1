@@ -310,12 +310,14 @@ function CompleteForm({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="Cash App">Cash App</SelectItem>
                   <SelectItem value="Venmo">Venmo</SelectItem>
-                  <SelectItem value="PayPal">PayPal</SelectItem>
-                  <SelectItem value="Zelle">Zelle</SelectItem>
-                  <SelectItem value="Square">Square</SelectItem>
+                  <SelectItem value="Cash App">Cash App</SelectItem>
+                  <SelectItem value="Apple Pay">Apple Pay</SelectItem>
+                  <SelectItem value="BTC">BTC</SelectItem>
+                  <SelectItem value="ETH">ETH</SelectItem>
                   <SelectItem value="Stripe">Stripe</SelectItem>
+                  <SelectItem value="Square">Square</SelectItem>
+                  <SelectItem value="Bank Wire">Bank Wire</SelectItem>
                   <SelectItem value="Cash">Cash</SelectItem>
                 </SelectContent>
               </Select>
