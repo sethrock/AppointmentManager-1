@@ -10,65 +10,8 @@ import { importAppointmentsFromJson, validateImportFile } from "./services/impor
 import { log } from "./vite";
 import multer from "multer";
 import path from "path";
-import { setupAuth, isAuthenticated } from "./replitAuth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Set up Replit authentication
-  await setupAuth(app);
-  
-  // Add authentication route
-  // Regular authenticated user route
-  app.get("/api/auth/user", isAuthenticated, async (req: any, res: Response) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
-  
-  // Development route for mock login (for testing only)
-  app.post("/api/auth/dev-login", async (req: Request, res: Response) => {
-    if (process.env.NODE_ENV !== 'development') {
-      return res.status(404).json({ message: "Route not found" });
-    }
-    
-    try {
-      const mockUserId = "dev-user-123";
-      
-      // Create or update a mock user
-      const user = await storage.upsertUser({
-        id: mockUserId,
-        email: "dev@example.com",
-        firstName: "Dev",
-        lastName: "User",
-        profileImageUrl: null,
-      });
-      
-      // Create a mock session
-      req.login({
-        claims: {
-          sub: mockUserId,
-          email: user.email,
-          profile_image_url: user.profileImageUrl,
-          first_name: user.firstName,
-          last_name: user.lastName,
-        }
-      }, (err) => {
-        if (err) {
-          console.error("Error creating mock session:", err);
-          return res.status(500).json({ message: "Failed to create session" });
-        }
-        
-        res.json(user);
-      });
-    } catch (error) {
-      console.error("Error creating mock user:", error);
-      res.status(500).json({ message: "Failed to create mock user" });
-    }
-  });
   // API Routes - all prefixed with /api
   
   // ===== Providers ===== //

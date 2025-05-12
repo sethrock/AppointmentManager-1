@@ -4,34 +4,19 @@ import {
   type InsertAppointment,
   users, 
   type User, 
-  type UpsertUser,
+  type InsertUser,
   providers,
-  type Provider,
-  sessions
+  type Provider
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
-import connectPg from "connect-pg-simple";
-import session from "express-session";
-
-// Get PostgreSQL session store
-const PostgresSessionStore = connectPg(session);
-const sessionStore = new PostgresSessionStore({ 
-  conObject: {
-    connectionString: process.env.DATABASE_URL,
-  },
-  createTableIfMissing: true,
-  tableName: "sessions"
-});
 
 // Interface for all storage operations
 export interface IStorage {
-  // Session store
-  sessionStore: session.Store;
-  
   // User operations
-  getUser(id: string): Promise<User | undefined>;
-  upsertUser(user: UpsertUser): Promise<User>;
+  getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
   
   // Provider operations
   getProviders(): Promise<Provider[]>;
@@ -49,34 +34,20 @@ export interface IStorage {
 
 // Database storage implementation
 export class DatabaseStorage implements IStorage {
-  sessionStore: session.Store;
-  
-  constructor() {
-    this.sessionStore = sessionStore;
-  }
-  
   // User methods
-  async getUser(id: string): Promise<User | undefined> {
+  async getUser(id: number): Promise<User | undefined> {
     const result = await db.select().from(users).where(eq(users.id, id));
     return result[0];
   }
   
-  async upsertUser(userData: UpsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values({
-        ...userData,
-        updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: users.id,
-        set: {
-          ...userData,
-          updatedAt: new Date(),
-        },
-      })
-      .returning();
-    return user;
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const result = await db.select().from(users).where(eq(users.username, username));
+    return result[0];
+  }
+  
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const result = await db.insert(users).values(insertUser).returning();
+    return result[0];
   }
   
   // Provider methods
