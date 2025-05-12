@@ -10,49 +10,12 @@ import { importAppointmentsFromJson, validateImportFile } from "./services/impor
 import { log } from "./vite";
 import multer from "multer";
 import path from "path";
-import { setupAuth, isAuthenticated } from "./replitAuth";
-import { setupLocalAuth } from "./localAuth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware
-  await setupAuth(app);
-  setupLocalAuth(app);
-
-  // Auth routes
-  app.get('/api/auth/user', async (req: any, res) => {
-    try {
-      console.log("Auth check request:", req.isAuthenticated(), req.user);
-      
-      if (!req.isAuthenticated()) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      
-      // Handle both Replit Auth and local auth
-      const userId = req.user.claims?.sub || req.user.id;
-      
-      if (!userId) {
-        console.error("User ID not found in session:", req.user);
-        return res.status(500).json({ message: "Invalid user session" });
-      }
-      
-      console.log("Fetching user with ID:", userId);
-      const user = await storage.getUser(userId);
-      
-      if (!user) {
-        console.error("User not found in database:", userId);
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      return res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      return res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
   // API Routes - all prefixed with /api
   
   // ===== Providers ===== //
-  app.get("/api/providers", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/api/providers", async (req: Request, res: Response) => {
     try {
       const providers = await storage.getProviders();
       res.json(providers);
@@ -65,7 +28,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ===== Appointments ===== //
   
   // Get all appointments
-  app.get("/api/appointments", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/api/appointments", async (req: Request, res: Response) => {
     try {
       const appointments = await storage.getAppointments();
       res.json(appointments);
@@ -76,7 +39,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get a single appointment
-  app.get("/api/appointments/:id", isAuthenticated, async (req: Request, res: Response) => {
+  app.get("/api/appointments/:id", async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -96,7 +59,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Create a new appointment
-  app.post("/api/appointments", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/api/appointments", async (req: Request, res: Response) => {
     try {
       // Validate request body against schema
       const parsedData = insertAppointmentSchema.safeParse(req.body);
@@ -128,7 +91,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Update an appointment
-  app.patch("/api/appointments/:id", isAuthenticated, async (req: Request, res: Response) => {
+  app.patch("/api/appointments/:id", async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -183,7 +146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Delete an appointment
-  app.delete("/api/appointments/:id", isAuthenticated, async (req: Request, res: Response) => {
+  app.delete("/api/appointments/:id", async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -219,7 +182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Validate import file
-  app.post("/api/import/validate", isAuthenticated, upload.single('file'), async (req: Request, res: Response) => {
+  app.post("/api/import/validate", upload.single('file'), async (req: Request, res: Response) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No file provided" });
@@ -241,7 +204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Import appointments from file
-  app.post("/api/import/appointments", isAuthenticated, upload.single('file'), async (req: Request, res: Response) => {
+  app.post("/api/import/appointments", upload.single('file'), async (req: Request, res: Response) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No file provided" });
@@ -265,7 +228,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ===== Test Endpoints ===== //
   
   // Test email notification
-  app.post("/api/test/email", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/api/test/email", async (req: Request, res: Response) => {
     try {
       const success = await testEmailSending();
       if (success) {
@@ -289,7 +252,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Test Google Calendar connection
-  app.post("/api/test/calendar", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/api/test/calendar", async (req: Request, res: Response) => {
     try {
       const success = await testCalendarConnection();
       if (success) {
