@@ -7,7 +7,8 @@ import {
   UserCircle, 
   Settings, 
   FileText,
-  FileUp
+  FileUp,
+  BoxesIcon,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -29,6 +30,7 @@ export default function Sidebar({ onNavItemClick }: SidebarProps) {
     { name: "Clients", path: "/clients", icon: Users },
     { name: "Providers", path: "/providers", icon: UserCircle },
     { name: "Reports", path: "/reports", icon: FileText },
+    { name: "Resources", path: "/resources", icon: BoxesIcon },
     { name: "Settings", path: "/settings", icon: Settings },
   ];
 

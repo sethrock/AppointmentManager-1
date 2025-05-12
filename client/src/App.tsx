@@ -10,6 +10,7 @@ import AppointmentList from "@/pages/appointments/index";
 import NewAppointment from "@/pages/appointments/new";
 import AppointmentDetail from "@/pages/appointments/[id]";
 import ImportPage from "./pages/import";
+import Resources from "./pages/resources";
 import Settings from "./pages/settings";
 import AppLayout from "@/components/layout/AppLayout";
 
@@ -21,6 +22,7 @@ function Router() {
       <Route path="/appointments/new" component={NewAppointment} />
       <Route path="/appointments/:id" component={AppointmentDetail} />
       <Route path="/import" component={ImportPage} />
+      <Route path="/resources" component={Resources} />
       <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>
