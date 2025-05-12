@@ -16,10 +16,19 @@ export default function EmailLoginForm() {
     setIsLoading(true);
 
     try {
+      // Extract the username from email for our backend
+      const username = email.split('@')[0];
+      
+      console.log("Submitting login with:", { username, email, password });
+      
       // Use fetch directly for this case instead of apiRequest
       const response = await fetch("/api/login/local", {
         method: "POST",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ 
+          username, // Include username extracted from email 
+          email,
+          password 
+        }),
         headers: {
           "Content-Type": "application/json",
         },
@@ -27,7 +36,13 @@ export default function EmailLoginForm() {
 
       if (response.ok) {
         // Redirect to dashboard on successful login
-        window.location.href = "/dashboard";
+        toast({
+          title: "Login Successful",
+          description: "You're now logged in!",
+        });
+        setTimeout(() => {
+          window.location.href = "/dashboard";
+        }, 500);
       } else {
         const data = await response.json();
         toast({
@@ -37,6 +52,7 @@ export default function EmailLoginForm() {
         });
       }
     } catch (error) {
+      console.error("Login error:", error);
       toast({
         title: "Error",
         description: "An error occurred while logging in. Please try again.",

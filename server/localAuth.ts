@@ -14,27 +14,35 @@ export function setupLocalAuth(app: Express) {
   passport.use('local', new LocalStrategy(
     {
       usernameField: 'email',
-      passwordField: 'password'
+      passwordField: 'password',
+      passReqToCallback: true // Pass request to callback
     },
-    async (email, password, done) => {
+    async (req: any, email: string, password: string, done: any) => {
       // For simplicity in this demo, we're only checking the specific email
       // In a real application, you would hash passwords and store them securely
+      console.log('Local strategy authenticating with:', { email, requestBody: req.body });
+      
       if (email === 'serasomatic@gmail.com') {
         // Check if user already exists
         const existingUser = await getUserByEmail(email);
         
         if (existingUser) {
+          console.log('Found existing user:', existingUser);
           return done(null, existingUser);
         }
         
         // Create new user if not exists
         try {
+          console.log('Creating new user for email:', email);
           const newUser = await createLocalUser(email);
+          console.log('New user created:', newUser);
           return done(null, newUser);
         } catch (error) {
+          console.error('Error creating user:', error);
           return done(error);
         }
       } else {
+        console.log('Email not recognized:', email);
         return done(null, false, { message: 'Invalid credentials' });
       }
     }
