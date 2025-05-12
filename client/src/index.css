@@ -130,6 +130,19 @@
   @apply bg-secondary/20 border-border text-foreground;
 }
 
+/* Enhanced search input styling */
+.search-bar-gradient {
+  @apply bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20 hover:border-primary/40 
+         focus-visible:ring-primary/30 text-foreground placeholder:text-foreground/50 
+         transition-all duration-300 shadow-sm hover:shadow;
+}
+
+.dark .search-bar-gradient {
+  @apply bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20 hover:border-primary/40 
+         focus-visible:ring-primary/40 text-foreground placeholder:text-foreground/60 
+         shadow-inner hover:shadow-sm;
+}
+
 /* Improved focus state for form elements */
 .dark input:focus, 
 .dark textarea:focus, 

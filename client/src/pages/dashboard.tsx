@@ -219,12 +219,12 @@ export default function Dashboard() {
           <div className="flex flex-col md:flex-row gap-4">
             {/* Search input - Always visible */}
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-primary/70 h-4 w-4 z-10" />
               <Input
                 placeholder="Search clients, providers, or phone numbers..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
+                className="pl-9 search-bar-gradient"
                 onClick={() => {
                   // For mobile - expand the filter section when search is clicked
                   const filterSection = document.getElementById('dashboard-filter-section');
