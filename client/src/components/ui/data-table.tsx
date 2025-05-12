@@ -82,14 +82,14 @@ export function DataTable<TData, TValue>({
       <div className="flex flex-col md:flex-row md:items-center gap-4 py-4">
         {searchColumn && (
           <div className="relative flex-1">
-            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-primary/70 z-10" />
             <Input
               placeholder={searchPlaceholder}
               value={(table.getColumn(searchColumn)?.getFilterValue() as string) ?? ""}
               onChange={(event) =>
                 table.getColumn(searchColumn)?.setFilterValue(event.target.value)
               }
-              className="pl-8 max-w-sm"
+              className="pl-8 max-w-sm search-bar-gradient"
             />
           </div>
         )}
