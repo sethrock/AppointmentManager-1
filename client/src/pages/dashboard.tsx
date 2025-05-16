@@ -375,7 +375,7 @@ export default function Dashboard() {
                       Projected Revenue: {formatCurrency(appointment.grossRevenue || 0)}
                       {(appointment.dispositionStatus === "Complete" || appointment.dispositionStatus === "Cancel") && (
                         <div className="text-xs text-muted-foreground mt-0.5">
-                          Total Collected: {formatCurrency(appointment.totalCollected || 0)}
+                          Total Collected: {formatCurrency((appointment.totalCollectedCash || 0) + (appointment.totalCollectedDigital || 0) + (appointment.depositAmount || 0))}
                         </div>
                       )}
                     </span>

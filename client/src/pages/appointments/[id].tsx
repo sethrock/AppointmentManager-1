@@ -321,7 +321,11 @@ export default function AppointmentDetailPage() {
                         
                         <div>
                           <h4 className="text-sm font-medium text-muted-foreground mb-1">Total Collected</h4>
-                          <p className="text-lg font-medium">{formatCurrency(appointment.totalCollected || 0)}</p>
+                          <p className="text-lg font-medium">
+                            {formatCurrency((appointment.totalCollectedCash || 0) + 
+                                          (appointment.totalCollectedDigital || 0) + 
+                                          (appointment.depositAmount || 0))}
+                          </p>
                         </div>
                       </div>
                       

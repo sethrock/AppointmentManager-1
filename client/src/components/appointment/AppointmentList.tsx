@@ -192,7 +192,7 @@ export default function AppointmentList({
                 Projected Revenue: {formatCurrency(appointment.grossRevenue || 0)}
                 {(appointment.dispositionStatus === "Complete" || appointment.dispositionStatus === "Cancel") && (
                   <div className="text-sm text-muted-foreground mt-1">
-                    Total Collected: {formatCurrency(appointment.totalCollected || 0)}
+                    Total Collected: {formatCurrency((appointment.totalCollectedCash || 0) + (appointment.totalCollectedDigital || 0) + (appointment.depositAmount || 0))}
                   </div>
                 )}
               </div>
