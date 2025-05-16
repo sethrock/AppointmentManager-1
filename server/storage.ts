@@ -79,7 +79,7 @@ export class DatabaseStorage implements IStorage {
     // Calculate derived values
     const totalExpenses = (insertAppointment.travelExpense || 0) + (insertAppointment.hostingExpense || 0);
     const dueToProvider = (insertAppointment.grossRevenue || 0) - (insertAppointment.depositAmount || 0);
-    const totalCollected = (insertAppointment.totalCollectedCash || 0) + (insertAppointment.totalCollectedDigital || 0);
+    const totalCollected = (insertAppointment.totalCollectedCash || 0) + (insertAppointment.totalCollectedDigital || 0) + (insertAppointment.depositAmount || 0);
     
     const now = new Date();
     
@@ -129,7 +129,7 @@ export class DatabaseStorage implements IStorage {
     
     const totalCollectedCash = updateData.totalCollectedCash !== undefined ? updateData.totalCollectedCash : currentAppointment.totalCollectedCash;
     const totalCollectedDigital = updateData.totalCollectedDigital !== undefined ? updateData.totalCollectedDigital : currentAppointment.totalCollectedDigital;
-    const totalCollected = (totalCollectedCash || 0) + (totalCollectedDigital || 0);
+    const totalCollected = (totalCollectedCash || 0) + (totalCollectedDigital || 0) + (depositAmount || 0);
     
     const result = await db.update(appointments)
       .set({

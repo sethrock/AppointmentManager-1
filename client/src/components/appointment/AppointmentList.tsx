@@ -190,6 +190,11 @@ export default function AppointmentList({
             <div className="flex justify-between items-center mt-3 pt-3 border-t border-border/30">
               <div className="font-medium text-foreground">
                 Projected Revenue: {formatCurrency(appointment.grossRevenue || 0)}
+                {(appointment.dispositionStatus === "Complete" || appointment.dispositionStatus === "Cancel") && (
+                  <div className="text-sm text-muted-foreground mt-1">
+                    Total Collected: {formatCurrency(appointment.totalCollected || 0)}
+                  </div>
+                )}
               </div>
               <Button 
                 size="sm" 
