@@ -10,9 +10,20 @@ import { importAppointmentsFromJson, validateImportFile } from "./services/impor
 import { log } from "./vite";
 import multer from "multer";
 import path from "path";
+import { setupSession } from "./middleware/session";
+import { registerHandler, loginHandler, logoutHandler, getCurrentUserHandler, isAuthenticated } from "./middleware/auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup session middleware
+  setupSession(app);
+  
   // API Routes - all prefixed with /api
+  
+  // ===== Authentication ===== //
+  app.post("/api/auth/register", registerHandler);
+  app.post("/api/auth/login", loginHandler);
+  app.post("/api/auth/logout", logoutHandler);
+  app.get("/api/auth/me", getCurrentUserHandler);
   
   // ===== Providers ===== //
   app.get("/api/providers", async (req: Request, res: Response) => {

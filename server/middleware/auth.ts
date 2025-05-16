@@ -5,6 +5,13 @@ import { fromZodError } from "zod-validation-error";
 import { insertUserSchema, loginSchema } from "@shared/schema";
 import { storage } from "../storage";
 
+// Extend Express Request type to include session with userId
+declare module 'express-session' {
+  interface SessionData {
+    userId: number;
+  }
+}
+
 // Number of salt rounds for bcrypt
 const SALT_ROUNDS = 10;
 
