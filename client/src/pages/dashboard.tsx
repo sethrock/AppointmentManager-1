@@ -373,6 +373,11 @@ export default function Dashboard() {
                   <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mt-4 pt-3 border-t border-border">
                     <span className="text-sm font-medium">
                       Projected Revenue: {formatCurrency(appointment.grossRevenue || 0)}
+                      {(appointment.dispositionStatus === "Complete" || appointment.dispositionStatus === "Cancel") && (
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          Total Collected: {formatCurrency(appointment.totalCollected || 0)}
+                        </div>
+                      )}
                     </span>
                     <Button 
                       size="sm"
