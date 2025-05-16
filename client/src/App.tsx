@@ -15,16 +15,61 @@ import Settings from "./pages/settings";
 import AuthPage from "./pages/auth";
 import AppLayout from "@/components/layout/AppLayout";
 
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
+
+// Wrapper components for protected routes
+const ProtectedDashboard = () => (
+  <ProtectedRoute>
+    <Dashboard />
+  </ProtectedRoute>
+);
+
+const ProtectedAppointmentList = () => (
+  <ProtectedRoute>
+    <AppointmentList />
+  </ProtectedRoute>
+);
+
+const ProtectedNewAppointment = () => (
+  <ProtectedRoute>
+    <NewAppointment />
+  </ProtectedRoute>
+);
+
+const ProtectedAppointmentDetail = () => (
+  <ProtectedRoute>
+    <AppointmentDetail />
+  </ProtectedRoute>
+);
+
+const ProtectedImport = () => (
+  <ProtectedRoute>
+    <ImportPage />
+  </ProtectedRoute>
+);
+
+const ProtectedResources = () => (
+  <ProtectedRoute>
+    <Resources />
+  </ProtectedRoute>
+);
+
+const ProtectedSettings = () => (
+  <ProtectedRoute>
+    <Settings />
+  </ProtectedRoute>
+);
+
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/appointments" component={AppointmentList} />
-      <Route path="/appointments/new" component={NewAppointment} />
-      <Route path="/appointments/:id" component={AppointmentDetail} />
-      <Route path="/import" component={ImportPage} />
-      <Route path="/resources" component={Resources} />
-      <Route path="/settings" component={Settings} />
+      <Route path="/" component={ProtectedDashboard} />
+      <Route path="/appointments" component={ProtectedAppointmentList} />
+      <Route path="/appointments/new" component={ProtectedNewAppointment} />
+      <Route path="/appointments/:id" component={ProtectedAppointmentDetail} />
+      <Route path="/import" component={ProtectedImport} />
+      <Route path="/resources" component={ProtectedResources} />
+      <Route path="/settings" component={ProtectedSettings} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
