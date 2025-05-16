@@ -9,20 +9,44 @@ import {
   FileText,
   FileUp,
   BoxesIcon,
+  LogOut,
+  LogIn
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 
 interface SidebarProps {
   onNavItemClick?: () => void;
 }
 
 export default function Sidebar({ onNavItemClick }: SidebarProps) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
+  const { user, isAuthenticated } = useAuth();
+  const { toast } = useToast();
 
   const isActive = (path: string) => {
     if (path === "/" && location === "/") return true;
     if (path !== "/" && location.startsWith(path)) return true;
     return false;
   };
+  
+  // Logout mutation
+  const logoutMutation = useMutation({
+    mutationFn: () => {
+      return apiRequest("POST", "/api/auth/logout", {});
+    },
+    onSuccess: () => {
+      toast({
+        title: "Logged out successfully",
+        description: "You have been logged out"
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+      setLocation("/auth");
+    }
+  });
 
   const navItems = [
     { name: "Dashboard", path: "/", icon: BarChart },
@@ -110,6 +134,43 @@ export default function Sidebar({ onNavItemClick }: SidebarProps) {
                 </Link>
               );
             })}
+          </div>
+        </div>
+        
+        {/* Authentication section */}
+        <div className="px-4 mt-8">
+          <h5 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-3 ml-2">Account</h5>
+          <div className="space-y-1">
+            {isAuthenticated ? (
+              <div className="p-3">
+                <div className="mb-3 text-sm">
+                  <p className="font-medium">{user?.username}</p>
+                  <p className="text-muted-foreground text-xs">{user?.email}</p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full justify-start" 
+                  onClick={() => logoutMutation.mutate()}
+                  disabled={logoutMutation.isPending}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  {logoutMutation.isPending ? "Logging out..." : "Log out"}
+                </Button>
+              </div>
+            ) : (
+              <div className="p-3">
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  className="w-full justify-start"
+                  onClick={() => setLocation("/auth")}
+                >
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Log in
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </nav>

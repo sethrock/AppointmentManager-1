@@ -12,6 +12,7 @@ import AppointmentDetail from "@/pages/appointments/[id]";
 import ImportPage from "./pages/import";
 import Resources from "./pages/resources";
 import Settings from "./pages/settings";
+import AuthPage from "./pages/auth";
 import AppLayout from "@/components/layout/AppLayout";
 
 function Router() {
@@ -24,6 +25,7 @@ function Router() {
       <Route path="/import" component={ImportPage} />
       <Route path="/resources" component={Resources} />
       <Route path="/settings" component={Settings} />
+      <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -100,13 +100,7 @@ export default function AuthPage() {
     mutationFn: (data: RegisterFormValues) => {
       // Remove confirmPassword as it's not needed in the API call
       const { confirmPassword, ...registerData } = data;
-      return apiRequest("/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(registerData),
-      });
+      return apiRequest("POST", "/api/auth/register", registerData);
     },
     onSuccess: () => {
       toast({
