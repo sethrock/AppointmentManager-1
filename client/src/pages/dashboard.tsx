@@ -372,7 +372,7 @@ export default function Dashboard() {
                   </div>
                   <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mt-4 pt-3 border-t border-border">
                     <span className="text-sm font-medium">
-                      Revenue: {formatCurrency(appointment.grossRevenue || 0)}
+                      Projected Revenue: {formatCurrency(appointment.grossRevenue || 0)}
                     </span>
                     <Button 
                       size="sm"
