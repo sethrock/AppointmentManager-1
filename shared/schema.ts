@@ -51,7 +51,7 @@ export const appointments = pgTable("appointments", {
   callDuration: doublePrecision("call_duration"),
   
   // Appointment Financials
-  grossRevenue: doublePrecision("gross_revenue"),
+  grossRevenue: doublePrecision("projected_revenue"),
   travelExpense: doublePrecision("travel_expense").default(0),
   hostingExpense: doublePrecision("hosting_expense").default(0),
   inOutGoesTo: text("in_out_goes_to"), // 'agency' or 'provider'

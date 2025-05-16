@@ -184,7 +184,7 @@ export default function Dashboard() {
           <Card className="border-border bg-card/50 backdrop-blur-sm overflow-hidden">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Revenue
+                Total Projected Revenue
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-2">

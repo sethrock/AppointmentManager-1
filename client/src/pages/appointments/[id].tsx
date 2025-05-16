@@ -230,7 +230,7 @@ export default function AppointmentDetailPage() {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Revenue
+                  Projected Revenue
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -272,7 +272,7 @@ export default function AppointmentDetailPage() {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Gross Revenue</h3>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Projected Revenue</h3>
                       <p className="text-lg font-medium">{formatCurrency(appointment.grossRevenue || 0)}</p>
                     </div>
                     

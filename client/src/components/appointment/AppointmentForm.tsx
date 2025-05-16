@@ -735,14 +735,14 @@ export default function AppointmentForm({
         <div className="form-section mb-8">
           <h3 className="form-section-title">Appointment Financials</h3>
           
-          <h4 className="section-header">Gross Income</h4>
+          <h4 className="section-header">Projected Income</h4>
           <div className="mb-6">
             <FormField
               control={form.control}
               name="grossRevenue"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="required">Gross Revenue</FormLabel>
+                  <FormLabel className="required">Projected Revenue</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
