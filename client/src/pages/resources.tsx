@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { 
   Tabs, 
   TabsContent, 
@@ -9,11 +9,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Video, Shield, Copy, ExternalLink } from "lucide-react";
+import { Video, Shield, Building, Copy, ExternalLink } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 export default function Resources() {
   const [isVideoIframeLoading, setIsVideoIframeLoading] = useState(true);
   const [isSafetyIframeLoading, setIsSafetyIframeLoading] = useState(true);
+  const [isBankingIframeLoading, setIsBankingIframeLoading] = useState(true);
   const { toast } = useToast();
 
   const resources = [
@@ -22,14 +24,24 @@ export default function Resources() {
       name: "Video Chat", 
       url: "https://seracall.replit.app/", 
       icon: Video,
-      description: "Secure video chat for appointments"
+      description: "Secure video chat for appointments",
+      category: "Communication"
     },
     { 
       id: "safety", 
       name: "Safety", 
       url: "https://sera-safety.replit.app/", 
       icon: Shield,
-      description: "Safety resources and information"
+      description: "Safety resources and information",
+      category: "Security"
+    },
+    {
+      id: "banking",
+      name: "Banking Verification",
+      url: "https://banking-verify2view.replit.app/",
+      icon: Building,
+      description: "Bank routing information verification",
+      category: "Financial"
     }
   ];
 
@@ -64,26 +76,45 @@ export default function Resources() {
       </div>
 
       <Tabs defaultValue="video-chat" className="w-full">
-        <TabsList className="mb-4">
-          {resources.map(resource => (
-            <TabsTrigger 
-              key={resource.id} 
-              value={resource.id} 
-              className="flex items-center gap-2"
-            >
-              <resource.icon className="h-4 w-4" />
-              <span>{resource.name}</span>
-            </TabsTrigger>
-          ))}
+        <TabsList className="mb-4 flex overflow-auto">
+          {resources.map((resource, index) => {
+            // Group resources by category with separators
+            const prevCategory = index > 0 ? resources[index - 1].category : null;
+            const showSeparator = index > 0 && resource.category !== prevCategory;
+            
+            return (
+              <Fragment key={resource.id}>
+                {showSeparator && (
+                  <div className="flex items-center px-1">
+                    <div className="h-8 w-0.5 bg-gradient-to-b from-primary/20 to-accent/20 rounded-full"></div>
+                  </div>
+                )}
+                <TabsTrigger 
+                  value={resource.id} 
+                  className="flex items-center gap-2"
+                >
+                  <resource.icon className="h-4 w-4" />
+                  <span>{resource.name}</span>
+                </TabsTrigger>
+              </React.Fragment>
+            );
+          })}
         </TabsList>
         
         {resources.map(resource => {
-          const isLoading = resource.id === "video-chat" 
-            ? isVideoIframeLoading 
-            : isSafetyIframeLoading;
-          const setLoading = resource.id === "video-chat"
-            ? setIsVideoIframeLoading
-            : setIsSafetyIframeLoading;
+          let isLoading;
+          let setLoading;
+          
+          if (resource.id === "video-chat") {
+            isLoading = isVideoIframeLoading;
+            setLoading = setIsVideoIframeLoading;
+          } else if (resource.id === "safety") {
+            isLoading = isSafetyIframeLoading;
+            setLoading = setIsSafetyIframeLoading;
+          } else if (resource.id === "banking") {
+            isLoading = isBankingIframeLoading;
+            setLoading = setIsBankingIframeLoading;
+          }
             
           return (
             <TabsContent key={resource.id} value={resource.id} className="mt-0">
