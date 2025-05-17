@@ -3,6 +3,13 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // User schema for authentication
+// Session table for storing session data
+export const sessions = pgTable("session", {
+  sid: text("sid").primaryKey(),
+  sess: json("sess").notNull(),
+  expire: timestamp("expire").notNull(),
+});
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
