@@ -1,4 +1,4 @@
-import { useState, Fragment } from "react";
+import { useState } from "react";
 import { 
   Tabs, 
   TabsContent, 
@@ -64,6 +64,20 @@ export default function Resources() {
       });
   };
 
+  // Function to get loading state and setter based on resource ID
+  const getLoadingState = (resourceId: string): [boolean, React.Dispatch<React.SetStateAction<boolean>>] => {
+    switch (resourceId) {
+      case "video-chat":
+        return [isVideoIframeLoading, setIsVideoIframeLoading];
+      case "safety":
+        return [isSafetyIframeLoading, setIsSafetyIframeLoading];
+      case "banking":
+        return [isBankingIframeLoading, setIsBankingIframeLoading];
+      default:
+        return [true, () => {}];
+    }
+  };
+
   return (
     <div className="p-6">
       <div className="mb-6">
@@ -77,44 +91,37 @@ export default function Resources() {
 
       <Tabs defaultValue="video-chat" className="w-full">
         <TabsList className="mb-4 flex overflow-auto">
-          {resources.map((resource, index) => {
-            // Group resources by category with separators
+          {/* Create tabs dynamically with separators */}
+          {resources.reduce((acc: JSX.Element[], resource, index) => {
+            // Check if this is a new category that needs a separator
             const prevCategory = index > 0 ? resources[index - 1].category : null;
             const showSeparator = index > 0 && resource.category !== prevCategory;
             
-            return (
-              <Fragment key={resource.id}>
-                {showSeparator && (
-                  <div className="flex items-center px-1">
-                    <div className="h-8 w-0.5 bg-gradient-to-b from-primary/20 to-accent/20 rounded-full"></div>
-                  </div>
-                )}
-                <TabsTrigger 
-                  value={resource.id} 
-                  className="flex items-center gap-2"
-                >
-                  <resource.icon className="h-4 w-4" />
-                  <span>{resource.name}</span>
-                </TabsTrigger>
-              </React.Fragment>
+            if (showSeparator) {
+              acc.push(
+                <div key={`sep-${resource.id}`} className="flex items-center px-1">
+                  <div className="h-8 w-0.5 bg-gradient-to-b from-primary/20 to-accent/20 rounded-full"></div>
+                </div>
+              );
+            }
+            
+            acc.push(
+              <TabsTrigger 
+                key={resource.id}
+                value={resource.id} 
+                className="flex items-center gap-2"
+              >
+                <resource.icon className="h-4 w-4" />
+                <span>{resource.name}</span>
+              </TabsTrigger>
             );
-          })}
+            
+            return acc;
+          }, [])}
         </TabsList>
         
         {resources.map(resource => {
-          let isLoading;
-          let setLoading;
-          
-          if (resource.id === "video-chat") {
-            isLoading = isVideoIframeLoading;
-            setLoading = setIsVideoIframeLoading;
-          } else if (resource.id === "safety") {
-            isLoading = isSafetyIframeLoading;
-            setLoading = setIsSafetyIframeLoading;
-          } else if (resource.id === "banking") {
-            isLoading = isBankingIframeLoading;
-            setLoading = setIsBankingIframeLoading;
-          }
+          const [isLoading, setLoading] = getLoadingState(resource.id);
             
           return (
             <TabsContent key={resource.id} value={resource.id} className="mt-0">
@@ -124,6 +131,7 @@ export default function Resources() {
                     <div className="flex items-center gap-2">
                       <resource.icon className="h-5 w-5 text-primary" />
                       <h3 className="font-medium">{resource.name}</h3>
+                      <div className="px-2 py-0.5 text-xs bg-primary/10 text-primary rounded-full ml-2">{resource.category}</div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
