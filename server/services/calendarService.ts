@@ -153,10 +153,48 @@ async function createCalendarEvent(
       location = parts.join(', ');
     }
     
+    // Format financial information
+    const deposit = appointment.depositAmount ? `$${appointment.depositAmount}` : '$0';
+    const paymentMethod = appointment.paymentProcessUsed || 'Not specified';
+    const dueToProvider = appointment.dueToProvider || 
+      ((appointment.grossRevenue || 0) - (appointment.depositAmount || 0));
+    
+    // Build a detailed description with all appointment information
+    const description = `
+APPOINTMENT DETAILS:
+Client: ${appointment.clientName || 'Not specified'}
+Phone: ${appointment.phoneNumber || 'Not provided'}
+Revenue: $${appointment.grossRevenue || 0}
+Marketing Channel: ${appointment.marketingChannel || 'Not specified'}
+
+Location: ${appointment.callType === 'in-call' ? 'INCALL AT YOUR LOCATION' : 'OUTCALL TO CLIENT'}
+${appointment.streetAddress ? `Address: ${[
+  appointment.streetAddress,
+  appointment.addressLine2,
+  appointment.city,
+  appointment.state,
+  appointment.zipCode
+].filter(Boolean).join(', ')}` : ''}
+${appointment.outcallDetails ? `Location Notes: ${appointment.outcallDetails}` : ''}
+
+Financial Details:
+- Deposit Received: ${deposit} via ${paymentMethod}
+- Balance Due: $${dueToProvider}
+- Travel Expenses: $${appointment.travelExpense || 0}
+- Hosting Expenses: $${appointment.hostingExpense || 0}
+
+${appointment.hasClientNotes && appointment.clientNotes ? `Client Notes: ${appointment.clientNotes}` : 'No client notes provided'}
+
+Set by: ${appointment.setBy}
+    `.trim();
+    
+    // Create a summary that includes the important details
+    const summary = `Appointment: ${appointment.clientName || 'Client'} - ${appointment.callType === 'in-call' ? 'IN' : 'OUT'}`;
+    
     // Create the event
     const event = {
-      summary: `Appointment with ${appointment.clientName || 'Client'}`,
-      description: `Provider: ${appointment.provider}\nSet by: ${appointment.setBy}\nMarketing Channel: ${appointment.marketingChannel}`,
+      summary: summary,
+      description: description,
       location,
       start: {
         dateTime: startDateTime,
@@ -233,10 +271,146 @@ async function updateCalendarEvent(
       location = parts.join(', ');
     }
     
+    // Format financial information
+    const deposit = appointment.depositAmount ? `$${appointment.depositAmount}` : '$0';
+    const paymentMethod = appointment.paymentProcessUsed || 'Not specified';
+    const dueToProvider = appointment.dueToProvider || 
+      ((appointment.grossRevenue || 0) - (appointment.depositAmount || 0));
+    
+    // Build a detailed description with all appointment information
+    let description = '';
+    
+    if (appointment.dispositionStatus === 'Reschedule') {
+      description = `
+RESCHEDULED APPOINTMENT:
+Client: ${appointment.clientName || 'Not specified'}
+Phone: ${appointment.phoneNumber || 'Not provided'}
+
+ORIGINAL SCHEDULE:
+Date: ${formatDate(appointment.startDate)}
+Time: ${formatTime(appointment.startTime)} - ${formatTime(appointment.endTime || '')}
+
+NEW SCHEDULE:
+Date: ${formatDate(appointment.updatedStartDate || '')}
+Time: ${formatTime(appointment.updatedStartTime || '')} - ${formatTime(appointment.updatedEndTime || '')}
+Duration: ${appointment.callDuration || 1} hour(s)
+Revenue: $${appointment.grossRevenue || 0}
+
+Location: ${appointment.callType === 'in-call' ? 'INCALL AT YOUR LOCATION' : 'OUTCALL TO CLIENT'}
+${appointment.streetAddress ? `Address: ${[
+  appointment.streetAddress,
+  appointment.addressLine2,
+  appointment.city,
+  appointment.state,
+  appointment.zipCode
+].filter(Boolean).join(', ')}` : ''}
+${appointment.outcallDetails ? `Location Notes: ${appointment.outcallDetails}` : ''}
+
+Financial Details:
+- Deposit Received: ${deposit} via ${paymentMethod}
+- Balance Due: $${dueToProvider}
+- Travel Expenses: $${appointment.travelExpense || 0}
+- Hosting Expenses: $${appointment.hostingExpense || 0}
+
+${appointment.hasClientNotes && appointment.clientNotes ? `Client Notes: ${appointment.clientNotes}` : 'No client notes provided'}
+
+Set by: ${appointment.setBy}
+      `.trim();
+    } else if (appointment.dispositionStatus === 'Complete') {
+      description = `
+APPOINTMENT COMPLETED:
+Client: ${appointment.clientName || 'Not specified'}
+Phone: ${appointment.phoneNumber || 'Not provided'}
+Date: ${formatDate(appointment.startDate)}
+Time: ${formatTime(appointment.startTime)} - ${formatTime(appointment.endTime || '')}
+Duration: ${appointment.callDuration || 1} hour(s)
+
+Financial Summary:
+- Total Collected: $${appointment.totalCollected || 0}
+- Cash Payment: $${appointment.totalCollectedCash || 0}
+- Digital Payment: $${appointment.totalCollectedDigital || 0}
+- Payment Method: ${appointment.paymentProcessor || 'Not specified'}
+- Payment Notes: ${appointment.paymentNotes || 'None'}
+
+Appointment Outcome:
+- See client again: ${appointment.seeClientAgain ? 'YES' : 'NO'}
+- Notes: ${appointment.appointmentNotes || 'None'}
+
+Set by: ${appointment.setBy}
+      `.trim();
+    } else if (appointment.dispositionStatus === 'Cancel') {
+      const applyToFutureBooking = appointment.cancellationDetails && 
+        (appointment.cancellationDetails.includes("apply") || 
+         appointment.cancellationDetails.includes("credit") || 
+         appointment.cancellationDetails.includes("honor"))
+        ? "YES" : "NO";
+        
+      description = `
+APPOINTMENT CANCELLED:
+Client: ${appointment.clientName || 'Not specified'}
+Phone: ${appointment.phoneNumber || 'Not provided'}
+Original Date: ${formatDate(appointment.startDate)}
+Original Time: ${formatTime(appointment.startTime)} - ${formatTime(appointment.endTime || '')}
+
+Cancellation Information:
+- Cancelled by: ${appointment.whoCanceled === 'client' ? 'Client' : 'Provider'}
+- Reason: ${appointment.cancellationDetails || 'Not specified'}
+- Deposit status: ${deposit} ${appointment.depositReceivedBy ? 'received by ' + appointment.depositReceivedBy : ''}
+
+Financial Resolution:
+- Deposit amount: ${deposit}
+- Applied to future booking: ${applyToFutureBooking}
+- Refunded: ${(appointment.totalCollected || 0) > 0 ? `YES - $${appointment.totalCollected}` : 'NO'}
+
+Set by: ${appointment.setBy}
+      `.trim();
+    } else {
+      // Default appointment information
+      description = `
+APPOINTMENT DETAILS:
+Client: ${appointment.clientName || 'Not specified'}
+Phone: ${appointment.phoneNumber || 'Not provided'}
+Revenue: $${appointment.grossRevenue || 0}
+Marketing Channel: ${appointment.marketingChannel || 'Not specified'}
+
+Location: ${appointment.callType === 'in-call' ? 'INCALL AT YOUR LOCATION' : 'OUTCALL TO CLIENT'}
+${appointment.streetAddress ? `Address: ${[
+  appointment.streetAddress,
+  appointment.addressLine2,
+  appointment.city,
+  appointment.state,
+  appointment.zipCode
+].filter(Boolean).join(', ')}` : ''}
+${appointment.outcallDetails ? `Location Notes: ${appointment.outcallDetails}` : ''}
+
+Financial Details:
+- Deposit Received: ${deposit} via ${paymentMethod}
+- Balance Due: $${dueToProvider}
+- Travel Expenses: $${appointment.travelExpense || 0}
+- Hosting Expenses: $${appointment.hostingExpense || 0}
+
+${appointment.hasClientNotes && appointment.clientNotes ? `Client Notes: ${appointment.clientNotes}` : 'No client notes provided'}
+
+Set by: ${appointment.setBy}
+      `.trim();
+    }
+    
+    // Create a summary that includes the important details and status
+    let summary = '';
+    if (appointment.dispositionStatus === 'Reschedule') {
+      summary = `RESCHEDULED: ${appointment.clientName || 'Client'} - moved to ${formatDate(appointment.updatedStartDate || '')}`;
+    } else if (appointment.dispositionStatus === 'Complete') {
+      summary = `COMPLETED: ${appointment.clientName || 'Client'} - ${formatDate(appointment.startDate)}`;
+    } else if (appointment.dispositionStatus === 'Cancel') {
+      summary = `CANCELLED: ${appointment.clientName || 'Client'} - ${formatDate(appointment.startDate)}`;
+    } else {
+      summary = `Appointment: ${appointment.clientName || 'Client'} - ${appointment.callType === 'in-call' ? 'IN' : 'OUT'}`;
+    }
+    
     // Create the updated event
     const event = {
-      summary: `Appointment with ${appointment.clientName || 'Client'}`,
-      description: `Provider: ${appointment.provider}\nSet by: ${appointment.setBy}\nMarketing Channel: ${appointment.marketingChannel}`,
+      summary: summary,
+      description: description,
       location,
       start: {
         dateTime: startDateTime,
