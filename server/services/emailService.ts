@@ -62,23 +62,63 @@ export async function sendEmail(
  * Generate email content for new appointment
  */
 export function generateNewAppointmentEmail(appointment: Appointment): string {
-  const timeInfo = `${formatDate(appointment.startDate)} at ${formatTime(appointment.startTime)}`;
-  const provider = appointment.provider;
+  // Calculate duration and other dynamic values
+  const endTime = appointment.endTime || (() => {
+    const [hours, minutes] = appointment.startTime.split(':').map(Number);
+    return `${hours + 1}:${minutes.toString().padStart(2, '0')}`;
+  })();
+  
+  // Determine location type message
+  const locationType = appointment.callType === 'out-call' ? "OUTCALL TO CLIENT" : "INCALL AT YOUR LOCATION";
+  
+  // Format notes section
+  const clientNotesSection = appointment.hasClientNotes && appointment.clientNotes 
+    ? appointment.clientNotes 
+    : "No notes provided";
+  
+  // Calculate due to provider (if not directly available)
+  const dueToProvider = appointment.dueToProvider || 
+    ((appointment.grossRevenue || 0) - (appointment.depositAmount || 0));
   
   return `
     <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-      <h2 style="color: #2c3e50;">New Appointment Scheduled</h2>
-      <p>A new appointment has been scheduled with ${provider}.</p>
+      <h2 style="color: #2c3e50;">APPOINTMENT DETAILS:</h2>
+      <p><strong>Client:</strong> ${appointment.clientName || 'Not specified'}</p>
+      <p><strong>Phone:</strong> ${appointment.phoneNumber || 'Not provided'}</p>
+      <p><strong>Date:</strong> ${formatDate(appointment.startDate)}</p>
+      <p><strong>Time:</strong> ${formatTime(appointment.startTime)} - ${formatTime(endTime)}</p>
+      <p><strong>Duration:</strong> ${appointment.callDuration || 1} hour(s)</p>
+      <p><strong>Revenue:</strong> $${appointment.grossRevenue || 0}</p>
       
       <div style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; margin: 20px 0;">
-        <h3 style="margin-top: 0; color: #2c3e50;">Appointment Details</h3>
-        <p><strong>Provider:</strong> ${provider}</p>
-        <p><strong>Date & Time:</strong> ${timeInfo}</p>
-        <p><strong>Client:</strong> ${appointment.clientName || 'Not specified'}</p>
-        <p><strong>Type:</strong> ${appointment.callType === 'in-call' ? 'In-Call' : 'Out-Call'}</p>
+        <h3 style="margin-top: 0; color: #2c3e50;">Location Information:</h3>
+        <p><strong>Location Type:</strong> ${locationType}</p>
+        <p><strong>Address:</strong> ${[
+          appointment.streetAddress,
+          appointment.addressLine2,
+          appointment.city,
+          appointment.state,
+          appointment.zipCode
+        ].filter(Boolean).join(', ') || 'Not specified'}</p>
+        <p><strong>Location Notes:</strong> ${appointment.outcallDetails || 'None'}</p>
       </div>
       
-      <p>Please log in to the appointment management system to view the full details.</p>
+      <div style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #2c3e50;">Financial Details:</h3>
+        <p><strong>Deposit Received:</strong> $${appointment.depositAmount || 0} via ${appointment.paymentProcessUsed || 'Not specified'}</p>
+        <p><strong>Balance Due:</strong> $${dueToProvider}</p>
+        <p><strong>Travel Expenses:</strong> $${appointment.travelExpense || 0}</p>
+        <p><strong>Hosting Expenses:</strong> $${appointment.hostingExpense || 0}</p>
+      </div>
+      
+      <div style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #2c3e50;">Client Notes:</h3>
+        <p>${clientNotesSection}</p>
+      </div>
+      
+      <p>This appointment has been added to your calendar. Please confirm receipt.</p>
+      
+      <p><strong>Set by:</strong> ${appointment.setBy}</p>
       
       <p style="margin-top: 30px; font-size: 12px; color: #7f8c8d;">
         This is an automated message. Please do not reply to this email.
@@ -94,55 +134,188 @@ export function generateStatusUpdateEmail(
   appointment: Appointment,
   status: string
 ): string {
-  const timeInfo = `${formatDate(appointment.startDate)} at ${formatTime(appointment.startTime)}`;
-  const provider = appointment.provider;
+  // Calculate duration and other dynamic values
+  const endTime = appointment.endTime || (() => {
+    const [hours, minutes] = appointment.startTime.split(':').map(Number);
+    return `${hours + 1}:${minutes.toString().padStart(2, '0')}`;
+  })();
   
-  let statusMessage = '';
-  let statusColor = '';
+  // Calculate updated times if rescheduled
+  const updatedEndTime = appointment.updatedEndTime || 
+    (appointment.updatedStartTime ? (() => {
+      const [hours, minutes] = appointment.updatedStartTime.split(':').map(Number);
+      return `${hours + 1}:${minutes.toString().padStart(2, '0')}`;
+    })() : '');
   
+  // Determine location type message
+  const locationType = appointment.callType === 'out-call' ? "OUTCALL TO CLIENT" : "INCALL AT YOUR LOCATION";
+  
+  // Format notes section
+  const clientNotesSection = appointment.hasClientNotes && appointment.clientNotes 
+    ? appointment.clientNotes 
+    : "No notes provided";
+  
+  // Calculate due to provider (if not directly available)
+  const dueToProvider = appointment.dueToProvider || 
+    ((appointment.grossRevenue || 0) - (appointment.depositAmount || 0));
+  
+  // Determine if deposit should be applied to future booking based on cancellation details
+  const applyToFutureBooking = appointment.cancellationDetails && 
+    (appointment.cancellationDetails.includes("apply") || 
+     appointment.cancellationDetails.includes("credit") || 
+     appointment.cancellationDetails.includes("honor"))
+    ? "YES" : "NO";
+    
+  // Generate email based on status
   switch (status) {
-    case 'Complete':
-      statusMessage = 'has been marked as completed';
-      statusColor = '#27ae60'; // Green
-      break;
     case 'Reschedule':
-      statusMessage = 'has been rescheduled';
-      statusColor = '#f39c12'; // Orange
-      break;
+      return `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <h2 style="color: #f39c12;">RESCHEDULED APPOINTMENT:</h2>
+          <p><strong>Client:</strong> ${appointment.clientName || 'Not specified'}</p>
+          <p><strong>Phone:</strong> ${appointment.phoneNumber || 'Not provided'}</p>
+          
+          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #e74c3c;">ORIGINAL SCHEDULE:</h3>
+            <p><strong>Date:</strong> ${formatDate(appointment.startDate)}</p>
+            <p><strong>Time:</strong> ${formatTime(appointment.startTime)} - ${formatTime(endTime)}</p>
+          </div>
+          
+          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #27ae60;">NEW SCHEDULE:</h3>
+            <p><strong>Date:</strong> ${formatDate(appointment.updatedStartDate || '')}</p>
+            <p><strong>Time:</strong> ${formatTime(appointment.updatedStartTime || '')} - ${formatTime(updatedEndTime)}</p>
+            <p><strong>Duration:</strong> ${appointment.callDuration || 1} hour(s)</p>
+            <p><strong>Revenue:</strong> $${appointment.grossRevenue || 0}</p>
+          </div>
+          
+          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #2c3e50;">Location Information:</h3>
+            <p><strong>Location Type:</strong> ${locationType}</p>
+            <p><strong>Address:</strong> ${[
+              appointment.streetAddress,
+              appointment.addressLine2,
+              appointment.city,
+              appointment.state,
+              appointment.zipCode
+            ].filter(Boolean).join(', ') || 'Not specified'}</p>
+            <p><strong>Location Notes:</strong> ${appointment.outcallDetails || 'None'}</p>
+          </div>
+          
+          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #2c3e50;">Financial Details:</h3>
+            <p><strong>Deposit Received:</strong> $${appointment.depositAmount || 0} via ${appointment.paymentProcessUsed || 'Not specified'}</p>
+            <p><strong>Balance Due:</strong> $${dueToProvider}</p>
+            <p><strong>Travel Expenses:</strong> $${appointment.travelExpense || 0}</p>
+            <p><strong>Hosting Expenses:</strong> $${appointment.hostingExpense || 0}</p>
+          </div>
+          
+          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #2c3e50;">Client Notes:</h3>
+            <p>${clientNotesSection}</p>
+          </div>
+          
+          <p>Your calendar has been updated with these changes. Please confirm receipt.</p>
+          
+          <p><strong>Set by:</strong> ${appointment.setBy}</p>
+          
+          <p style="margin-top: 30px; font-size: 12px; color: #7f8c8d;">
+            This is an automated message. Please do not reply to this email.
+          </p>
+        </div>
+      `;
+    
     case 'Cancel':
-      statusMessage = 'has been cancelled';
-      statusColor = '#e74c3c'; // Red
-      break;
+      return `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <h2 style="color: #e74c3c;">APPOINTMENT CANCELLED:</h2>
+          <p><strong>Client:</strong> ${appointment.clientName || 'Not specified'}</p>
+          <p><strong>Phone:</strong> ${appointment.phoneNumber || 'Not provided'}</p>
+          <p><strong>Original Date:</strong> ${formatDate(appointment.startDate)}</p>
+          <p><strong>Original Time:</strong> ${formatTime(appointment.startTime)} - ${formatTime(endTime)}</p>
+          
+          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #2c3e50;">Cancellation Information:</h3>
+            <p><strong>Cancelled by:</strong> ${appointment.whoCanceled === 'client' ? 'Client' : 'Provider'}</p>
+            <p><strong>Reason:</strong> ${appointment.cancellationDetails || 'Not specified'}</p>
+            <p><strong>Deposit status:</strong> $${appointment.depositAmount || 0} ${appointment.depositReceivedBy ? 'received by ' + appointment.depositReceivedBy : ''}</p>
+          </div>
+          
+          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #2c3e50;">Financial Resolution:</h3>
+            <p><strong>Deposit amount:</strong> $${appointment.depositAmount || 0}</p>
+            <p><strong>Applied to future booking:</strong> ${applyToFutureBooking}</p>
+            <p><strong>Refunded:</strong> ${(appointment.totalCollected || 0) > 0 ? `YES - $${appointment.totalCollected}` : 'NO'}</p>
+          </div>
+          
+          <p>This appointment has been removed from your calendar. No further action required.</p>
+          
+          <p><strong>Set by:</strong> ${appointment.setBy}</p>
+          
+          <p style="margin-top: 30px; font-size: 12px; color: #7f8c8d;">
+            This is an automated message. Please do not reply to this email.
+          </p>
+        </div>
+      `;
+    
+    case 'Complete':
+      return `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <h2 style="color: #27ae60;">APPOINTMENT COMPLETED:</h2>
+          <p><strong>Client:</strong> ${appointment.clientName || 'Not specified'}</p>
+          <p><strong>Phone:</strong> ${appointment.phoneNumber || 'Not provided'}</p>
+          <p><strong>Date:</strong> ${formatDate(appointment.startDate)}</p>
+          <p><strong>Time:</strong> ${formatTime(appointment.startTime)} - ${formatTime(endTime)}</p>
+          <p><strong>Duration:</strong> ${appointment.callDuration || 1} hour(s)</p>
+          
+          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #2c3e50;">Financial Summary:</h3>
+            <p><strong>Total Collected:</strong> $${appointment.totalCollected || 0}</p>
+            <p><strong>Cash Payment:</strong> $${appointment.totalCollectedCash || 0}</p>
+            <p><strong>Digital Payment:</strong> $${appointment.totalCollectedDigital || 0}</p>
+            <p><strong>Payment Method:</strong> ${appointment.paymentProcessor || 'Not specified'}</p>
+            <p><strong>Payment Notes:</strong> ${appointment.paymentNotes || 'None'}</p>
+          </div>
+          
+          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #2c3e50;">Appointment Outcome:</h3>
+            <p><strong>See client again:</strong> ${appointment.seeClientAgain ? 'YES' : 'NO'}</p>
+            <p><strong>Notes:</strong> ${appointment.appointmentNotes || 'None'}</p>
+          </div>
+          
+          <p>This appointment has been marked as complete in your calendar.</p>
+          
+          <p><strong>Set by:</strong> ${appointment.setBy}</p>
+          
+          <p style="margin-top: 30px; font-size: 12px; color: #7f8c8d;">
+            This is an automated message. Please do not reply to this email.
+          </p>
+        </div>
+      `;
+    
     default:
-      statusMessage = 'has been updated';
-      statusColor = '#3498db'; // Blue
+      return `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <h2 style="color: #3498db;">Appointment Status Update</h2>
+          <p>Your appointment status has been updated to: ${status}</p>
+          
+          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #2c3e50;">Appointment Details:</h3>
+            <p><strong>Client:</strong> ${appointment.clientName || 'Not specified'}</p>
+            <p><strong>Date:</strong> ${formatDate(appointment.startDate)}</p>
+            <p><strong>Time:</strong> ${formatTime(appointment.startTime)} - ${formatTime(endTime)}</p>
+          </div>
+          
+          <p>Please log in to the appointment management system for more details.</p>
+          
+          <p><strong>Set by:</strong> ${appointment.setBy}</p>
+          
+          <p style="margin-top: 30px; font-size: 12px; color: #7f8c8d;">
+            This is an automated message. Please do not reply to this email.
+          </p>
+        </div>
+      `;
   }
-  
-  return `
-    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-      <h2 style="color: #2c3e50;">Appointment Status Update</h2>
-      <p>Your appointment with ${provider} on ${timeInfo} ${statusMessage}.</p>
-      
-      <div style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; margin: 20px 0;">
-        <h3 style="margin-top: 0; color: ${statusColor};">Status: ${status}</h3>
-        
-        ${status === 'Reschedule' && appointment.updatedStartDate ? `
-          <p><strong>New Date & Time:</strong> ${formatDate(appointment.updatedStartDate)} at ${formatTime(appointment.updatedStartTime || '')}</p>
-        ` : ''}
-        
-        ${status === 'Cancel' && appointment.whoCanceled ? `
-          <p><strong>Cancelled by:</strong> ${appointment.whoCanceled === 'client' ? 'Client' : 'Provider'}</p>
-          ${appointment.cancellationDetails ? `<p><strong>Reason:</strong> ${appointment.cancellationDetails}</p>` : ''}
-        ` : ''}
-      </div>
-      
-      <p>Please log in to the appointment management system for more details.</p>
-      
-      <p style="margin-top: 30px; font-size: 12px; color: #7f8c8d;">
-        This is an automated message. Please do not reply to this email.
-      </p>
-    </div>
-  `;
 }
 
 /**
@@ -165,7 +338,7 @@ export async function sendNewAppointmentNotification(
       return false;
     }
     
-    const subject = 'New Appointment Scheduled';
+    const subject = `NEW APPOINTMENT: ${appointment.clientName || 'Client'} on ${formatDate(appointment.startDate)} at ${formatTime(appointment.startTime)}`;
     const html = generateNewAppointmentEmail(appointment);
     
     return await sendEmail(recipientEmail, subject, html);
@@ -196,7 +369,22 @@ export async function sendStatusUpdateNotification(
       return false;
     }
     
-    const subject = `Appointment ${status} Notification`;
+    // Set subject based on status
+    let subject = '';
+    switch(status) {
+      case 'Reschedule':
+        subject = `RESCHEDULED: ${appointment.clientName} moved from ${formatDate(appointment.startDate)} to ${formatDate(appointment.updatedStartDate || '')}`;
+        break;
+      case 'Cancel':
+        subject = `CANCELLED: ${appointment.clientName} appointment on ${formatDate(appointment.startDate)} at ${formatTime(appointment.startTime)}`;
+        break;
+      case 'Complete':
+        subject = `COMPLETED: ${appointment.clientName} appointment on ${formatDate(appointment.startDate)}`;
+        break;
+      default:
+        subject = `Appointment ${status} Notification`;
+    }
+    
     const html = generateStatusUpdateEmail(appointment, status);
     
     return await sendEmail(recipientEmail, subject, html);
