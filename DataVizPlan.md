@@ -39,7 +39,6 @@ The application contains rich appointment data with the following key entities:
    - No-show tracking with reasons
 
 4. **Market Intelligence**
-   - Competitor pricing data
    - Seasonal demand patterns
    - Geographic performance zones
 
