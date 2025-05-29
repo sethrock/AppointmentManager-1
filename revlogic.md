@@ -44,8 +44,12 @@ Create a service to handle revenue calculations:
 ### 2. Database Update Logic
 When appointment disposition_status changes:
 
-**For 'complete', 'scheduled', 'rescheduled':**
-- recognized_revenue = deposit_amount + total_collected
+**For 'scheduled' or 'rescheduled':**
+- recognized_revenue = deposit_amount (only deposit, since service not delivered yet)
+- deferred_revenue = 0
+
+**For 'complete':**
+- recognized_revenue = deposit_amount + total_collected (full revenue recognition)
 - deferred_revenue = 0
 
 **For 'cancel':**

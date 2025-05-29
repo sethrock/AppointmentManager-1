@@ -88,6 +88,8 @@ export const appointments = pgTable("appointments", {
   totalCollectedCash: doublePrecision("total_collected_cash").default(0),
   totalCollectedDigital: doublePrecision("total_collected_digital").default(0),
   totalCollected: doublePrecision("total_collected").default(0),
+  recognizedRevenue: doublePrecision("recognized_revenue").default(0),
+  deferredRevenue: doublePrecision("deferred_revenue").default(0),
   paymentProcessor: text("payment_processor"),
   paymentNotes: text("payment_notes"),
   seeClientAgain: boolean("see_client_again"),
@@ -118,7 +120,9 @@ export const insertAppointmentSchema = createInsertSchema(appointments).omit({
   updatedAt: true,
   totalExpenses: true,
   dueToProvider: true,
-  totalCollected: true
+  totalCollected: true,
+  recognizedRevenue: true,
+  deferredRevenue: true
 });
 
 // Export types
