@@ -89,7 +89,9 @@ export default function Dashboard() {
       a.dispositionStatus !== "Cancel"
     ).length || 0,
     completed: appointments?.filter(a => a.dispositionStatus === "Complete").length || 0,
-    revenue: appointments?.reduce((sum, a) => sum + (a.totalCollected || 0) + (a.depositAmount || 0), 0) || 0,
+    recognizedRevenue: appointments?.reduce((sum, a) => sum + (a.recognizedRevenue || 0), 0) || 0,
+    deferredRevenue: appointments?.reduce((sum, a) => sum + (a.deferredRevenue || 0), 0) || 0,
+    totalProjectedRevenue: appointments?.reduce((sum, a) => sum + (a.grossRevenue || 0), 0) || 0,
     filtered: filteredAppointments?.length || 0
   }), [appointments, filteredAppointments]);
 
@@ -123,7 +125,7 @@ export default function Dashboard() {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5 mb-8">
           <Card className="border-border bg-card/50 backdrop-blur-sm overflow-hidden">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -184,17 +186,36 @@ export default function Dashboard() {
           <Card className="border-border bg-card/50 backdrop-blur-sm overflow-hidden">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Projected Revenue
+                Recognized Revenue
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-2">
               <div className="flex items-center">
-                <div className="h-10 w-10 rounded-lg bg-[hsl(40,96%,64%)]/10 flex items-center justify-center mr-3">
-                  <DollarSign className="h-5 w-5 text-[hsl(40,96%,64%)]" />
+                <div className="h-10 w-10 rounded-lg bg-[hsl(142,76%,36%)]/10 flex items-center justify-center mr-3">
+                  <DollarSign className="h-5 w-5 text-[hsl(142,76%,36%)]" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{formatCurrency(stats.revenue)}</p>
-                  <p className="text-xs text-muted-foreground">All time</p>
+                  <p className="text-2xl font-bold">{formatCurrency(stats.recognizedRevenue)}</p>
+                  <p className="text-xs text-muted-foreground">Earned revenue</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border bg-card/50 backdrop-blur-sm overflow-hidden">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Deferred Revenue
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-2">
+              <div className="flex items-center">
+                <div className="h-10 w-10 rounded-lg bg-[hsl(25,95%,53%)]/10 flex items-center justify-center mr-3">
+                  <DollarSign className="h-5 w-5 text-[hsl(25,95%,53%)]" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{formatCurrency(stats.deferredRevenue)}</p>
+                  <p className="text-xs text-muted-foreground">From cancellations</p>
                 </div>
               </div>
             </CardContent>

@@ -10,6 +10,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
+import { updateAppointmentRevenue } from "./services/revenueService.js";
 
 // Interface for all storage operations
 export interface IStorage {
@@ -87,6 +88,22 @@ export class DatabaseStorage implements IStorage {
     const dueToProvider = (insertAppointment.grossRevenue || 0) - (insertAppointment.depositAmount || 0);
     const totalCollected = (insertAppointment.totalCollectedCash || 0) + (insertAppointment.totalCollectedDigital || 0) + (insertAppointment.depositAmount || 0);
     
+    // Create appointment object for revenue calculation
+    const newAppointment: Appointment = {
+      ...insertAppointment,
+      id: 0, // Temporary ID for calculation
+      totalCollected,
+      totalExpenses,
+      dueToProvider,
+      recognizedRevenue: 0,
+      deferredRevenue: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as Appointment;
+    
+    // Calculate revenue based on business logic
+    const revenueUpdate = updateAppointmentRevenue(newAppointment);
+    
     const now = new Date();
     
     const result = await db.insert(appointments).values({
@@ -94,6 +111,8 @@ export class DatabaseStorage implements IStorage {
       totalExpenses,
       dueToProvider,
       totalCollected,
+      recognizedRevenue: revenueUpdate.recognizedRevenue,
+      deferredRevenue: revenueUpdate.deferredRevenue,
       createdAt: now,
       updatedAt: now
     }).returning();
@@ -137,12 +156,25 @@ export class DatabaseStorage implements IStorage {
     const totalCollectedDigital = updateData.totalCollectedDigital !== undefined ? updateData.totalCollectedDigital : currentAppointment.totalCollectedDigital;
     const totalCollected = (totalCollectedCash || 0) + (totalCollectedDigital || 0) + (depositAmount || 0);
     
+    // Create updated appointment object for revenue calculation
+    const updatedAppointment: Appointment = {
+      ...currentAppointment,
+      ...updateData,
+      totalCollected,
+      depositAmount,
+    };
+    
+    // Calculate revenue based on business logic
+    const revenueUpdate = updateAppointmentRevenue(updatedAppointment);
+    
     const result = await db.update(appointments)
       .set({
         ...updateData,
         totalExpenses,
         dueToProvider,
         totalCollected,
+        recognizedRevenue: revenueUpdate.recognizedRevenue,
+        deferredRevenue: revenueUpdate.deferredRevenue,
         updatedAt: new Date()
       })
       .where(eq(appointments.id, id))
