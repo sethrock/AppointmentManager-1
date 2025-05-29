@@ -9,16 +9,25 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Video, Shield, Building, Copy, ExternalLink } from "lucide-react";
+import { Video, Shield, Building, Copy, ExternalLink, Phone } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 export default function Resources() {
+  const [isNumberLookupIframeLoading, setIsNumberLookupIframeLoading] = useState(true);
   const [isVideoIframeLoading, setIsVideoIframeLoading] = useState(true);
   const [isSafetyIframeLoading, setIsSafetyIframeLoading] = useState(true);
   const [isBankingIframeLoading, setIsBankingIframeLoading] = useState(true);
   const { toast } = useToast();
 
   const resources = [
+    { 
+      id: "number-lookup", 
+      name: "Number Lookup", 
+      url: "https://numberlookup.replit.app/", 
+      icon: Phone,
+      description: "Phone number lookup and verification",
+      category: "Communication"
+    },
     { 
       id: "video-chat", 
       name: "Video Chat", 
@@ -67,6 +76,8 @@ export default function Resources() {
   // Function to get loading state and setter based on resource ID
   const getLoadingState = (resourceId: string): [boolean, React.Dispatch<React.SetStateAction<boolean>>] => {
     switch (resourceId) {
+      case "number-lookup":
+        return [isNumberLookupIframeLoading, setIsNumberLookupIframeLoading];
       case "video-chat":
         return [isVideoIframeLoading, setIsVideoIframeLoading];
       case "safety":
@@ -89,7 +100,7 @@ export default function Resources() {
         </p>
       </div>
 
-      <Tabs defaultValue="video-chat" className="w-full">
+      <Tabs defaultValue="number-lookup" className="w-full">
         <TabsList className="mb-4 flex overflow-auto">
           {/* Create tabs dynamically with separators */}
           {resources.reduce((acc: JSX.Element[], resource, index) => {
