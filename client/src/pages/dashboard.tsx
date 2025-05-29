@@ -91,7 +91,7 @@ export default function Dashboard() {
     completed: appointments?.filter(a => a.dispositionStatus === "Complete").length || 0,
     recognizedRevenue: appointments?.reduce((sum, a) => sum + (a.recognizedRevenue || 0), 0) || 0,
     deferredRevenue: appointments?.reduce((sum, a) => sum + (a.deferredRevenue || 0), 0) || 0,
-    totalProjectedRevenue: appointments?.reduce((sum, a) => sum + (a.grossRevenue || 0), 0) || 0,
+    realizedRevenue: appointments?.reduce((sum, a) => sum + (a.realizedRevenue || 0), 0) || 0,
     filtered: filteredAppointments?.length || 0
   }), [appointments, filteredAppointments]);
 
@@ -110,7 +110,7 @@ export default function Dashboard() {
         </Button>
       </div>
 
-      {isLoading ? (
+{isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
           {[...Array(4)].map((_, i) => (
             <Card key={i} className="border-border bg-card/50 backdrop-blur-sm overflow-hidden">
@@ -125,101 +125,107 @@ export default function Dashboard() {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5 mb-8">
-          <Card className="border-border bg-card/50 backdrop-blur-sm overflow-hidden">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Appointments
+        <div className="mb-8">
+          {/* Realized Revenue - Prominent Top Card */}
+          <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5 backdrop-blur-sm overflow-hidden mb-6 shadow-lg">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg font-semibold text-primary">
+                Realized Revenue
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-2">
+            <CardContent className="pt-0">
               <div className="flex items-center">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mr-3">
-                  <Calendar className="h-5 w-5 text-primary" />
+                <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center mr-4 shadow-md">
+                  <DollarSign className="h-8 w-8 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{stats.total}</p>
-                  <p className="text-xs text-muted-foreground">All time</p>
+                  <p className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                    {formatCurrency(stats.realizedRevenue)}
+                  </p>
+                  <p className="text-sm text-muted-foreground font-medium mt-1">Top Line Total</p>
                 </div>
               </div>
             </CardContent>
           </Card>
+          
+          {/* Other Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            <Card className="border-border bg-card/50 backdrop-blur-sm overflow-hidden">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Appointments
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-2">
+                <div className="flex items-center">
+                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mr-3">
+                    <Calendar className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{stats.total}</p>
+                    <p className="text-xs text-muted-foreground">All time</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-          <Card className="border-border bg-card/50 backdrop-blur-sm overflow-hidden">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Upcoming Appointments
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-2">
-              <div className="flex items-center">
-                <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center mr-3">
-                  <Clock className="h-5 w-5 text-accent" />
+            <Card className="border-border bg-card/50 backdrop-blur-sm overflow-hidden">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Upcoming Appointments
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-2">
+                <div className="flex items-center">
+                  <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center mr-3">
+                    <Clock className="h-5 w-5 text-accent" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{stats.upcoming}</p>
+                    <p className="text-xs text-muted-foreground">Scheduled</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-2xl font-bold">{stats.upcoming}</p>
-                  <p className="text-xs text-muted-foreground">Scheduled</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card className="border-border bg-card/50 backdrop-blur-sm overflow-hidden">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Completed Appointments
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-2">
-              <div className="flex items-center">
-                <div className="h-10 w-10 rounded-lg bg-[hsl(150,83%,54%)]/10 flex items-center justify-center mr-3">
-                  <Users className="h-5 w-5 text-[hsl(150,83%,54%)]" />
+            <Card className="border-border bg-card/50 backdrop-blur-sm overflow-hidden">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Completed Appointments
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-2">
+                <div className="flex items-center">
+                  <div className="h-10 w-10 rounded-lg bg-[hsl(150,83%,54%)]/10 flex items-center justify-center mr-3">
+                    <Users className="h-5 w-5 text-[hsl(150,83%,54%)]" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{stats.completed}</p>
+                    <p className="text-xs text-muted-foreground">Fulfilled</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-2xl font-bold">{stats.completed}</p>
-                  <p className="text-xs text-muted-foreground">Fulfilled</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card className="border-border bg-card/50 backdrop-blur-sm overflow-hidden">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Recognized Revenue
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-2">
-              <div className="flex items-center">
-                <div className="h-10 w-10 rounded-lg bg-[hsl(142,76%,36%)]/10 flex items-center justify-center mr-3">
-                  <DollarSign className="h-5 w-5 text-[hsl(142,76%,36%)]" />
+            <Card className="border-border bg-card/50 backdrop-blur-sm overflow-hidden">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Recognized Revenue
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-2">
+                <div className="flex items-center">
+                  <div className="h-10 w-10 rounded-lg bg-[hsl(142,76%,36%)]/10 flex items-center justify-center mr-3">
+                    <DollarSign className="h-5 w-5 text-[hsl(142,76%,36%)]" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{formatCurrency(stats.recognizedRevenue)}</p>
+                    <p className="text-xs text-muted-foreground">Earned revenue</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-2xl font-bold">{formatCurrency(stats.recognizedRevenue)}</p>
-                  <p className="text-xs text-muted-foreground">Earned revenue</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border bg-card/50 backdrop-blur-sm overflow-hidden">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Deferred Revenue
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-2">
-              <div className="flex items-center">
-                <div className="h-10 w-10 rounded-lg bg-[hsl(25,95%,53%)]/10 flex items-center justify-center mr-3">
-                  <DollarSign className="h-5 w-5 text-[hsl(25,95%,53%)]" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{formatCurrency(stats.deferredRevenue)}</p>
-                  <p className="text-xs text-muted-foreground">From cancellations</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
 
