@@ -87,6 +87,7 @@ export class DatabaseStorage implements IStorage {
     const totalExpenses = (insertAppointment.travelExpense || 0) + (insertAppointment.hostingExpense || 0);
     const dueToProvider = (insertAppointment.grossRevenue || 0) - (insertAppointment.depositAmount || 0);
     const totalCollected = (insertAppointment.totalCollectedCash || 0) + (insertAppointment.totalCollectedDigital || 0) + (insertAppointment.depositAmount || 0);
+    const realizedRevenue = (insertAppointment.depositAmount || 0) + totalCollected;
     
     // Create appointment object for revenue calculation
     const newAppointment: Appointment = {
@@ -111,6 +112,7 @@ export class DatabaseStorage implements IStorage {
       totalExpenses,
       dueToProvider,
       totalCollected,
+      realizedRevenue,
       recognizedRevenue: revenueUpdate.recognizedRevenue,
       deferredRevenue: revenueUpdate.deferredRevenue,
       createdAt: now,
@@ -155,6 +157,7 @@ export class DatabaseStorage implements IStorage {
     const totalCollectedCash = updateData.totalCollectedCash !== undefined ? updateData.totalCollectedCash : currentAppointment.totalCollectedCash;
     const totalCollectedDigital = updateData.totalCollectedDigital !== undefined ? updateData.totalCollectedDigital : currentAppointment.totalCollectedDigital;
     const totalCollected = (totalCollectedCash || 0) + (totalCollectedDigital || 0) + (depositAmount || 0);
+    const realizedRevenue = (depositAmount || 0) + (totalCollected || 0);
     
     // Create updated appointment object for revenue calculation
     const updatedAppointment: Appointment = {
@@ -173,6 +176,7 @@ export class DatabaseStorage implements IStorage {
         totalExpenses,
         dueToProvider,
         totalCollected,
+        realizedRevenue,
         recognizedRevenue: revenueUpdate.recognizedRevenue,
         deferredRevenue: revenueUpdate.deferredRevenue,
         updatedAt: new Date()
