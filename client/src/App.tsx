@@ -12,6 +12,7 @@ import AppointmentDetail from "@/pages/appointments/[id]";
 import ImportPage from "./pages/import";
 import Resources from "./pages/resources";
 import Settings from "./pages/settings";
+import Analytics from "./pages/analytics";
 import AuthPage from "./pages/auth";
 import AppLayout from "@/components/layout/AppLayout";
 
@@ -57,6 +58,12 @@ const ProtectedResources = () => (
 const ProtectedSettings = () => (
   <ProtectedRoute>
     <Settings />
+  </ProtectedRoute>
+);
+
+const ProtectedAnalytics = () => (
+  <ProtectedRoute>
+    <Analytics />
   </ProtectedRoute>
 );
 

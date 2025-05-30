@@ -10,7 +10,8 @@ import {
   FileUp,
   BoxesIcon,
   LogOut,
-  LogIn
+  LogIn,
+  TrendingUp
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useMutation } from "@tanstack/react-query";
@@ -53,6 +54,7 @@ export default function Sidebar({ onNavItemClick }: SidebarProps) {
     { name: "Appointments", path: "/appointments", icon: Calendar },
     { name: "Clients", path: "/clients", icon: Users },
     { name: "Providers", path: "/providers", icon: UserCircle },
+    { name: "Analytics", path: "/analytics", icon: TrendingUp },
     { name: "Reports", path: "/reports", icon: FileText },
     { name: "Resources", path: "/resources", icon: BoxesIcon },
     { name: "Settings", path: "/settings", icon: Settings },
