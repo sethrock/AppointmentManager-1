@@ -74,6 +74,7 @@ function Router() {
       <Route path="/appointments" component={ProtectedAppointmentList} />
       <Route path="/appointments/new" component={ProtectedNewAppointment} />
       <Route path="/appointments/:id" component={ProtectedAppointmentDetail} />
+      <Route path="/analytics" component={ProtectedAnalytics} />
       <Route path="/import" component={ProtectedImport} />
       <Route path="/resources" component={ProtectedResources} />
       <Route path="/settings" component={ProtectedSettings} />
