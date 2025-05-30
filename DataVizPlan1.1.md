@@ -1,11 +1,11 @@
 # Data Visualization Plan v1.1
-## Comprehensive Reports Dashboard for Appointment Scheduling Platform
+## Comprehensive Analytics Dashboard for Appointment Scheduling Platform
 
 ---
 
 ## Executive Summary
 
-Based on the analysis of your current database schema and existing data (36 appointments with $110,049.98 total projected revenue), this plan outlines a comprehensive data visualization strategy for your `/reports` section. The platform currently tracks rich appointment data including provider performance, marketing channels, geographic distribution, temporal patterns, and financial metrics.
+Based on the analysis of your current database schema and existing data (36 appointments with $110,049.98 total projected revenue), this plan outlines a comprehensive data visualization strategy for your `/analytics` section. The platform currently tracks rich appointment data including provider performance, marketing channels, geographic distribution, temporal patterns, and financial metrics.
 
 ---
 
@@ -267,7 +267,7 @@ Your appointments table contains comprehensive data points across multiple dimen
 
 ### 6.1 Frontend Components
 ```
-/reports
+/analytics
 ├── /dashboard          # Executive overview
 ├── /revenue           # Financial analytics
 ├── /appointments      # Scheduling analytics
@@ -295,10 +295,7 @@ Your appointments table contains comprehensive data points across multiple dimen
 ## 7. Data Privacy & Security
 
 ### 7.1 Privacy Considerations
-- Client information anonymization in reports
-- Role-based access to sensitive financial data
-- Audit trail for report access
-- GDPR compliance for data retention
+
 
 ### 7.2 Security Measures
 - Encrypted data transmission
