@@ -136,6 +136,18 @@ export class DatabaseStorage implements IStorage {
     
     return result[0];
   }
+
+  async confirmDepositReturn(id: number): Promise<Appointment | undefined> {
+    const result = await db.update(appointments)
+      .set({
+        depositReturned: true,
+        updatedAt: new Date()
+      })
+      .where(eq(appointments.id, id))
+      .returning();
+    
+    return result[0];
+  }
   
   async updateAppointment(id: number, updateData: Partial<InsertAppointment>): Promise<Appointment | undefined> {
     // Get the current appointment
@@ -156,13 +168,14 @@ export class DatabaseStorage implements IStorage {
     
     const totalCollectedCash = updateData.totalCollectedCash !== undefined ? updateData.totalCollectedCash : currentAppointment.totalCollectedCash;
     const totalCollectedDigital = updateData.totalCollectedDigital !== undefined ? updateData.totalCollectedDigital : currentAppointment.totalCollectedDigital;
-    const totalCollected = (totalCollectedCash || 0) + (totalCollectedDigital || 0) + (depositAmount || 0);
-    const realizedRevenue = (depositAmount || 0) + (totalCollected || 0);
+    const totalCollected = (totalCollectedCash || 0) + (totalCollectedDigital || 0);
     
     // Create updated appointment object for revenue calculation
     const updatedAppointment: Appointment = {
       ...currentAppointment,
       ...updateData,
+      totalExpenses,
+      dueToProvider,
       totalCollected,
       depositAmount,
     };
@@ -176,9 +189,9 @@ export class DatabaseStorage implements IStorage {
         totalExpenses,
         dueToProvider,
         totalCollected,
-        realizedRevenue,
         recognizedRevenue: revenueUpdate.recognizedRevenue,
         deferredRevenue: revenueUpdate.deferredRevenue,
+        realizedRevenue: revenueUpdate.realizedRevenue,
         updatedAt: new Date()
       })
       .where(eq(appointments.id, id))
