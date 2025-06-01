@@ -228,7 +228,7 @@ export function generateStatusUpdateEmail(
     case 'Cancel':
       const depositReturnAmount = appointment.depositReturnAmount || 0;
       const baseUrl = process.env.REPLIT_URL || 'http://localhost:5000';
-      const confirmUrl = `${baseUrl}/api/appointments/${appointment.id}/confirm-deposit-return`;
+      const confirmUrl = `${baseUrl}/confirm-deposit-return/${appointment.id}`;
       
       return `
         <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">

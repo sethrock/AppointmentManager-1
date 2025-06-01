@@ -14,6 +14,7 @@ import Resources from "./pages/resources";
 import Settings from "./pages/settings";
 import Analytics from "./pages/analytics";
 import AuthPage from "./pages/auth";
+import ConfirmDepositReturn from "./pages/confirm-deposit-return";
 import AppLayout from "@/components/layout/AppLayout";
 
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
@@ -79,6 +80,7 @@ function Router() {
       <Route path="/resources" component={ProtectedResources} />
       <Route path="/settings" component={ProtectedSettings} />
       <Route path="/auth" component={AuthPage} />
+      <Route path="/confirm-deposit-return/:id" component={ConfirmDepositReturn} />
       <Route component={NotFound} />
     </Switch>
   );
