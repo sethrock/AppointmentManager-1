@@ -105,6 +105,8 @@ export const appointments = pgTable("appointments", {
   // Cancel fields
   whoCanceled: text("who_canceled"), // 'client' or 'provider'
   cancellationDetails: text("cancellation_details"),
+  depositReturnAmount: doublePrecision("deposit_return_amount").default(0),
+  depositReturned: boolean("deposit_returned").default(false),
   
   // Calendar integration
   calendarEventId: text("calendar_event_id"),

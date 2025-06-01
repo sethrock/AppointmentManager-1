@@ -1,44 +1,51 @@
 import { Appointment } from "../../shared/schema.js";
 
 /**
- * Calculate recognized and deferred revenue based on appointment status and amounts
+ * Calculate recognized, deferred, and realized revenue based on appointment status and amounts
  */
 export function calculateRevenue(appointment: Appointment): {
   recognizedRevenue: number;
   deferredRevenue: number;
+  realizedRevenue: number;
 } {
   const depositAmount = appointment.depositAmount || 0;
   const totalCollected = appointment.totalCollected || 0;
+  const grossRevenue = appointment.grossRevenue || 0;
+  const depositReturnAmount = appointment.depositReturnAmount || 0;
   const status = appointment.dispositionStatus?.toLowerCase();
 
   switch (status) {
     case 'scheduled':
-    case 'rescheduled':
-      // Only recognize deposit for scheduled/rescheduled (service not delivered yet)
+    case 'reschedule':
+      // For scheduled/rescheduled: recognized_revenue = projected_revenue, deferred_revenue = deposit_amount, realized_revenue = deposit_amount
       return {
-        recognizedRevenue: depositAmount,
-        deferredRevenue: 0
+        recognizedRevenue: grossRevenue,
+        deferredRevenue: depositAmount,
+        realizedRevenue: depositAmount
       };
 
     case 'complete':
-      // Recognize full revenue (deposit + collected) for completed appointments
+      // For completed: realized_revenue = total_collected + deposit_amount, deferred_revenue = 0, recognized_revenue = projected_revenue
       return {
-        recognizedRevenue: depositAmount + totalCollected,
-        deferredRevenue: 0
+        recognizedRevenue: grossRevenue,
+        deferredRevenue: 0,
+        realizedRevenue: totalCollected + depositAmount
       };
 
     case 'cancel':
-      // Defer deposit for cancelled appointments
+      // For cancelled: realized_revenue = deposit_amount - deposit_return_amount, deferred_revenue = deposit_amount, recognized_revenue = projected_revenue
       return {
-        recognizedRevenue: 0,
-        deferredRevenue: depositAmount
+        recognizedRevenue: grossRevenue,
+        deferredRevenue: depositAmount,
+        realizedRevenue: depositAmount - depositReturnAmount
       };
 
     default:
-      // No revenue recognition for pending/null status
+      // For initial creation: recognized_revenue = projected_revenue, deferred_revenue = deposit_amount, realized_revenue = deposit_amount
       return {
-        recognizedRevenue: 0,
-        deferredRevenue: 0
+        recognizedRevenue: grossRevenue,
+        deferredRevenue: depositAmount,
+        realizedRevenue: depositAmount
       };
   }
 }
@@ -47,10 +54,11 @@ export function calculateRevenue(appointment: Appointment): {
  * Update revenue fields for an appointment based on current data
  */
 export function updateAppointmentRevenue(appointment: Appointment): Partial<Appointment> {
-  const { recognizedRevenue, deferredRevenue } = calculateRevenue(appointment);
+  const { recognizedRevenue, deferredRevenue, realizedRevenue } = calculateRevenue(appointment);
   
   return {
     recognizedRevenue,
-    deferredRevenue
+    deferredRevenue,
+    realizedRevenue
   };
 }

@@ -4,6 +4,7 @@ import { Appointment, InsertAppointment } from "@shared/schema";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { formatCurrency } from "@/lib/format";
 
 // Components
 import { Button } from "@/components/ui/button";
@@ -417,6 +418,7 @@ function CancelForm({
     defaultValues: {
       dispositionStatus: "Cancel" as const,
       whoCanceled: "",
+      depositReturnAmount: 0,
       cancellationDetails: "",
     }
   });
@@ -487,6 +489,31 @@ function CancelForm({
                   <SelectItem value="provider">Provider</SelectItem>
                 </SelectContent>
               </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="depositReturnAmount"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="font-medium">Amount of Deposit to Return</FormLabel>
+              <FormDescription>
+                Original deposit amount: {formatCurrency(appointment.depositAmount || 0)}
+              </FormDescription>
+              <FormControl>
+                <Input 
+                  type="number" 
+                  step="0.01"
+                  min="0"
+                  max={appointment.depositAmount || 0}
+                  placeholder="0.00"
+                  {...field}
+                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
