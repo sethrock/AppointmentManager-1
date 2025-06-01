@@ -377,6 +377,23 @@ export default function AppointmentDetailPage() {
                             Canceled by: {appointment.whoCanceled}
                           </p>
                         )}
+                        
+                        {/* Deposit Return Information */}
+                        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                          <h4 className="text-sm font-medium text-yellow-800 mb-2">Deposit Return Information</h4>
+                          <div className="space-y-1 text-sm">
+                            <p><span className="text-muted-foreground">Original Deposit:</span> {formatCurrency(appointment.depositAmount || 0)}</p>
+                            <p><span className="text-muted-foreground">Amount to Return:</span> {formatCurrency(appointment.depositReturnAmount || 0)}</p>
+                            <p className="flex items-center gap-1">
+                              <span className="text-muted-foreground">Refund Status:</span>
+                              {appointment.depositReturned ? (
+                                <span className="text-green-600 font-medium">✓ Confirmed Returned</span>
+                              ) : (
+                                <span className="text-orange-600 font-medium">⏳ Pending Return</span>
+                              )}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </CardContent>

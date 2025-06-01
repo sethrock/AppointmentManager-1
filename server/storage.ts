@@ -31,6 +31,7 @@ export interface IStorage {
   createAppointment(appointment: InsertAppointment): Promise<Appointment>;
   updateAppointment(id: number, appointment: Partial<InsertAppointment>): Promise<Appointment | undefined>;
   updateCalendarEventId(id: number, calendarEventId: string): Promise<Appointment | undefined>;
+  confirmDepositReturn(id: number): Promise<Appointment | undefined>;
   deleteAppointment(id: number): Promise<boolean>;
 }
 

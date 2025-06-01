@@ -176,6 +176,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Confirm deposit return
+  app.patch("/api/appointments/:id/confirm-deposit-return", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid appointment ID" });
+      }
+      
+      const updatedAppointment = await storage.confirmDepositReturn(id);
+      if (!updatedAppointment) {
+        return res.status(404).json({ message: "Appointment not found" });
+      }
+      
+      res.json(updatedAppointment);
+    } catch (error) {
+      console.error("Error confirming deposit return:", error);
+      res.status(500).json({ message: "Failed to confirm deposit return" });
+    }
+  });
+  
   // ===== Import Data ===== //
   
   // Configure multer for file uploads

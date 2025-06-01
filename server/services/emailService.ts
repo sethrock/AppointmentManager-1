@@ -226,9 +226,13 @@ export function generateStatusUpdateEmail(
       `;
     
     case 'Cancel':
+      const depositReturnAmount = appointment.depositReturnAmount || 0;
+      const baseUrl = process.env.REPLIT_URL || 'http://localhost:5000';
+      const confirmUrl = `${baseUrl}/api/appointments/${appointment.id}/confirm-deposit-return`;
+      
       return `
         <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-          <h2 style="color: #e74c3c;">APPOINTMENT CANCELLED:</h2>
+          <h2 style="color: #e74c3c;">APPOINTMENT CANCELLED</h2>
           <p><strong>Client:</strong> ${appointment.clientName || 'Not specified'}</p>
           <p><strong>Phone:</strong> ${appointment.phoneNumber || 'Not provided'}</p>
           <p><strong>Original Date:</strong> ${formatDate(appointment.startDate)}</p>
@@ -238,17 +242,20 @@ export function generateStatusUpdateEmail(
             <h3 style="margin-top: 0; color: #2c3e50;">Cancellation Information:</h3>
             <p><strong>Cancelled by:</strong> ${appointment.whoCanceled === 'client' ? 'Client' : 'Provider'}</p>
             <p><strong>Reason:</strong> ${appointment.cancellationDetails || 'Not specified'}</p>
-            <p><strong>Deposit status:</strong> $${appointment.depositAmount || 0} ${appointment.depositReceivedBy ? 'received by ' + appointment.depositReceivedBy : ''}</p>
           </div>
           
-          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; margin: 20px 0;">
-            <h3 style="margin-top: 0; color: #2c3e50;">Financial Resolution:</h3>
-            <p><strong>Deposit amount:</strong> $${appointment.depositAmount || 0}</p>
-            <p><strong>Applied to future booking:</strong> ${applyToFutureBooking}</p>
-            <p><strong>Refunded:</strong> ${(appointment.totalCollected || 0) > 0 ? `YES - $${appointment.totalCollected}` : 'NO'}</p>
+          <div style="background-color: #fff3cd; padding: 15px; border-radius: 4px; margin: 20px 0; border-left: 4px solid #ffc107;">
+            <h3 style="margin-top: 0; color: #856404;">Deposit Return Information:</h3>
+            <p><strong>Original Deposit Amount:</strong> $${appointment.depositAmount || 0}</p>
+            <p><strong>Amount of Deposit to be Returned:</strong> $${depositReturnAmount}</p>
+            ${depositReturnAmount > 0 ? `
+              <p style="margin-top: 15px;">
+                <strong>Please <a href="${confirmUrl}" style="color: #007bff; text-decoration: none; font-weight: bold;">Click Here</a> to confirm that the client has been refunded.</strong>
+              </p>
+            ` : '<p><strong>No deposit refund required.</strong></p>'}
           </div>
           
-          <p>This appointment has been removed from your calendar. No further action required.</p>
+          <p>This appointment has been removed from your calendar.</p>
           
           <p><strong>Set by:</strong> ${appointment.setBy}</p>
           
