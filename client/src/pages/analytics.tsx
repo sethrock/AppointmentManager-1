@@ -43,7 +43,9 @@ export default function Analytics() {
     const now = new Date();
     const filteredAppointments = appointments.filter(apt => {
       if (dateRange === "all") return true;
+      if (!apt.startDate) return false;
       const aptDate = new Date(apt.startDate);
+      if (isNaN(aptDate.getTime())) return false; // Skip invalid dates
       switch (dateRange) {
         case "30d":
           return aptDate >= new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -80,24 +82,32 @@ export default function Analytics() {
 
     // Revenue trend data (monthly)
     const revenueByMonth = filteredAppointments.reduce((acc, apt) => {
-      if (apt.dispositionStatus === 'Complete') {
+      if (apt.dispositionStatus === 'Complete' && apt.startDate) {
         const date = new Date(apt.startDate);
-        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        acc[monthKey] = (acc[monthKey] || 0) + (apt.totalCollected || 0);
+        if (!isNaN(date.getTime())) {
+          const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+          acc[monthKey] = (acc[monthKey] || 0) + (apt.totalCollected || 0);
+        }
       }
       return acc;
     }, {} as Record<string, number>);
 
     const revenueData = Object.entries(revenueByMonth)
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([month, revenue]) => ({
-        month: new Date(month + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-        revenue,
-        appointments: filteredAppointments.filter(apt => {
-          const aptMonth = new Date(apt.startDate).toISOString().slice(0, 7);
-          return aptMonth === month && apt.dispositionStatus === 'Complete';
-        }).length
-      }));
+      .map(([month, revenue]) => {
+        const monthDate = new Date(month + '-01');
+        return {
+          month: isNaN(monthDate.getTime()) ? month : monthDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+          revenue,
+          appointments: filteredAppointments.filter(apt => {
+            if (!apt.startDate) return false;
+            const aptDate = new Date(apt.startDate);
+            if (isNaN(aptDate.getTime())) return false;
+            const aptMonth = aptDate.toISOString().slice(0, 7);
+            return aptMonth === month && apt.dispositionStatus === 'Complete';
+          }).length
+        };
+      });
 
     // Provider performance
     const providerStats = filteredAppointments.reduce((acc, apt) => {
@@ -145,7 +155,11 @@ export default function Analytics() {
 
     // Day of week analysis
     const dayStats = filteredAppointments.reduce((acc, apt) => {
-      const day = new Date(apt.startDate).toLocaleDateString('en-US', { weekday: 'long' });
+      if (!apt.startDate) return acc;
+      const aptDate = new Date(apt.startDate);
+      if (isNaN(aptDate.getTime())) return acc;
+      
+      const day = aptDate.toLocaleDateString('en-US', { weekday: 'long' });
       if (!acc[day]) {
         acc[day] = { day, appointments: 0, revenue: 0 };
       }
