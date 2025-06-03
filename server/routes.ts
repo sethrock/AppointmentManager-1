@@ -305,6 +305,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+  // Secure database import endpoints
+  app.post("/api/import/preview", async (req: Request, res: Response) => {
+    try {
+      const { previewImport } = await import('./services/secureImportService');
+      const filePath = './server/data/6.2.25_database.json';
+      const result = await previewImport(filePath);
+      
+      res.json({
+        message: "Preview completed successfully",
+        ...result
+      });
+    } catch (error) {
+      console.error("Error previewing import:", error);
+      res.status(500).json({ 
+        message: `Error previewing import: ${error instanceof Error ? error.message : String(error)}` 
+      });
+    }
+  });
+
+  app.post("/api/import/secure", async (req: Request, res: Response) => {
+    try {
+      const { secureImportAppointments } = await import('./services/secureImportService');
+      const filePath = './server/data/6.2.25_database.json';
+      const result = await secureImportAppointments(filePath);
+      
+      if (result.success) {
+        res.json({
+          message: `Successfully imported ${result.importedRecords} appointments. Backup created: ${result.backupTableName}`,
+          ...result
+        });
+      } else {
+        res.status(400).json({
+          message: "Import failed",
+          ...result
+        });
+      }
+    } catch (error) {
+      console.error("Error during secure import:", error);
+      res.status(500).json({ 
+        message: `Error during import: ${error instanceof Error ? error.message : String(error)}` 
+      });
+    }
+  });
+
+  app.get("/api/backup/list", async (req: Request, res: Response) => {
+    try {
+      const { listBackups } = await import('./services/databaseBackupService');
+      const backups = await listBackups();
+      
+      res.json({
+        message: "Backup list retrieved successfully",
+        backups
+      });
+    } catch (error) {
+      console.error("Error listing backups:", error);
+      res.status(500).json({ 
+        message: `Error listing backups: ${error instanceof Error ? error.message : String(error)}` 
+      });
+    }
+  });
+
+  app.post("/api/backup/restore/:backupName", async (req: Request, res: Response) => {
+    try {
+      const { restoreFromBackup } = await import('./services/databaseBackupService');
+      const { backupName } = req.params;
+      
+      await restoreFromBackup(backupName);
+      
+      res.json({
+        message: `Successfully restored from backup: ${backupName}`
+      });
+    } catch (error) {
+      console.error("Error restoring from backup:", error);
+      res.status(500).json({ 
+        message: `Error restoring from backup: ${error instanceof Error ? error.message : String(error)}` 
+      });
+    }
+  });
   
   const httpServer = createServer(app);
   return httpServer;

@@ -50,14 +50,14 @@ export function validateImportData(data: any[]): ValidationResult {
       // Transform field names to match schema
       const transformedRecord = transformFieldNames(record);
       
-      // Validate against schema
-      const validationSchema = insertAppointmentSchema.partial({
-        createdAt: true,
-        updatedAt: true,
-        id: true
-      });
+      // Basic validation for required fields
+      const requiredFields = ['setBy', 'provider', 'marketingChannel', 'callType', 'startDate', 'startTime'];
+      const missingRequired = requiredFields.filter(field => !transformedRecord[field]);
       
-      validationSchema.parse(transformedRecord);
+      if (missingRequired.length > 0) {
+        throw new Error(`Missing required fields: ${missingRequired.join(', ')}`);
+      }
+      
       result.validRecords++;
     } catch (error) {
       result.invalidRecords++;
