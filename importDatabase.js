@@ -11,7 +11,7 @@ async function importDatabase() {
   
   try {
     // Read and parse the JSON file
-    const data = JSON.parse(fs.readFileSync('./server/data/6.2.25_database.json', 'utf8'));
+    const data = JSON.parse(fs.readFileSync('./server/data/6.2.25_database_full.json', 'utf8'));
     console.log(`Found ${data.length} records to import`);
 
     // Validate data structure
