@@ -70,7 +70,7 @@ test_scenarios = [
             "paymentProcessUsed": "Venmo",
             "marketingChannel": "Social Media",
             "setBy": "Test User",
-            "providerId": 1
+            "provider": "Service Provider"
         }
     },
     {
@@ -89,7 +89,7 @@ test_scenarios = [
             "paymentProcessUsed": "Cash",
             "marketingChannel": "Walk-in",
             "setBy": "Test User",
-            "providerId": 1
+            "provider": "Service Provider"
         }
     }
 ]
@@ -181,6 +181,7 @@ def run_workflow_test(scenario):
     
     # Execute remaining workflow steps
     for step in scenario["workflow"][1:]:  # Skip first "Schedule" step
+        success = False
         if step == "Reschedule":
             # Update with new date/time for reschedule
             reschedule_data = {
