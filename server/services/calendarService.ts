@@ -188,8 +188,8 @@ ${appointment.hasClientNotes && appointment.clientNotes ? `Client Notes: ${appoi
 Set by: ${appointment.setBy}
     `.trim();
     
-    // Create a summary that includes the important details
-    const summary = `Appointment: ${appointment.clientName || 'Client'} - ${appointment.callType === 'in-call' ? 'IN' : 'OUT'}`;
+    // Create a summary that includes the disposition status as the first word
+    const summary = `SCHEDULED: ${appointment.clientName || 'Client'} - ${appointment.callType === 'in-call' ? 'IN' : 'OUT'}`;
     
     // Create the event
     const event = {
@@ -395,16 +395,16 @@ Set by: ${appointment.setBy}
       `.trim();
     }
     
-    // Create a summary that includes the important details and status
+    // Create a summary that includes the disposition status as the first word
     let summary = '';
     if (appointment.dispositionStatus === 'Reschedule') {
       summary = `RESCHEDULED: ${appointment.clientName || 'Client'} - moved to ${formatDate(appointment.updatedStartDate || '')}`;
     } else if (appointment.dispositionStatus === 'Complete') {
-      summary = `COMPLETED: ${appointment.clientName || 'Client'} - ${formatDate(appointment.startDate)}`;
+      summary = `COMPLETE: ${appointment.clientName || 'Client'} - ${formatDate(appointment.startDate)}`;
     } else if (appointment.dispositionStatus === 'Cancel') {
-      summary = `CANCELLED: ${appointment.clientName || 'Client'} - ${formatDate(appointment.startDate)}`;
+      summary = `CANCEL: ${appointment.clientName || 'Client'} - ${formatDate(appointment.startDate)}`;
     } else {
-      summary = `Appointment: ${appointment.clientName || 'Client'} - ${appointment.callType === 'in-call' ? 'IN' : 'OUT'}`;
+      summary = `SCHEDULED: ${appointment.clientName || 'Client'} - ${appointment.callType === 'in-call' ? 'IN' : 'OUT'}`;
     }
     
     // Create the updated event
