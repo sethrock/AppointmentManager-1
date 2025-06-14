@@ -161,6 +161,8 @@ async function createCalendarEvent(
     
     // Build a detailed description with all appointment information
     const description = `
+DISPOSITION STATUS: SCHEDULED
+
 APPOINTMENT DETAILS:
 Client: ${appointment.clientName || 'Not specified'}
 Phone: ${appointment.phoneNumber || 'Not provided'}
@@ -188,8 +190,8 @@ ${appointment.hasClientNotes && appointment.clientNotes ? `Client Notes: ${appoi
 Set by: ${appointment.setBy}
     `.trim();
     
-    // Create a summary that includes the disposition status as the first word
-    const summary = `SCHEDULED: ${appointment.clientName || 'Client'} - ${appointment.callType === 'in-call' ? 'IN' : 'OUT'}`;
+    // Create a summary that includes the disposition status with emoji
+    const summary = `📅 ${appointment.clientName || 'Client'} - ${appointment.callType === 'in-call' ? 'IN' : 'OUT'}`;
     
     // Create the event
     const event = {
@@ -282,6 +284,8 @@ async function updateCalendarEvent(
     
     if (appointment.dispositionStatus === 'Reschedule') {
       description = `
+DISPOSITION STATUS: RESCHEDULED
+
 RESCHEDULED APPOINTMENT:
 Client: ${appointment.clientName || 'Not specified'}
 Phone: ${appointment.phoneNumber || 'Not provided'}
@@ -318,6 +322,8 @@ Set by: ${appointment.setBy}
       `.trim();
     } else if (appointment.dispositionStatus === 'Complete') {
       description = `
+DISPOSITION STATUS: COMPLETED
+
 APPOINTMENT COMPLETED:
 Client: ${appointment.clientName || 'Not specified'}
 Phone: ${appointment.phoneNumber || 'Not provided'}
@@ -346,6 +352,8 @@ Set by: ${appointment.setBy}
         ? "YES" : "NO";
         
       description = `
+DISPOSITION STATUS: CANCELLED
+
 APPOINTMENT CANCELLED:
 Client: ${appointment.clientName || 'Not specified'}
 Phone: ${appointment.phoneNumber || 'Not provided'}
@@ -367,6 +375,8 @@ Set by: ${appointment.setBy}
     } else {
       // Default appointment information
       description = `
+DISPOSITION STATUS: SCHEDULED
+
 APPOINTMENT DETAILS:
 Client: ${appointment.clientName || 'Not specified'}
 Phone: ${appointment.phoneNumber || 'Not provided'}
@@ -395,16 +405,16 @@ Set by: ${appointment.setBy}
       `.trim();
     }
     
-    // Create a summary that includes the disposition status as the first word
+    // Create a summary that includes the disposition status with emoji
     let summary = '';
     if (appointment.dispositionStatus === 'Reschedule') {
-      summary = `RESCHEDULED: ${appointment.clientName || 'Client'} - moved to ${formatDate(appointment.updatedStartDate || '')}`;
+      summary = `🔄 ${appointment.clientName || 'Client'} - moved to ${formatDate(appointment.updatedStartDate || '')}`;
     } else if (appointment.dispositionStatus === 'Complete') {
-      summary = `COMPLETE: ${appointment.clientName || 'Client'} - ${formatDate(appointment.startDate)}`;
+      summary = `✅ ${appointment.clientName || 'Client'} - ${formatDate(appointment.startDate)}`;
     } else if (appointment.dispositionStatus === 'Cancel') {
-      summary = `CANCEL: ${appointment.clientName || 'Client'} - ${formatDate(appointment.startDate)}`;
+      summary = `❌ ${appointment.clientName || 'Client'} - ${formatDate(appointment.startDate)}`;
     } else {
-      summary = `SCHEDULED: ${appointment.clientName || 'Client'} - ${appointment.callType === 'in-call' ? 'IN' : 'OUT'}`;
+      summary = `📅 ${appointment.clientName || 'Client'} - ${appointment.callType === 'in-call' ? 'IN' : 'OUT'}`;
     }
     
     // Create the updated event
