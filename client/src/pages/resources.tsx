@@ -9,10 +9,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Video, Shield, Building, Copy, ExternalLink, Phone } from "lucide-react";
+import { Video, Shield, Building, Copy, ExternalLink, Phone, MessageSquare, Star } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 export default function Resources() {
+  const [isOmniChannelIframeLoading, setIsOmniChannelIframeLoading] = useState(true);
   const [isNumberLookupIframeLoading, setIsNumberLookupIframeLoading] = useState(true);
   const [isVideoIframeLoading, setIsVideoIframeLoading] = useState(true);
   const [isSafetyIframeLoading, setIsSafetyIframeLoading] = useState(true);
@@ -21,12 +22,22 @@ export default function Resources() {
 
   const resources = [
     { 
+      id: "omni-channel-messaging", 
+      name: "Omni Channel Messaging", 
+      url: "https://omni-channel-messaging.replit.app/", 
+      icon: MessageSquare,
+      description: "AI-powered communication center with smart replies and analytics",
+      category: "Communication",
+      important: true
+    },
+    { 
       id: "number-lookup", 
       name: "Number Lookup", 
       url: "https://numberlookup.replit.app/", 
       icon: Phone,
       description: "Phone number lookup and verification",
-      category: "Communication"
+      category: "Communication",
+      important: false
     },
     { 
       id: "video-chat", 
@@ -34,7 +45,8 @@ export default function Resources() {
       url: "https://seracall.replit.app/", 
       icon: Video,
       description: "Secure video chat for appointments",
-      category: "Communication"
+      category: "Communication",
+      important: false
     },
     { 
       id: "safety", 
@@ -42,7 +54,8 @@ export default function Resources() {
       url: "https://sera-safety.replit.app/", 
       icon: Shield,
       description: "Safety resources and information",
-      category: "Security"
+      category: "Security",
+      important: false
     },
     {
       id: "banking",
@@ -50,7 +63,8 @@ export default function Resources() {
       url: "https://banking-verify2view.replit.app/",
       icon: Building,
       description: "Bank routing information verification",
-      category: "Financial"
+      category: "Financial",
+      important: false
     }
   ];
 
@@ -76,6 +90,8 @@ export default function Resources() {
   // Function to get loading state and setter based on resource ID
   const getLoadingState = (resourceId: string): [boolean, React.Dispatch<React.SetStateAction<boolean>>] => {
     switch (resourceId) {
+      case "omni-channel-messaging":
+        return [isOmniChannelIframeLoading, setIsOmniChannelIframeLoading];
       case "number-lookup":
         return [isNumberLookupIframeLoading, setIsNumberLookupIframeLoading];
       case "video-chat":
@@ -100,7 +116,7 @@ export default function Resources() {
         </p>
       </div>
 
-      <Tabs defaultValue="number-lookup" className="w-full">
+      <Tabs defaultValue="omni-channel-messaging" className="w-full">
         <TabsList className="mb-4 flex overflow-auto">
           {/* Create tabs dynamically with separators */}
           {resources.reduce((acc: JSX.Element[], resource, index) => {
@@ -120,10 +136,11 @@ export default function Resources() {
               <TabsTrigger 
                 key={resource.id}
                 value={resource.id} 
-                className="flex items-center gap-2"
+                className={`flex items-center gap-2 ${resource.important ? 'bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20' : ''}`}
               >
                 <resource.icon className="h-4 w-4" />
                 <span>{resource.name}</span>
+                {resource.important && <Star className="h-3 w-3 text-amber-500 fill-amber-500" />}
               </TabsTrigger>
             );
             
@@ -142,6 +159,12 @@ export default function Resources() {
                     <div className="flex items-center gap-2">
                       <resource.icon className="h-5 w-5 text-primary" />
                       <h3 className="font-medium">{resource.name}</h3>
+                      {resource.important && (
+                        <div className="flex items-center gap-1 px-2 py-0.5 text-xs bg-gradient-to-r from-amber-500/10 to-amber-600/10 border border-amber-500/20 text-amber-600 rounded-full">
+                          <Star className="h-3 w-3 fill-amber-500" />
+                          <span>Featured</span>
+                        </div>
+                      )}
                       <div className="px-2 py-0.5 text-xs bg-primary/10 text-primary rounded-full ml-2">{resource.category}</div>
                     </div>
                     <div className="flex items-center gap-2">
