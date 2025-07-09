@@ -115,7 +115,8 @@ This is a comprehensive appointment scheduling and management platform designed 
 ## Changelog
 
 Changelog:
-- June 25, 2025. Initial setup
+- June 25, 2025: Initial setup
+- January 11, 2025: Updated email service to use production URL for deposit confirmation links
 
 ## User Preferences
 

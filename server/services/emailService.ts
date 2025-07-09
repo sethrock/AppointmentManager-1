@@ -227,9 +227,8 @@ export function generateStatusUpdateEmail(
     
     case 'Cancel':
       const depositReturnAmount = appointment.depositReturnAmount || 0;
-      const baseUrl = process.env.REPLIT_URL || process.env.REPL_SLUG ? 
-        `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 
-        'https://scheduleing.replit.app';
+      // Always use production URL for deposit confirmation links
+      const baseUrl = 'https://scheduleing.replit.app';
       const confirmUrl = `${baseUrl}/confirm-deposit-return/${appointment.id}`;
       
       return `
