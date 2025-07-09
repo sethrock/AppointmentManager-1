@@ -1,9 +1,9 @@
-const { google } = require('googleapis');
-const http = require('http');
-const url = require('url');
-const open = require('open');
-const destroyer = require('server-destroy');
-const readline = require('readline');
+import { google } from 'googleapis';
+import http from 'http';
+import url from 'url';
+import open from 'open';
+import destroyer from 'server-destroy';
+import readline from 'readline';
 
 // Create readline interface for user input
 const rl = readline.createInterface({
