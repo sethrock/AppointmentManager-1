@@ -601,9 +601,21 @@ export async function handleAppointmentUpdated(
     
     if (!currentCalendarId || !targetCalendarId) return null;
     
+    // First, update the event with new details (including emoji) in the current calendar
+    const updatedEventId = await updateCalendarEvent(
+      appointment,
+      currentEventId,
+      currentCalendarId
+    );
+    
+    if (!updatedEventId) {
+      log(`Failed to update event ${currentEventId} in calendar ${currentCalendarId}`, 'calendarService');
+      return null;
+    }
+    
     // Check if we need to move the event to a different calendar
     if (currentCalendarId !== targetCalendarId) {
-      // Move event to the appropriate calendar based on status
+      // Move the updated event to the appropriate calendar based on status
       const newEventId = await moveEventToCalendar(
         currentEventId,
         currentCalendarId,
@@ -615,18 +627,9 @@ export async function handleAppointmentUpdated(
         await storage.updateCalendarEventId(appointment.id, newEventId);
         return newEventId;
       }
-    } else {
-      // Just update the event in the current calendar
-      const updatedEventId = await updateCalendarEvent(
-        appointment,
-        currentEventId,
-        currentCalendarId
-      );
-      
-      if (updatedEventId) {
-        return updatedEventId;
-      }
     }
+    
+    return updatedEventId;
     
     return null;
   } catch (error) {

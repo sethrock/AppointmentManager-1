@@ -118,6 +118,7 @@ Changelog:
 - June 25, 2025: Initial setup
 - January 11, 2025: Updated email service to use production URL for deposit confirmation links
 - January 11, 2025: Added status-based emojis to calendar appointment titles (✅ for Complete, ❌ for Cancel, 🔄 for Reschedule, 📅 for Scheduled)
+- January 11, 2025: Fixed calendar emoji update bug - now properly updates title emoji when moving events to archive calendar for Complete/Cancel status
 
 ## User Preferences
 
