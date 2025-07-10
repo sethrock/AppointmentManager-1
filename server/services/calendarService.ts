@@ -100,6 +100,48 @@ function getCalendarId(status: string | null | undefined): string | null {
 }
 
 /**
+ * Format date to human-readable format
+ */
+function formatDate(dateString: string | undefined): string {
+  if (!dateString) return '';
+  
+  try {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }).format(date);
+  } catch (error) {
+    log(`Error formatting date: ${error}`, 'calendarService');
+    return dateString;
+  }
+}
+
+/**
+ * Format time to human-readable format
+ */
+function formatTime(timeString: string | undefined): string {
+  if (!timeString) return '';
+  
+  try {
+    // Create a date object with the time string
+    const [hours, minutes] = timeString.split(':').map(Number);
+    const date = new Date();
+    date.setHours(hours, minutes);
+    
+    return new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    }).format(date);
+  } catch (error) {
+    log(`Error formatting time: ${error}`, 'calendarService');
+    return timeString;
+  }
+}
+
+/**
  * Format date and time strings to RFC3339 format for Google Calendar
  * This function creates a date/time string for the specified local time,
  * correctly handling the timezone specified in the TIME_ZONE constant.
@@ -191,7 +233,16 @@ Set by: ${appointment.setBy}
     `.trim();
     
     // Create a summary that includes the disposition status with emoji
-    const summary = `📅 ${appointment.clientName || 'Client'} - ${appointment.callType === 'in-call' ? 'IN' : 'OUT'}`;
+    let summary = '';
+    if (appointment.dispositionStatus === 'Reschedule') {
+      summary = `🔄 ${appointment.clientName || 'Client'} - ${appointment.callType === 'in-call' ? 'IN' : 'OUT'}`;
+    } else if (appointment.dispositionStatus === 'Complete') {
+      summary = `✅ ${appointment.clientName || 'Client'} - ${formatDate(appointment.startDate)}`;
+    } else if (appointment.dispositionStatus === 'Cancel') {
+      summary = `❌ ${appointment.clientName || 'Client'} - ${formatDate(appointment.startDate)}`;
+    } else {
+      summary = `📅 ${appointment.clientName || 'Client'} - ${appointment.callType === 'in-call' ? 'IN' : 'OUT'}`;
+    }
     
     // Create the event
     const event = {

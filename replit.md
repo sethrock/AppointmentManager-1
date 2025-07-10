@@ -117,6 +117,7 @@ This is a comprehensive appointment scheduling and management platform designed 
 Changelog:
 - June 25, 2025: Initial setup
 - January 11, 2025: Updated email service to use production URL for deposit confirmation links
+- January 11, 2025: Added status-based emojis to calendar appointment titles (✅ for Complete, ❌ for Cancel, 🔄 for Reschedule, 📅 for Scheduled)
 
 ## User Preferences
 
