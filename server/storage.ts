@@ -171,6 +171,20 @@ export class DatabaseStorage implements IStorage {
     const totalCollectedDigital = updateData.totalCollectedDigital !== undefined ? updateData.totalCollectedDigital : currentAppointment.totalCollectedDigital;
     const totalCollected = (totalCollectedCash || 0) + (totalCollectedDigital || 0);
     
+    // Handle reschedule occurrences
+    let rescheduleOccurrences = currentAppointment.rescheduleOccurrences || 0;
+    
+    // Increment if status changes to "Reschedule" for the first time
+    if (updateData.dispositionStatus === 'Reschedule' && currentAppointment.dispositionStatus !== 'Reschedule') {
+      rescheduleOccurrences += 1;
+    }
+    // Also increment if already in "Reschedule" status and dates/times are being updated
+    else if (currentAppointment.dispositionStatus === 'Reschedule' && 
+             (updateData.updatedStartDate || updateData.updatedStartTime || 
+              updateData.updatedEndDate || updateData.updatedEndTime)) {
+      rescheduleOccurrences += 1;
+    }
+    
     // Create updated appointment object for revenue calculation
     const updatedAppointment: Appointment = {
       ...currentAppointment,
@@ -193,6 +207,7 @@ export class DatabaseStorage implements IStorage {
         recognizedRevenue: revenueUpdate.recognizedRevenue,
         deferredRevenue: revenueUpdate.deferredRevenue,
         realizedRevenue: revenueUpdate.realizedRevenue,
+        rescheduleOccurrences,
         updatedAt: new Date()
       })
       .where(eq(appointments.id, id))

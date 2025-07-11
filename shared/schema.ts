@@ -101,6 +101,7 @@ export const appointments = pgTable("appointments", {
   updatedStartTime: text("updated_start_time"),
   updatedEndDate: text("updated_end_date"),
   updatedEndTime: text("updated_end_time"),
+  rescheduleOccurrences: integer("reschedule_occurrences").default(0),
   
   // Cancel fields
   whoCanceled: text("who_canceled"), // 'client' or 'provider'

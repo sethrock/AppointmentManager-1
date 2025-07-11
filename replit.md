@@ -28,6 +28,8 @@ This is a comprehensive appointment scheduling and management platform designed 
 - **ORM**: Drizzle with type-safe queries and migrations
 - **Connection**: Neon serverless PostgreSQL with WebSocket support
 - **Validation**: Zod schemas for type-safe data validation
+- **New Fields**: 
+  - `reschedule_occurrences`: Tracks the number of times an appointment has been rescheduled
 
 ## Key Components
 
@@ -130,6 +132,10 @@ Changelog:
   - Updated routes to trigger notifications for reschedule date changes, not just status changes
   - Appointments can now be rescheduled infinitely until marked Complete or Canceled
   - Created documentation file: reschedule-morethanonce.md
+- January 11, 2025: Added reschedule occurrences tracking:
+  - Added `reschedule_occurrences` column to appointments table
+  - Automatically increments counter each time an appointment is rescheduled
+  - Tracks total number of reschedules for business metrics and analytics
 
 ## User Preferences
 
