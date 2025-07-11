@@ -135,17 +135,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Appointment not found" });
       }
       
-      // Handle notifications when disposition status changes
-      if (parsedData.data.dispositionStatus && 
-          parsedData.data.dispositionStatus !== previousStatus) {
-        
+      // Handle notifications when disposition status changes OR when reschedule dates change
+      const isStatusChange = parsedData.data.dispositionStatus && 
+                           parsedData.data.dispositionStatus !== previousStatus;
+      
+      const isRescheduleUpdate = updatedAppointment.dispositionStatus === 'Reschedule' && 
+                                (parsedData.data.updatedStartDate || 
+                                 parsedData.data.updatedStartTime || 
+                                 parsedData.data.updatedEndDate || 
+                                 parsedData.data.updatedEndTime);
+      
+      if (isStatusChange || isRescheduleUpdate) {
         // Process notifications asynchronously to not block the response
         handleAppointmentStatusNotifications(updatedAppointment, previousStatus)
           .then(() => {
-            log(`Status notifications processed for appointment ${id} (${previousStatus} -> ${updatedAppointment.dispositionStatus})`, 'routes');
+            if (isStatusChange) {
+              log(`Status notifications processed for appointment ${id} (${previousStatus} -> ${updatedAppointment.dispositionStatus})`, 'routes');
+            } else {
+              log(`Reschedule date/time update notifications processed for appointment ${id}`, 'routes');
+            }
           })
           .catch(error => {
-            log(`Error processing status notifications for appointment ${id}: ${error}`, 'routes');
+            log(`Error processing notifications for appointment ${id}: ${error}`, 'routes');
           });
       }
       

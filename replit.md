@@ -125,6 +125,11 @@ Changelog:
   - Fixed issue where multiple reschedules would fail to update the calendar event
   - Ensured rescheduled appointments always stay in the active calendar
   - Updated event descriptions to show "CURRENT SCHEDULE" for better clarity
+- January 11, 2025: Fixed critical bug preventing multiple reschedules from updating Google Calendar:
+  - Modified notification service to detect date/time changes for appointments already in "Reschedule" status
+  - Updated routes to trigger notifications for reschedule date changes, not just status changes
+  - Appointments can now be rescheduled infinitely until marked Complete or Canceled
+  - Created documentation file: reschedule-morethanonce.md
 
 ## User Preferences
 

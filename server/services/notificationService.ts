@@ -52,18 +52,31 @@ export async function handleAppointmentStatusNotifications(
   appointment: Appointment,
   previousStatus: string | null
 ): Promise<void> {
-  // Only proceed if the status has changed
-  if (!appointment.dispositionStatus || appointment.dispositionStatus === previousStatus) {
+  // Check if this is a status change
+  const isStatusChange = appointment.dispositionStatus && appointment.dispositionStatus !== previousStatus;
+  
+  // Check if this is a reschedule date/time update (when status is already "Reschedule")
+  const isRescheduleUpdate = appointment.dispositionStatus === 'Reschedule' && 
+                            previousStatus === 'Reschedule' &&
+                            (appointment.updatedStartDate || appointment.updatedStartTime);
+  
+  // Only proceed if status changed OR if it's a reschedule update
+  if (!isStatusChange && !isRescheduleUpdate) {
     return;
   }
   
   try {
-    // Send email notification about the status change
+    // Send email notification about the status change or reschedule update
     const emailSent = await sendStatusUpdateNotification(
       appointment,
-      appointment.dispositionStatus
+      appointment.dispositionStatus || 'Reschedule'
     );
-    log(`Email notification ${emailSent ? 'sent' : 'failed'} for status update to ${appointment.dispositionStatus}`, 'notificationService');
+    
+    if (isRescheduleUpdate) {
+      log(`Email notification ${emailSent ? 'sent' : 'failed'} for reschedule date/time update`, 'notificationService');
+    } else {
+      log(`Email notification ${emailSent ? 'sent' : 'failed'} for status update to ${appointment.dispositionStatus}`, 'notificationService');
+    }
     
     // Only attempt calendar integration if properly configured
     if (isCalendarConfigured()) {
