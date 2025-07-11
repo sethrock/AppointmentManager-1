@@ -295,18 +295,34 @@ async function updateCalendarEvent(
     const calendar = await getCalendarAPI();
     if (!calendar) return null;
     
-    // Format start and end dates/times - using updated ones if available
-    const startDate = appointment.updatedStartDate || appointment.startDate;
-    const startTime = appointment.updatedStartTime || appointment.startTime;
-    const startDateTime = formatDateTime(startDate, startTime);
+    // For reschedule status, always use the updated dates/times if available
+    // For other statuses, use original dates/times unless updated ones exist
+    let startDate: string;
+    let startTime: string;
+    let endDate: string;
+    let endTime: string;
     
-    // If end date/time is not specified, use start time + 1 hour as default
-    const endDate = appointment.updatedEndDate || appointment.endDate || startDate;
-    const endTime = appointment.updatedEndTime || appointment.endTime || (() => {
+    if (appointment.dispositionStatus === 'Reschedule' && appointment.updatedStartDate && appointment.updatedStartTime) {
+      // For reschedule, use the updated dates/times
+      startDate = appointment.updatedStartDate;
+      startTime = appointment.updatedStartTime;
+      endDate = appointment.updatedEndDate || appointment.updatedStartDate;
+      endTime = appointment.updatedEndTime || appointment.updatedStartTime;
+    } else {
+      // For other statuses or if no updated dates, use original dates
+      startDate = appointment.startDate;
+      startTime = appointment.startTime;
+      endDate = appointment.endDate || appointment.startDate;
+      endTime = appointment.endTime || appointment.startTime;
+    }
+    
+    // Calculate end time if not specified (add 1 hour to start time)
+    if (!appointment.endTime && !appointment.updatedEndTime) {
       const [hours, minutes] = startTime.split(':').map(Number);
-      return `${hours + 1}:${minutes.toString().padStart(2, '0')}`;
-    })();
+      endTime = `${hours + 1}:${minutes.toString().padStart(2, '0')}`;
+    }
     
+    const startDateTime = formatDateTime(startDate, startTime);
     const endDateTime = formatDateTime(endDate, endTime);
     
     // Build the location string
@@ -334,6 +350,17 @@ async function updateCalendarEvent(
     let description = '';
     
     if (appointment.dispositionStatus === 'Reschedule') {
+      // For rescheduled appointments, show both original and new schedule
+      const originalEndTime = appointment.endTime || (() => {
+        const [hours, minutes] = appointment.startTime.split(':').map(Number);
+        return `${hours + 1}:${minutes.toString().padStart(2, '0')}`;
+      })();
+      
+      const newEndTime = appointment.updatedEndTime || (() => {
+        const [hours, minutes] = (appointment.updatedStartTime || appointment.startTime).split(':').map(Number);
+        return `${hours + 1}:${minutes.toString().padStart(2, '0')}`;
+      })();
+      
       description = `
 DISPOSITION STATUS: RESCHEDULED
 
@@ -343,11 +370,11 @@ Phone: ${appointment.phoneNumber || 'Not provided'}
 
 ORIGINAL SCHEDULE:
 Date: ${formatDate(appointment.startDate)}
-Time: ${formatTime(appointment.startTime)} - ${formatTime(appointment.endTime || '')}
+Time: ${formatTime(appointment.startTime)} - ${formatTime(originalEndTime)}
 
-NEW SCHEDULE:
-Date: ${formatDate(appointment.updatedStartDate || '')}
-Time: ${formatTime(appointment.updatedStartTime || '')} - ${formatTime(appointment.updatedEndTime || '')}
+CURRENT SCHEDULE:
+Date: ${formatDate(appointment.updatedStartDate || appointment.startDate)}
+Time: ${formatTime(appointment.updatedStartTime || appointment.startTime)} - ${formatTime(newEndTime)}
 Duration: ${appointment.callDuration || 1} hour(s)
 Revenue: $${appointment.grossRevenue || 0}
 
@@ -595,30 +622,72 @@ export async function handleAppointmentUpdated(
   currentEventId: string
 ): Promise<string | null> {
   try {
-    // Determine source and destination calendars
-    const currentCalendarId = CALENDARS.active;
+    // Get Google Calendar API
+    const calendar = await getCalendarAPI();
+    if (!calendar) return null;
+    
+    // Determine target calendar based on status
     const targetCalendarId = getCalendarId(appointment.dispositionStatus);
+    if (!targetCalendarId) return null;
     
-    if (!currentCalendarId || !targetCalendarId) return null;
+    // Try to find the event in active calendar first, then archive
+    let sourceCalendarId: string | null = null;
+    let eventExists = false;
     
-    // First, update the event with new details (including emoji) in the current calendar
+    // Check active calendar first
+    try {
+      await calendar.events.get({
+        calendarId: CALENDARS.active,
+        eventId: currentEventId
+      });
+      sourceCalendarId = CALENDARS.active;
+      eventExists = true;
+    } catch (error) {
+      // Event not in active calendar, check archive if it exists
+      if (CALENDARS.archive) {
+        try {
+          await calendar.events.get({
+            calendarId: CALENDARS.archive,
+            eventId: currentEventId
+          });
+          sourceCalendarId = CALENDARS.archive;
+          eventExists = true;
+        } catch (error) {
+          // Event not found in either calendar
+          log(`Event ${currentEventId} not found in any calendar`, 'calendarService');
+        }
+      }
+    }
+    
+    // If event doesn't exist, create a new one
+    if (!eventExists || !sourceCalendarId) {
+      log(`Event ${currentEventId} not found, creating new event`, 'calendarService');
+      const newEventId = await createCalendarEvent(appointment, targetCalendarId);
+      if (newEventId) {
+        await storage.updateCalendarEventId(appointment.id, newEventId);
+        return newEventId;
+      }
+      return null;
+    }
+    
+    // Update the event with new details in the source calendar
     const updatedEventId = await updateCalendarEvent(
       appointment,
       currentEventId,
-      currentCalendarId
+      sourceCalendarId
     );
     
     if (!updatedEventId) {
-      log(`Failed to update event ${currentEventId} in calendar ${currentCalendarId}`, 'calendarService');
+      log(`Failed to update event ${currentEventId} in calendar ${sourceCalendarId}`, 'calendarService');
       return null;
     }
     
     // Check if we need to move the event to a different calendar
-    if (currentCalendarId !== targetCalendarId) {
+    if (sourceCalendarId !== targetCalendarId) {
       // Move the updated event to the appropriate calendar based on status
       const newEventId = await moveEventToCalendar(
         currentEventId,
-        currentCalendarId,
+        sourceCalendarId,
         targetCalendarId
       );
       
@@ -630,8 +699,6 @@ export async function handleAppointmentUpdated(
     }
     
     return updatedEventId;
-    
-    return null;
   } catch (error) {
     log(`Error handling appointment update: ${error}`, 'calendarService');
     return null;

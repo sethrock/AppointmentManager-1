@@ -119,6 +119,12 @@ Changelog:
 - January 11, 2025: Updated email service to use production URL for deposit confirmation links
 - January 11, 2025: Added status-based emojis to calendar appointment titles (✅ for Complete, ❌ for Cancel, 🔄 for Reschedule, 📅 for Scheduled)
 - January 11, 2025: Fixed calendar emoji update bug - now properly updates title emoji when moving events to archive calendar for Complete/Cancel status
+- January 11, 2025: Enhanced Google Calendar integration to support multiple reschedules:
+  - Updated date/time selection logic to properly use reschedule dates
+  - Improved calendar event search to check both active and archive calendars
+  - Fixed issue where multiple reschedules would fail to update the calendar event
+  - Ensured rescheduled appointments always stay in the active calendar
+  - Updated event descriptions to show "CURRENT SCHEDULE" for better clarity
 
 ## User Preferences
 
