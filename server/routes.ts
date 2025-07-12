@@ -395,6 +395,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+  app.get("/api/analytics/future-earnings", async (req: Request, res: Response) => {
+    try {
+      const { calculateFutureEarnings } = await import('./services/futureEarningsService');
+      const { timeframe = 'all', provider, includeRescheduled = 'true' } = req.query;
+      
+      const result = await calculateFutureEarnings({
+        timeframe: timeframe as string,
+        provider: provider as string | undefined,
+        includeRescheduled: includeRescheduled === 'true'
+      });
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error calculating future earnings:", error);
+      res.status(500).json({ 
+        message: `Error calculating future earnings: ${error instanceof Error ? error.message : String(error)}` 
+      });
+    }
+  });
   
   const httpServer = createServer(app);
   return httpServer;

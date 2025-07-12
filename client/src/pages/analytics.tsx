@@ -25,6 +25,7 @@ import {
   Area
 } from "recharts";
 import { useState, useMemo } from "react";
+import FutureEarnings from "@/components/FutureEarnings";
 
 export default function Analytics() {
   const [dateRange, setDateRange] = useState("all");
@@ -323,11 +324,12 @@ export default function Analytics() {
 
       {/* Main Analytics Tabs */}
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid w-full lg:w-[600px] grid-cols-4">
+        <TabsList className="grid w-full lg:w-[750px] grid-cols-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="revenue">Revenue</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="insights">Insights</TabsTrigger>
+          <TabsTrigger value="future">Future Earnings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -615,6 +617,10 @@ export default function Analytics() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="future" className="space-y-6">
+          <FutureEarnings appointments={appointments} />
         </TabsContent>
       </Tabs>
     </div>
