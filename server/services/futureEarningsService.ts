@@ -47,7 +47,25 @@ export async function calculateFutureEarnings(options: FutureEarningsOptions): P
   const appointments = await storage.getAppointments();
   
   // Calculate date range based on timeframe
-  const today = startOfDay(new Date());
+  // Use California time (Pacific Time) for date calculations
+  const now = new Date();
+  // In July, California uses PDT (UTC-7)
+  const californiaOffset = -7 * 60; // PDT is UTC-7
+  const localOffset = now.getTimezoneOffset();
+  const offsetDiff = californiaOffset - localOffset;
+  
+  // Adjust to California time
+  const californiaTime = new Date(now.getTime() + offsetDiff * 60 * 1000);
+  const today = startOfDay(californiaTime);
+  
+  console.log('Future Earnings Debug:', {
+    serverTime: now.toISOString(),
+    californiaTime: californiaTime.toISOString(),
+    todayStart: today.toISOString(),
+    timeframe,
+    totalAppointments: appointments.length
+  });
+  
   let endDate: Date;
   
   switch (timeframe) {
@@ -74,15 +92,21 @@ export async function calculateFutureEarnings(options: FutureEarningsOptions): P
   
   // Filter appointments based on criteria
   const futureAppointments = appointments.filter(apt => {
-    // Check if appointment has a valid future date
-    if (!apt.startDate) return false;
-    const aptDate = new Date(apt.startDate);
-    if (isNaN(aptDate.getTime())) return false;
-    if (aptDate < today) return false;
-    if (timeframe !== 'all' && aptDate > endDate) return false;
+    // For rescheduled appointments, use the updated date
+    let dateToUse = apt.startDate;
+    if (apt.dispositionStatus === 'Reschedule' && apt.updatedStartDate) {
+      dateToUse = apt.updatedStartDate;
+    }
     
-    // Filter by provider if specified
-    if (provider && apt.provider !== provider) return false;
+    // Check if appointment has a valid future date
+    if (!dateToUse) return false;
+    const aptDate = new Date(dateToUse);
+    if (isNaN(aptDate.getTime())) return false;
+    
+    // Debug each appointment
+    const isPast = aptDate < today;
+    const isAfterEnd = timeframe !== 'all' && aptDate > endDate;
+    const providerMismatch = provider && apt.provider !== provider;
     
     // Filter by status - include scheduled and optionally rescheduled
     const validStatuses = ['Scheduled', null, undefined];
@@ -92,6 +116,29 @@ export async function calculateFutureEarnings(options: FutureEarningsOptions): P
     
     // Check if dispositionStatus is valid
     const isValidStatus = validStatuses.includes(apt.dispositionStatus as any);
+    
+    // Log first few appointments for debugging
+    if (appointments.indexOf(apt) < 5) {
+      console.log('Appointment Debug:', {
+        id: apt.id,
+        originalDate: apt.startDate,
+        updatedDate: apt.updatedStartDate,
+        dateUsed: dateToUse,
+        aptDate: aptDate.toISOString(),
+        todayStart: today.toISOString(),
+        isPast,
+        isAfterEnd,
+        status: apt.dispositionStatus,
+        isValidStatus,
+        provider: apt.provider,
+        providerMismatch,
+        willInclude: !isPast && !isAfterEnd && !providerMismatch && isValidStatus
+      });
+    }
+    
+    if (isPast) return false;
+    if (isAfterEnd) return false;
+    if (providerMismatch) return false;
     
     return isValidStatus;
   });
@@ -104,6 +151,14 @@ export async function calculateFutureEarnings(options: FutureEarningsOptions): P
   
   // Calculate by date breakdown
   const byDate = calculateDateBreakdown(futureAppointments);
+  
+  console.log('Future Earnings Results:', {
+    timeframe,
+    filteredCount: futureAppointments.length,
+    summaryRevenue: summary.projectedRevenue,
+    providers: byProvider.length,
+    dates: byDate.length
+  });
   
   return {
     timeframe,
@@ -169,8 +224,14 @@ function calculateDateBreakdown(appointments: Appointment[]): DateEarnings[] {
   const dateMap = new Map<string, { revenue: number; count: number }>();
   
   appointments.forEach(apt => {
-    if (!apt.startDate) return;
-    const date = new Date(apt.startDate);
+    // Use updated date for rescheduled appointments
+    let dateToUse = apt.startDate;
+    if (apt.dispositionStatus === 'Reschedule' && apt.updatedStartDate) {
+      dateToUse = apt.updatedStartDate;
+    }
+    
+    if (!dateToUse) return;
+    const date = new Date(dateToUse);
     if (isNaN(date.getTime())) return;
     
     const dateKey = date.toISOString().split('T')[0]; // YYYY-MM-DD format

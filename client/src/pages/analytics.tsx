@@ -48,6 +48,16 @@ export default function Analytics() {
       const aptDate = new Date(apt.startDate);
       if (isNaN(aptDate.getTime())) return false; // Skip invalid dates
       switch (dateRange) {
+        case "today":
+          const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+          return aptDate >= todayStart && aptDate < todayEnd;
+        case "7d":
+          return aptDate >= new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        case "14d":
+          return aptDate >= new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+        case "21d":
+          return aptDate >= new Date(now.getTime() - 21 * 24 * 60 * 60 * 1000);
         case "30d":
           return aptDate >= new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         case "90d":
@@ -294,9 +304,13 @@ export default function Analytics() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Time</SelectItem>
-              <SelectItem value="1y">Last Year</SelectItem>
-              <SelectItem value="90d">Last 90 Days</SelectItem>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="7d">Last 7 Days</SelectItem>
+              <SelectItem value="14d">Last 14 Days</SelectItem>
+              <SelectItem value="21d">Last 21 Days</SelectItem>
               <SelectItem value="30d">Last 30 Days</SelectItem>
+              <SelectItem value="90d">Last 90 Days</SelectItem>
+              <SelectItem value="1y">Last Year</SelectItem>
             </SelectContent>
           </Select>
         </div>

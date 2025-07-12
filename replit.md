@@ -136,6 +136,18 @@ Changelog:
   - Added `reschedule_occurrences` column to appointments table
   - Automatically increments counter each time an appointment is rescheduled
   - Tracks total number of reschedules for business metrics and analytics
+- July 12, 2025: Implemented Future Earnings Analytics feature:
+  - Added new Analytics tab "Future Earnings" for projecting revenue from scheduled appointments
+  - Created API endpoint `/api/analytics/future-earnings` with timeframe filtering
+  - Added California timezone support (PDT, UTC-7) for accurate date calculations
+  - Fixed issue where rescheduled appointments use `updated_start_date` instead of original date
+  - Implemented confidence scoring based on appointment status and reschedule history
+  - Added interactive visualizations including revenue timeline and provider breakdown
+  - Supports filtering by time periods (Today, 1/2/3 weeks, 1 month, All future)
+- July 12, 2025: Enhanced Analytics Dashboard with additional time frame filters:
+  - Added "Today" filter to view appointments from current day only
+  - Added "Last 7 Days", "Last 14 Days", and "Last 21 Days" options
+  - Improved granular filtering for better historical appointment analysis
 
 ## User Preferences
 
