@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
-import { insertAppointmentSchema } from "@shared/schema";
+import { insertAppointmentSchema, insertClientSchema } from "@shared/schema";
 import { handleNewAppointmentNotifications, handleAppointmentStatusNotifications } from "./services/notificationService";
 import { testEmailSending, testCalendarConnection } from "./services/testService";
 import { importAppointmentsFromJson, validateImportFile } from "./services/importService";
@@ -33,6 +33,232 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching providers:", error);
       res.status(500).json({ message: "Failed to retrieve providers" });
+    }
+  });
+  
+  // ===== Clients ===== //
+  
+  // Get all clients with filters
+  app.get("/api/clients", async (req: Request, res: Response) => {
+    try {
+      const { search, status, marketingChannel, limit, offset } = req.query;
+      
+      const filters = {
+        search: search as string,
+        status: status as string,
+        marketingChannel: marketingChannel as string,
+        limit: limit ? parseInt(limit as string) : 20,
+        offset: offset ? parseInt(offset as string) : 0
+      };
+      
+      const result = await storage.getClients(filters);
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching clients:", error);
+      res.status(500).json({ message: "Failed to retrieve clients" });
+    }
+  });
+  
+  // Search clients
+  app.get("/api/clients/search", async (req: Request, res: Response) => {
+    try {
+      const { q } = req.query;
+      if (!q) {
+        return res.json({ clients: [], total: 0 });
+      }
+      
+      const result = await storage.getClients({
+        search: q as string,
+        limit: 10
+      });
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error searching clients:", error);
+      res.status(500).json({ message: "Failed to search clients" });
+    }
+  });
+  
+  // Get single client
+  app.get("/api/clients/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid client ID" });
+      }
+      
+      const client = await storage.getClient(id);
+      if (!client) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      
+      res.json(client);
+    } catch (error) {
+      console.error("Error fetching client:", error);
+      res.status(500).json({ message: "Failed to retrieve client" });
+    }
+  });
+  
+  // Get client appointments
+  app.get("/api/clients/:id/appointments", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid client ID" });
+      }
+      
+      const appointments = await storage.getClientAppointments(id);
+      res.json(appointments);
+    } catch (error) {
+      console.error("Error fetching client appointments:", error);
+      res.status(500).json({ message: "Failed to retrieve client appointments" });
+    }
+  });
+  
+  // Get client analytics
+  app.get("/api/clients/:id/analytics", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid client ID" });
+      }
+      
+      const client = await storage.getClient(id);
+      if (!client) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      
+      const appointments = await storage.getClientAppointments(id);
+      
+      // Calculate analytics
+      const completedAppointments = appointments.filter(a => a.dispositionStatus === 'Complete');
+      const cancelledAppointments = appointments.filter(a => a.dispositionStatus === 'Cancel');
+      const rescheduledAppointments = appointments.filter(a => a.rescheduleOccurrences && a.rescheduleOccurrences > 0);
+      
+      const analytics = {
+        clientId: id,
+        totalAppointments: appointments.length,
+        completedAppointments: completedAppointments.length,
+        cancelledAppointments: cancelledAppointments.length,
+        rescheduledAppointments: rescheduledAppointments.length,
+        cancellationRate: appointments.length > 0 ? (cancelledAppointments.length / appointments.length) * 100 : 0,
+        lifetimeValue: client.totalRevenue || 0,
+        averageAppointmentValue: completedAppointments.length > 0 
+          ? (client.totalRevenue || 0) / completedAppointments.length 
+          : 0,
+        lastAppointmentDate: client.lastAppointmentDate,
+        preferredProviders: getPreferredProviders(appointments),
+        preferredTimes: getPreferredTimes(appointments),
+        paymentMethods: getPaymentMethods(completedAppointments)
+      };
+      
+      res.json(analytics);
+    } catch (error) {
+      console.error("Error fetching client analytics:", error);
+      res.status(500).json({ message: "Failed to retrieve client analytics" });
+    }
+  });
+  
+  // Create new client
+  app.post("/api/clients", async (req: Request, res: Response) => {
+    try {
+      const validation = insertClientSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ 
+          message: "Invalid client data",
+          errors: fromZodError(validation.error).message 
+        });
+      }
+      
+      // Check for duplicates
+      if (validation.data.email) {
+        const existingByEmail = await storage.getClientByEmail(validation.data.email);
+        if (existingByEmail) {
+          return res.status(409).json({ message: "Client with this email already exists" });
+        }
+      }
+      
+      if (validation.data.phoneNumber) {
+        const existingByPhone = await storage.getClientByPhone(validation.data.phoneNumber);
+        if (existingByPhone) {
+          return res.status(409).json({ message: "Client with this phone number already exists" });
+        }
+      }
+      
+      const client = await storage.createClient(validation.data);
+      res.status(201).json(client);
+    } catch (error) {
+      console.error("Error creating client:", error);
+      res.status(500).json({ message: "Failed to create client" });
+    }
+  });
+  
+  // Update client
+  app.patch("/api/clients/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid client ID" });
+      }
+      
+      const validation = insertClientSchema.partial().safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ 
+          message: "Invalid client data",
+          errors: fromZodError(validation.error).message 
+        });
+      }
+      
+      const client = await storage.updateClient(id, validation.data);
+      if (!client) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      
+      res.json(client);
+    } catch (error) {
+      console.error("Error updating client:", error);
+      res.status(500).json({ message: "Failed to update client" });
+    }
+  });
+  
+  // Delete client
+  app.delete("/api/clients/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid client ID" });
+      }
+      
+      const success = await storage.deleteClient(id);
+      if (!success) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting client:", error);
+      res.status(500).json({ message: "Failed to delete client" });
+    }
+  });
+  
+  // Bulk export clients
+  app.post("/api/clients/bulk/export", async (req: Request, res: Response) => {
+    try {
+      const { filters } = req.body;
+      const result = await storage.getClients({
+        ...filters,
+        limit: 10000 // Export up to 10k clients
+      });
+      
+      // Convert to CSV format
+      const csv = convertClientsToCSV(result.clients);
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="clients.csv"');
+      res.send(csv);
+    } catch (error) {
+      console.error("Error exporting clients:", error);
+      res.status(500).json({ message: "Failed to export clients" });
     }
   });
   
@@ -418,4 +644,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   const httpServer = createServer(app);
   return httpServer;
+}
+
+// Helper functions for client analytics
+function getPreferredProviders(appointments: any[]): { provider: string; count: number }[] {
+  const providerCounts: Record<string, number> = {};
+  
+  appointments.forEach(apt => {
+    if (apt.provider) {
+      providerCounts[apt.provider] = (providerCounts[apt.provider] || 0) + 1;
+    }
+  });
+  
+  return Object.entries(providerCounts)
+    .map(([provider, count]) => ({ provider, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 3); // Top 3 providers
+}
+
+function getPreferredTimes(appointments: any[]): { hour: number; count: number }[] {
+  const hourCounts: Record<number, number> = {};
+  
+  appointments.forEach(apt => {
+    if (apt.startTime) {
+      const hour = parseInt(apt.startTime.split(':')[0]);
+      hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+    }
+  });
+  
+  return Object.entries(hourCounts)
+    .map(([hour, count]) => ({ hour: parseInt(hour), count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5); // Top 5 hours
+}
+
+function getPaymentMethods(appointments: any[]): { method: string; count: number }[] {
+  const methodCounts: Record<string, number> = {};
+  
+  appointments.forEach(apt => {
+    if (apt.paymentProcessUsed) {
+      methodCounts[apt.paymentProcessUsed] = (methodCounts[apt.paymentProcessUsed] || 0) + 1;
+    }
+  });
+  
+  return Object.entries(methodCounts)
+    .map(([method, count]) => ({ method, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
+function convertClientsToCSV(clients: any[]): string {
+  const headers = [
+    'ID',
+    'Name',
+    'Email',
+    'Phone',
+    'Status',
+    'Marketing Channel',
+    'Total Revenue',
+    'Appointment Count',
+    'Last Appointment',
+    'Tags',
+    'Created At'
+  ];
+  
+  const rows = clients.map(client => [
+    client.id,
+    client.name,
+    client.email || '',
+    client.phoneNumber || '',
+    client.status || 'active',
+    client.marketingChannel || '',
+    client.totalRevenue || '0',
+    client.appointmentCount || '0',
+    client.lastAppointmentDate ? new Date(client.lastAppointmentDate).toISOString() : '',
+    client.tags ? client.tags.join('; ') : '',
+    client.createdAt ? new Date(client.createdAt).toISOString() : ''
+  ]);
+  
+  const csvContent = [
+    headers.join(','),
+    ...rows.map(row => row.map(cell => 
+      typeof cell === 'string' && cell.includes(',') ? `"${cell}"` : cell
+    ).join(','))
+  ].join('\n');
+  
+  return csvContent;
 }

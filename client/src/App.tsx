@@ -16,6 +16,7 @@ import Analytics from "./pages/analytics";
 import AuthPage from "./pages/auth";
 import ConfirmDepositReturn from "./pages/confirm-deposit-return";
 import AppLayout from "@/components/layout/AppLayout";
+import Clients from "./pages/clients";
 
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
@@ -68,6 +69,12 @@ const ProtectedAnalytics = () => (
   </ProtectedRoute>
 );
 
+const ProtectedClients = () => (
+  <ProtectedRoute>
+    <Clients />
+  </ProtectedRoute>
+);
+
 function Router() {
   return (
     <Switch>
@@ -75,6 +82,7 @@ function Router() {
       <Route path="/appointments" component={ProtectedAppointmentList} />
       <Route path="/appointments/new" component={ProtectedNewAppointment} />
       <Route path="/appointments/:id" component={ProtectedAppointmentDetail} />
+      <Route path="/clients" component={ProtectedClients} />
       <Route path="/analytics" component={ProtectedAnalytics} />
       <Route path="/import" component={ProtectedImport} />
       <Route path="/resources" component={ProtectedResources} />

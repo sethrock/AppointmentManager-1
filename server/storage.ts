@@ -6,7 +6,10 @@ import {
   type User, 
   type InsertUser,
   providers,
-  type Provider
+  type Provider,
+  clients,
+  type Client,
+  type InsertClient
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -33,6 +36,23 @@ export interface IStorage {
   updateCalendarEventId(id: number, calendarEventId: string): Promise<Appointment | undefined>;
   confirmDepositReturn(id: number): Promise<Appointment | undefined>;
   deleteAppointment(id: number): Promise<boolean>;
+  
+  // Client operations
+  getClients(filters?: {
+    search?: string;
+    status?: string;
+    marketingChannel?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ clients: Client[]; total: number }>;
+  getClient(id: number): Promise<Client | undefined>;
+  getClientByEmail(email: string): Promise<Client | undefined>;
+  getClientByPhone(phone: string): Promise<Client | undefined>;
+  createClient(client: InsertClient): Promise<Client>;
+  updateClient(id: number, client: Partial<InsertClient>): Promise<Client | undefined>;
+  deleteClient(id: number): Promise<boolean>;
+  getClientAppointments(clientId: number): Promise<Appointment[]>;
+  updateClientMetrics(clientId: number): Promise<void>;
 }
 
 // Database storage implementation
@@ -219,6 +239,139 @@ export class DatabaseStorage implements IStorage {
   async deleteAppointment(id: number): Promise<boolean> {
     const result = await db.delete(appointments).where(eq(appointments.id, id)).returning();
     return result.length > 0;
+  }
+  
+  // Client methods
+  async getClients(filters?: {
+    search?: string;
+    status?: string;
+    marketingChannel?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ clients: Client[]; total: number }> {
+    const { or, and, like, sql } = await import("drizzle-orm");
+    
+    let conditions: any[] = [];
+    
+    if (filters?.search) {
+      const searchTerm = `%${filters.search}%`;
+      conditions.push(
+        or(
+          like(clients.name, searchTerm),
+          like(clients.email, searchTerm),
+          like(clients.phoneNumber, searchTerm),
+          like(clients.internalNotes, searchTerm)
+        )
+      );
+    }
+    
+    if (filters?.status) {
+      conditions.push(eq(clients.status, filters.status));
+    }
+    
+    if (filters?.marketingChannel) {
+      conditions.push(eq(clients.marketingChannel, filters.marketingChannel));
+    }
+    
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    
+    // Get total count
+    const countResult = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(clients)
+      .where(whereClause);
+    
+    const total = countResult[0]?.count || 0;
+    
+    // Get paginated results
+    let query = db.select().from(clients).where(whereClause);
+    
+    if (filters?.limit && filters?.offset !== undefined) {
+      query = query.limit(filters.limit).offset(filters.offset);
+    } else if (filters?.limit) {
+      query = query.limit(filters.limit);
+    }
+    
+    const clientsList = await query;
+    
+    return { clients: clientsList, total };
+  }
+  
+  async getClient(id: number): Promise<Client | undefined> {
+    const result = await db.select().from(clients).where(eq(clients.id, id));
+    return result[0];
+  }
+  
+  async getClientByEmail(email: string): Promise<Client | undefined> {
+    const result = await db.select().from(clients).where(eq(clients.email, email));
+    return result[0];
+  }
+  
+  async getClientByPhone(phone: string): Promise<Client | undefined> {
+    const result = await db.select().from(clients).where(eq(clients.phoneNumber, phone));
+    return result[0];
+  }
+  
+  async createClient(client: InsertClient): Promise<Client> {
+    const result = await db.insert(clients).values(client).returning();
+    return result[0];
+  }
+  
+  async updateClient(id: number, client: Partial<InsertClient>): Promise<Client | undefined> {
+    const result = await db
+      .update(clients)
+      .set({
+        ...client,
+        updatedAt: new Date()
+      })
+      .where(eq(clients.id, id))
+      .returning();
+    
+    return result[0];
+  }
+  
+  async deleteClient(id: number): Promise<boolean> {
+    const result = await db.delete(clients).where(eq(clients.id, id)).returning();
+    return result.length > 0;
+  }
+  
+  async getClientAppointments(clientId: number): Promise<Appointment[]> {
+    return await db
+      .select()
+      .from(appointments)
+      .where(eq(appointments.clientId, clientId));
+  }
+  
+  async updateClientMetrics(clientId: number): Promise<void> {
+    const clientAppointments = await this.getClientAppointments(clientId);
+    
+    // Calculate total revenue and appointment count
+    let totalRevenue = 0;
+    let appointmentCount = 0;
+    let lastAppointmentDate: Date | null = null;
+    
+    for (const appointment of clientAppointments) {
+      if (appointment.dispositionStatus === 'Complete') {
+        totalRevenue += appointment.recognizedRevenue || 0;
+      }
+      appointmentCount++;
+      
+      if (appointment.createdAt) {
+        if (!lastAppointmentDate || appointment.createdAt > lastAppointmentDate) {
+          lastAppointmentDate = appointment.createdAt;
+        }
+      }
+    }
+    
+    await db
+      .update(clients)
+      .set({
+        totalRevenue,
+        appointmentCount,
+        lastAppointmentDate,
+        updatedAt: new Date()
+      })
+      .where(eq(clients.id, clientId));
   }
   
   // Initialize default data if needed

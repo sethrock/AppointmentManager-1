@@ -45,6 +45,7 @@ export const appointments = pgTable("appointments", {
   marketingChannel: text("marketing_channel").notNull(),
   
   // Client Information
+  clientId: integer("client_id").references(() => clients.id),
   clientName: text("client_name"),
   phoneNumber: text("phone_number"),
   clientUsesEmail: boolean("client_uses_email").default(false),
@@ -133,6 +134,42 @@ export const insertAppointmentSchema = createInsertSchema(appointments).omit({
 // Export types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+// Clients schema
+export const clients = pgTable("clients", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").unique(),
+  phoneNumber: text("phone_number").unique(),
+  address: text("address"),
+  city: text("city"),
+  state: text("state"),
+  zipCode: text("zip_code"),
+  marketingChannel: text("marketing_channel"),
+  acquisitionDate: timestamp("acquisition_date").defaultNow(),
+  status: text("status").default("active"), // active, inactive, vip
+  tags: text("tags").array().default([]),
+  internalNotes: text("internal_notes"),
+  communicationPreference: text("communication_preference"), // email, phone, text
+  photoUrl: text("photo_url"),
+  totalRevenue: doublePrecision("total_revenue").default(0),
+  appointmentCount: integer("appointment_count").default(0),
+  lastAppointmentDate: timestamp("last_appointment_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertClientSchema = createInsertSchema(clients).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  totalRevenue: true,
+  appointmentCount: true,
+  lastAppointmentDate: true,
+});
+
+export type InsertClient = z.infer<typeof insertClientSchema>;
+export type Client = typeof clients.$inferSelect;
 
 export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
 export type Appointment = typeof appointments.$inferSelect;
