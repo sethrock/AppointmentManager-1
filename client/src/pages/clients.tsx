@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import ClientDetailModal from "@/components/clients/ClientDetailModal";
 import type { Client } from "@shared/schema";
 
 export default function ClientsPage() {
+  const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [marketingFilter, setMarketingFilter] = useState<string>("all");
@@ -24,6 +25,16 @@ export default function ClientsPage() {
   const { toast } = useToast();
   
   const pageSize = 20;
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(searchInput);
+      setCurrentPage(0);
+    }, 300); // 300ms delay
+
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   // Fetch clients with filters
   const { data, isLoading, error } = useQuery({
@@ -63,8 +74,7 @@ export default function ClientsPage() {
   });
 
   const handleSearch = (value: string) => {
-    setSearchTerm(value);
-    setCurrentPage(0);
+    setSearchInput(value);
   };
 
   const formatCurrency = (amount: number) => {
@@ -121,7 +131,7 @@ export default function ClientsPage() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 placeholder="Search by name, email, phone, or notes..."
-                value={searchTerm}
+                value={searchInput}
                 onChange={(e) => handleSearch(e.target.value)}
                 className="pl-10"
               />
