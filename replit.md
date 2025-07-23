@@ -25,6 +25,7 @@ This is a comprehensive appointment scheduling and management platform designed 
 
 ### Database Schema
 - **Primary Tables**: appointments, users, providers, sessions
+- **Planned Tables**: clients (for centralized client management)
 - **ORM**: Drizzle with type-safe queries and migrations
 - **Connection**: Neon serverless PostgreSQL with WebSocket support
 - **Validation**: Zod schemas for type-safe data validation
@@ -44,6 +45,15 @@ This is a comprehensive appointment scheduling and management platform designed 
 - Client information tracking with contact details and preferences
 - Financial tracking including deposits, revenue, expenses, and collections
 - Status-based appointment processing with automated notifications
+
+### Client Management (Planned)
+- Centralized client database with deduplication
+- Advanced search and filtering capabilities
+- Client history and timeline tracking
+- Analytics and insights per client (LTV, patterns, preferences)
+- Bulk operations and smart lists
+- Integration with appointment booking
+- See `clients.md` for detailed implementation plan
 
 ### External Service Integrations
 - **Google Calendar API**: Dual-calendar system (active/archive) with OAuth2 authentication
@@ -148,6 +158,11 @@ Changelog:
   - Added "Today" filter to view appointments from current day only
   - Added "Last 7 Days", "Last 14 Days", and "Last 21 Days" options
   - Improved granular filtering for better historical appointment analysis
+- July 23, 2025: Created comprehensive development plan for Client Management Module:
+  - Designed centralized client database architecture
+  - Planned advanced search, analytics, and bulk operations features
+  - Outlined data migration strategy from appointments to clients table
+  - Created detailed implementation roadmap in clients.md
 
 ## User Preferences
 
