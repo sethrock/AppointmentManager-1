@@ -155,7 +155,7 @@ export default function ClientsPage() {
       </Card>
 
       {/* Stats Cards */}
-      {data && (
+      {data && data.clients && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -163,7 +163,7 @@ export default function ClientsPage() {
               <User className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{data.total}</div>
+              <div className="text-2xl font-bold">{data.total || 0}</div>
             </CardContent>
           </Card>
           <Card>
