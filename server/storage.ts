@@ -308,7 +308,7 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getClientByPhone(phone: string): Promise<Client | undefined> {
-    const result = await db.select().from(clients).where(eq(clients.phoneNumber, phone));
+    const result = await db.select().from(clients).where(eq(clients.phone, phone));
     return result[0];
   }
   

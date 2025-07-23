@@ -16,8 +16,8 @@ import type { Client } from "@shared/schema";
 
 export default function ClientsPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
-  const [marketingFilter, setMarketingFilter] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [marketingFilter, setMarketingFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(0);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -28,7 +28,7 @@ export default function ClientsPage() {
   // Fetch clients with filters
   const { data, isLoading, error } = useQuery({
     queryKey: ['/api/clients', searchTerm, statusFilter, marketingFilter, currentPage],
-    queryFn: () => apiRequest("GET", `/api/clients?search=${searchTerm}&status=${statusFilter}&marketingChannel=${marketingFilter}&limit=${pageSize}&offset=${currentPage * pageSize}`),
+    queryFn: () => apiRequest("GET", `/api/clients?search=${searchTerm}&status=${statusFilter === 'all' ? '' : statusFilter}&marketingChannel=${marketingFilter === 'all' ? '' : marketingFilter}&limit=${pageSize}&offset=${currentPage * pageSize}`),
   });
 
   // Export clients mutation
@@ -132,7 +132,7 @@ export default function ClientsPage() {
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Statuses</SelectItem>
+                <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="inactive">Inactive</SelectItem>
                 <SelectItem value="vip">VIP</SelectItem>
@@ -143,7 +143,7 @@ export default function ClientsPage() {
                 <SelectValue placeholder="All Channels" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Channels</SelectItem>
+                <SelectItem value="all">All Channels</SelectItem>
                 <SelectItem value="Website">Website</SelectItem>
                 <SelectItem value="Referral">Referral</SelectItem>
                 <SelectItem value="Social Media">Social Media</SelectItem>
