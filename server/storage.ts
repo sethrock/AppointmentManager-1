@@ -265,11 +265,11 @@ export class DatabaseStorage implements IStorage {
       );
     }
     
-    if (filters?.status) {
+    if (filters?.status && filters.status !== '') {
       conditions.push(eq(clients.status, filters.status));
     }
     
-    if (filters?.marketingChannel) {
+    if (filters?.marketingChannel && filters.marketingChannel !== '') {
       conditions.push(eq(clients.marketingChannel, filters.marketingChannel));
     }
     
