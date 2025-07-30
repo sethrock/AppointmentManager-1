@@ -325,6 +325,7 @@ export default function AppointmentForm({
                     <SelectItem value="Chloe">Chloe</SelectItem>
                     <SelectItem value="Alexa">Alexa</SelectItem>
                     <SelectItem value="Frenchie">Frenchie</SelectItem>
+                    <SelectItem value="Lilly">Lilly</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />

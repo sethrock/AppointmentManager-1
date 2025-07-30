@@ -384,7 +384,8 @@ export class DatabaseStorage implements IStorage {
         { name: 'Courtesan Couple', active: true },
         { name: 'Chloe', active: true },
         { name: 'Alexa', active: true },
-        { name: 'Frenchie', active: true }
+        { name: 'Frenchie', active: true },
+        { name: 'Lilly', active: true }
       ];
       
       for (const provider of defaultProviders) {
