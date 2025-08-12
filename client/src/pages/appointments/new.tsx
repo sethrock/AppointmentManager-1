@@ -14,7 +14,7 @@ export default function NewAppointment() {
   const createAppointmentMutation = useMutation({
     mutationFn: async (data: InsertAppointment) => {
       const response = await apiRequest('POST', '/api/appointments', data);
-      return response.json();
+      return response;
     },
     onSuccess: () => {
       toast({
