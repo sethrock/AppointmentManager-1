@@ -349,7 +349,7 @@ export default function Analytics() {
             Comprehensive insights into your appointment performance and business metrics
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 w-full lg:w-auto">
           <DateRangePicker
             dateRange={dateRange}
             comparisonRange={comparisonRange}
@@ -357,7 +357,7 @@ export default function Analytics() {
             onComparisonRangeChange={setComparisonRange}
             enableComparison={enableComparison}
             onComparisonToggle={setEnableComparison}
-            className="w-[350px]"
+            className="w-full lg:w-[400px]"
           />
         </div>
       </div>

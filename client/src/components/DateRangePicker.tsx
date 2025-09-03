@@ -150,6 +150,17 @@ export function DateRangePicker({
   const [activeTab, setActiveTab] = React.useState<"main" | "comparison">("main")
   const [tempMainRange, setTempMainRange] = React.useState<DateRange | undefined>(dateRange)
   const [tempComparisonRange, setTempComparisonRange] = React.useState<DateRange | undefined>(comparisonRange)
+  const [isMobile, setIsMobile] = React.useState(false)
+
+  // Check if mobile on mount and resize
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   React.useEffect(() => {
     setTempMainRange(dateRange)
@@ -205,43 +216,71 @@ export function DateRangePicker({
           <Button
             variant="outline"
             className={cn(
-              "justify-start text-left font-normal",
+              "justify-start text-left font-normal h-auto min-h-[40px] py-2",
               !dateRange && "text-muted-foreground"
             )}
           >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            <span className="flex-1">{formatDateRange(dateRange)}</span>
-            {enableComparison && comparisonRange && (
-              <>
-                <Separator orientation="vertical" className="mx-2 h-4" />
-                <span className="text-sm text-muted-foreground">
-                  vs {formatDateRange(comparisonRange)}
-                </span>
-              </>
-            )}
-            <ChevronDown className="ml-2 h-4 w-4" />
+            <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
+            <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-1">
+              <span className="truncate">{formatDateRange(dateRange)}</span>
+              {enableComparison && comparisonRange && (
+                <div className="flex items-center">
+                  <Separator orientation="vertical" className="mx-2 h-4 hidden sm:block" />
+                  <span className="text-sm text-muted-foreground truncate">
+                    vs {formatDateRange(comparisonRange)}
+                  </span>
+                </div>
+              )}
+            </div>
+            <ChevronDown className="ml-2 h-4 w-4 flex-shrink-0" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="end">
-          <div className="flex">
+        <PopoverContent 
+          className={cn(
+            "w-auto p-0 z-50",
+            isMobile ? "max-w-[95vw] mx-2" : "max-w-[90vw]"
+          )} 
+          align={isMobile ? "center" : "start"}
+          side="bottom"
+          sideOffset={8}
+          alignOffset={isMobile ? 0 : -4}
+        >
+          <div className={cn(
+            isMobile ? "flex flex-col" : "flex",
+            "max-h-[85vh] overflow-y-auto"
+          )}>
             {/* Preset buttons */}
-            <div className="border-r p-3 space-y-1">
+            <div className={cn(
+              isMobile ? "border-b" : "border-r",
+              "p-3 space-y-1",
+              isMobile ? "max-h-40 overflow-y-auto" : ""
+            )}>
               <div className="text-sm font-semibold mb-2">Quick Select</div>
-              {presetRanges.map((preset) => (
-                <Button
-                  key={preset.label}
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start text-xs"
-                  onClick={() => handlePresetClick(preset)}
-                >
-                  {preset.label}
-                </Button>
-              ))}
+              <div className={cn(
+                isMobile ? "grid grid-cols-2 gap-1" : "space-y-1"
+              )}>
+                {presetRanges.map((preset) => (
+                  <Button
+                    key={preset.label}
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "w-full justify-start text-xs",
+                      isMobile ? "px-2" : ""
+                    )}
+                    onClick={() => handlePresetClick(preset)}
+                  >
+                    {preset.label}
+                  </Button>
+                ))}
+              </div>
             </div>
 
             {/* Calendar and controls */}
-            <div className="p-3">
+            <div className={cn(
+              "p-3",
+              isMobile ? "w-full" : "min-w-[600px]"
+            )}>
               {/* Comparison toggle */}
               {onComparisonToggle && (
                 <div className="flex items-center space-x-2 mb-3">
@@ -301,7 +340,7 @@ export function DateRangePicker({
                     setTempComparisonRange(range)
                   }
                 }}
-                numberOfMonths={2}
+                numberOfMonths={isMobile ? 1 : 2}
                 className="rounded-md border"
               />
 
