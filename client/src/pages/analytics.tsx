@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DateRangePicker } from "@/components/DateRangePicker";
+import { DateRange } from "react-day-picker";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { TrendingUp, Users, Calendar, DollarSign, Clock, CheckCircle, MapPin, Target, Award, BarChart3 } from "lucide-react";
@@ -28,7 +29,9 @@ import { useState, useMemo } from "react";
 import FutureEarnings from "@/components/FutureEarnings";
 
 export default function Analytics() {
-  const [dateRange, setDateRange] = useState("all");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [comparisonRange, setComparisonRange] = useState<DateRange | undefined>(undefined);
+  const [enableComparison, setEnableComparison] = useState(false);
   const [selectedMetric, setSelectedMetric] = useState("revenue");
   
   // Fetch appointments data for analytics
@@ -40,56 +43,88 @@ export default function Analytics() {
   const processedData = useMemo(() => {
     if (!appointments.length) return null;
 
-    // Filter data based on date range
-    const now = new Date();
-    const filteredAppointments = appointments.filter(apt => {
-      if (dateRange === "all") return true;
-      if (!apt.startDate) return false;
-      const aptDate = new Date(apt.startDate);
-      if (isNaN(aptDate.getTime())) return false; // Skip invalid dates
-      switch (dateRange) {
-        case "today":
-          const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-          return aptDate >= todayStart && aptDate < todayEnd;
-        case "7d":
-          return aptDate >= new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        case "14d":
-          return aptDate >= new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-        case "21d":
-          return aptDate >= new Date(now.getTime() - 21 * 24 * 60 * 60 * 1000);
-        case "30d":
-          return aptDate >= new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        case "90d":
-          return aptDate >= new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-        case "1y":
-          return aptDate >= new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-        default:
-          return true;
-      }
-    });
+    // Helper function to filter appointments by date range
+    const filterByDateRange = (apts: typeof appointments, range: DateRange | undefined) => {
+      if (!range?.from) return apts; // No range selected, return all
+      
+      return apts.filter(apt => {
+        // Use updatedStartDate for rescheduled appointments, otherwise use startDate
+        const dateStr = apt.dispositionStatus === 'Reschedule' && apt.updatedStartDate 
+          ? apt.updatedStartDate 
+          : apt.startDate;
+        
+        if (!dateStr) return false;
+        const aptDate = new Date(dateStr);
+        if (isNaN(aptDate.getTime())) return false;
+        
+        // We know range.from exists here due to the check above
+        if (!range.from) return false;
+        
+        // Check if date is within range
+        const rangeFrom = new Date(range.from);
+        rangeFrom.setHours(0, 0, 0, 0);
+        
+        if (range.to) {
+          const rangeTo = new Date(range.to);
+          rangeTo.setHours(23, 59, 59, 999);
+          return aptDate >= rangeFrom && aptDate <= rangeTo;
+        }
+        
+        // Single day selection
+        const rangeEnd = new Date(rangeFrom);
+        rangeEnd.setHours(23, 59, 59, 999);
+        return aptDate >= rangeFrom && aptDate <= rangeEnd;
+      });
+    };
 
-    // Basic metrics
-    const totalAppointments = filteredAppointments.length;
-    const completedAppointments = filteredAppointments.filter(apt => apt.dispositionStatus === 'Complete').length;
-    const cancelledAppointments = filteredAppointments.filter(apt => apt.dispositionStatus === 'Cancel').length;
-    const scheduledAppointments = filteredAppointments.filter(apt => 
-      apt.dispositionStatus === 'Reschedule' || !apt.dispositionStatus
-    ).length;
+    // Helper function to calculate metrics for a set of appointments
+    const calculateMetrics = (apts: typeof appointments) => {
+      const total = apts.length;
+      const completed = apts.filter(apt => apt.dispositionStatus === 'Complete').length;
+      const cancelled = apts.filter(apt => apt.dispositionStatus === 'Cancel').length;
+      const scheduled = apts.filter(apt => 
+        apt.dispositionStatus === 'Reschedule' || !apt.dispositionStatus
+      ).length;
+      
+      const revenue = apts
+        .filter(apt => apt.dispositionStatus === 'Complete')
+        .reduce((sum, apt) => sum + (apt.totalCollected || 0), 0);
+      
+      const projected = apts
+        .reduce((sum, apt) => sum + (apt.grossRevenue || 0), 0);
+      
+      const recognized = apts
+        .reduce((sum, apt) => sum + (apt.recognizedRevenue || 0), 0);
+      
+      const avgValue = completed > 0 ? revenue / completed : 0;
+      const completion = total > 0 ? (completed / total) * 100 : 0;
+      const clients = new Set(apts.map(apt => apt.clientName)).size;
+      
+      return {
+        totalAppointments: total,
+        completedAppointments: completed,
+        cancelledAppointments: cancelled,
+        scheduledAppointments: scheduled,
+        totalRevenue: revenue,
+        projectedRevenue: projected,
+        recognizedRevenue: recognized,
+        averageAppointmentValue: avgValue,
+        completionRate: completion,
+        uniqueClients: clients
+      };
+    };
+
+    // Filter appointments for main date range
+    const filteredAppointments = filterByDateRange(appointments, dateRange);
     
-    const totalRevenue = filteredAppointments
-      .filter(apt => apt.dispositionStatus === 'Complete')
-      .reduce((sum, apt) => sum + (apt.totalCollected || 0), 0);
-    
-    const projectedRevenue = filteredAppointments
-      .reduce((sum, apt) => sum + (apt.grossRevenue || 0), 0);
-    
-    const recognizedRevenue = filteredAppointments
-      .reduce((sum, apt) => sum + (apt.recognizedRevenue || 0), 0);
-    
-    const averageAppointmentValue = completedAppointments > 0 ? totalRevenue / completedAppointments : 0;
-    const completionRate = totalAppointments > 0 ? (completedAppointments / totalAppointments) * 100 : 0;
-    const uniqueClients = new Set(filteredAppointments.map(apt => apt.clientName)).size;
+    // Filter appointments for comparison range if enabled
+    const comparisonAppointments = enableComparison 
+      ? filterByDateRange(appointments, comparisonRange)
+      : [];
+
+    // Calculate metrics for both periods
+    const metrics = calculateMetrics(filteredAppointments);
+    const comparisonMetrics = enableComparison ? calculateMetrics(comparisonAppointments) : null;
 
     // Revenue trend data (monthly)
     const revenueByMonth = filteredAppointments.reduce((acc, apt) => {
@@ -164,55 +199,58 @@ export default function Analytics() {
 
     const channelData = Object.values(channelStats);
 
-    // Day of week analysis
-    const dayStats = filteredAppointments.reduce((acc, apt) => {
-      if (!apt.startDate) return acc;
-      const aptDate = new Date(apt.startDate);
-      if (isNaN(aptDate.getTime())) return acc;
+    // Helper function to generate day stats for any appointment set
+    const generateDayStats = (apts: typeof appointments) => {
+      const stats = apts.reduce((acc, apt) => {
+        if (!apt.startDate) return acc;
+        const aptDate = new Date(apt.startDate);
+        if (isNaN(aptDate.getTime())) return acc;
+        
+        const day = aptDate.toLocaleDateString('en-US', { weekday: 'long' });
+        if (!acc[day]) {
+          acc[day] = { day, appointments: 0, revenue: 0 };
+        }
+        acc[day].appointments++;
+        if (apt.dispositionStatus === 'Complete') {
+          acc[day].revenue += apt.totalCollected || 0;
+        }
+        return acc;
+      }, {} as Record<string, any>);
       
-      const day = aptDate.toLocaleDateString('en-US', { weekday: 'long' });
-      if (!acc[day]) {
-        acc[day] = { day, appointments: 0, revenue: 0 };
-      }
-      acc[day].appointments++;
-      if (apt.dispositionStatus === 'Complete') {
-        acc[day].revenue += apt.totalCollected || 0;
-      }
-      return acc;
-    }, {} as Record<string, any>);
+      return ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        .map(day => stats[day] || { day, appointments: 0, revenue: 0 });
+    };
 
-    const dayData = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-      .map(day => dayStats[day] || { day, appointments: 0, revenue: 0 });
+    // Generate day stats for main and comparison periods
+    const dayData = generateDayStats(filteredAppointments);
+    const comparisonDayData = enableComparison ? generateDayStats(comparisonAppointments) : null;
+
+    // Combine data for comparison chart
+    const combinedDayData = dayData.map((dayItem, index) => ({
+      ...dayItem,
+      comparisonRevenue: comparisonDayData ? comparisonDayData[index].revenue : 0,
+      comparisonAppointments: comparisonDayData ? comparisonDayData[index].appointments : 0
+    }));
 
     // Status distribution for pie chart
     const statusData = [
-      { name: 'Completed', value: completedAppointments, color: '#10b981' },
-      { name: 'Scheduled', value: scheduledAppointments, color: '#3b82f6' },
-      { name: 'Cancelled', value: cancelledAppointments, color: '#ef4444' }
+      { name: 'Completed', value: metrics.completedAppointments, color: '#10b981' },
+      { name: 'Scheduled', value: metrics.scheduledAppointments, color: '#3b82f6' },
+      { name: 'Cancelled', value: metrics.cancelledAppointments, color: '#ef4444' }
     ].filter(item => item.value > 0);
 
     return {
-      metrics: {
-        totalAppointments,
-        completedAppointments,
-        cancelledAppointments,
-        scheduledAppointments,
-        totalRevenue,
-        projectedRevenue,
-        recognizedRevenue,
-        averageAppointmentValue,
-        completionRate,
-        uniqueClients
-      },
+      metrics,
+      comparisonMetrics,
       charts: {
         revenueData,
         providerData,
         channelData,
-        dayData,
+        dayData: enableComparison ? combinedDayData : dayData,
         statusData
       }
     };
-  }, [appointments, dateRange]);
+  }, [appointments, dateRange, comparisonRange, enableComparison]);
 
   if (isLoading) {
     return (
@@ -250,7 +288,13 @@ export default function Analytics() {
     );
   }
 
-  const { metrics, charts } = processedData;
+  const { metrics, comparisonMetrics, charts } = processedData;
+
+  // Helper function to calculate percentage change
+  const calculateChange = (current: number, comparison: number) => {
+    if (comparison === 0) return current > 0 ? 100 : 0;
+    return ((current - comparison) / comparison) * 100;
+  };
 
   const kpiCards = [
     {
@@ -259,7 +303,9 @@ export default function Analytics() {
       description: "Completed appointments",
       icon: DollarSign,
       progress: metrics.projectedRevenue > 0 ? (metrics.totalRevenue / metrics.projectedRevenue) * 100 : 0,
-      color: "text-green-600"
+      color: "text-green-600",
+      comparisonValue: comparisonMetrics ? formatCurrency(comparisonMetrics.totalRevenue) : null,
+      change: comparisonMetrics ? calculateChange(metrics.totalRevenue, comparisonMetrics.totalRevenue) : null
     },
     {
       title: "Completion Rate",
@@ -267,7 +313,9 @@ export default function Analytics() {
       description: "Success rate",
       icon: CheckCircle,
       progress: metrics.completionRate,
-      color: "text-blue-600"
+      color: "text-blue-600",
+      comparisonValue: comparisonMetrics ? `${comparisonMetrics.completionRate.toFixed(1)}%` : null,
+      change: comparisonMetrics ? calculateChange(metrics.completionRate, comparisonMetrics.completionRate) : null
     },
     {
       title: "Total Appointments",
@@ -275,7 +323,9 @@ export default function Analytics() {
       description: "All time bookings",
       icon: Calendar,
       progress: 100,
-      color: "text-purple-600"
+      color: "text-purple-600",
+      comparisonValue: comparisonMetrics ? comparisonMetrics.totalAppointments.toString() : null,
+      change: comparisonMetrics ? calculateChange(metrics.totalAppointments, comparisonMetrics.totalAppointments) : null
     },
     {
       title: "Unique Clients",
@@ -283,7 +333,9 @@ export default function Analytics() {
       description: "Active client base",
       icon: Users,
       progress: 100,
-      color: "text-orange-600"
+      color: "text-orange-600",
+      comparisonValue: comparisonMetrics ? comparisonMetrics.uniqueClients.toString() : null,
+      change: comparisonMetrics ? calculateChange(metrics.uniqueClients, comparisonMetrics.uniqueClients) : null
     }
   ];
 
@@ -298,21 +350,15 @@ export default function Analytics() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Select value={dateRange} onValueChange={setDateRange}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select time range" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Time</SelectItem>
-              <SelectItem value="today">Today</SelectItem>
-              <SelectItem value="7d">Last 7 Days</SelectItem>
-              <SelectItem value="14d">Last 14 Days</SelectItem>
-              <SelectItem value="21d">Last 21 Days</SelectItem>
-              <SelectItem value="30d">Last 30 Days</SelectItem>
-              <SelectItem value="90d">Last 90 Days</SelectItem>
-              <SelectItem value="1y">Last Year</SelectItem>
-            </SelectContent>
-          </Select>
+          <DateRangePicker
+            dateRange={dateRange}
+            comparisonRange={comparisonRange}
+            onDateRangeChange={setDateRange}
+            onComparisonRangeChange={setComparisonRange}
+            enableComparison={enableComparison}
+            onComparisonToggle={setEnableComparison}
+            className="w-[350px]"
+          />
         </div>
       </div>
 
@@ -328,7 +374,19 @@ export default function Analytics() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{kpi.value}</div>
-                <p className="text-xs text-muted-foreground mb-2">{kpi.description}</p>
+                {kpi.comparisonValue && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-sm text-muted-foreground">vs {kpi.comparisonValue}</span>
+                    {kpi.change !== null && (
+                      <span className={`text-sm font-medium ${
+                        kpi.change >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {kpi.change >= 0 ? '+' : ''}{kpi.change.toFixed(1)}%
+                      </span>
+                    )}
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground mb-2 mt-1">{kpi.description}</p>
                 <Progress value={kpi.progress} className="h-2" />
               </CardContent>
             </Card>
@@ -381,7 +439,10 @@ export default function Analytics() {
             <Card>
               <CardHeader>
                 <CardTitle>Weekly Performance</CardTitle>
-                <CardDescription>Revenue and appointments by day</CardDescription>
+                <CardDescription>
+                  Revenue and appointments by day
+                  {enableComparison && " (with comparison)"}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -390,12 +451,21 @@ export default function Analytics() {
                     <XAxis dataKey="day" />
                     <YAxis yAxisId="left" />
                     <YAxis yAxisId="right" orientation="right" />
-                    <Tooltip formatter={(value, name) => [
-                      name === 'revenue' ? formatCurrency(Number(value)) : value,
-                      name === 'revenue' ? 'Revenue' : 'Appointments'
-                    ]} />
-                    <Bar yAxisId="left" dataKey="revenue" fill="#3b82f6" name="revenue" />
-                    <Bar yAxisId="right" dataKey="appointments" fill="#10b981" name="appointments" />
+                    <Tooltip formatter={(value, name) => {
+                      if (typeof name === 'string' && (name.includes('revenue') || name.includes('Revenue'))) {
+                        return [formatCurrency(Number(value)), name];
+                      }
+                      return [value, name];
+                    }} />
+                    {enableComparison && <Legend />}
+                    <Bar yAxisId="left" dataKey="revenue" fill="#3b82f6" name="Revenue" />
+                    {enableComparison && (
+                      <Bar yAxisId="left" dataKey="comparisonRevenue" fill="#93c5fd" name="Comparison Revenue" />
+                    )}
+                    <Bar yAxisId="right" dataKey="appointments" fill="#10b981" name="Appointments" />
+                    {enableComparison && (
+                      <Bar yAxisId="right" dataKey="comparisonAppointments" fill="#86efac" name="Comparison Appointments" />
+                    )}
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
