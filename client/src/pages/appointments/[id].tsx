@@ -239,7 +239,7 @@ export default function AppointmentDetailPage() {
                 </div>
                 {appointment.totalCollected > 0 && (
                   <div className="mt-2">
-                    <div className="text-xs text-muted-foreground mb-1">Collected:</div>
+                    <div className="text-xs text-muted-foreground mb-1">Total Collected:</div>
                     <div className={`inline-block px-2 py-1 rounded ${
                       (() => {
                         const totalCollected = appointment.totalCollected || 0;
