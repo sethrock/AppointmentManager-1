@@ -19,6 +19,7 @@ export default function Resources() {
   const [isSafetyIframeLoading, setIsSafetyIframeLoading] = useState(true);
   const [isBankingIframeLoading, setIsBankingIframeLoading] = useState(true);
   const [isPhotoForensicIframeLoading, setIsPhotoForensicIframeLoading] = useState(true);
+  const [isHppSwiftIframeLoading, setIsHppSwiftIframeLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'tabs' | 'grid'>('tabs');
   const { toast } = useToast();
 
@@ -69,6 +70,15 @@ export default function Resources() {
       important: false
     },
     {
+      id: "hpp-swift",
+      name: "HPP Swift Transfer",
+      url: "https://hpp-swift.replit.app",
+      icon: Building,
+      description: "Secure wire transfer instructions for Horizon Property Professionals",
+      category: "Financial",
+      important: false
+    },
+    {
       id: "photo-forensic",
       name: "Photo Forensic",
       url: "https://PhotoForensic.replit.app",
@@ -113,6 +123,8 @@ export default function Resources() {
         return [isBankingIframeLoading, setIsBankingIframeLoading];
       case "photo-forensic":
         return [isPhotoForensicIframeLoading, setIsPhotoForensicIframeLoading];
+      case "hpp-swift":
+        return [isHppSwiftIframeLoading, setIsHppSwiftIframeLoading];
       default:
         return [true, () => {}];
     }
