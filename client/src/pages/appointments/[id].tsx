@@ -238,8 +238,26 @@ export default function AppointmentDetailPage() {
                   {formatCurrency(appointment.grossRevenue || 0)}
                 </div>
                 {appointment.totalCollected > 0 && (
-                  <div className="text-xs text-muted-foreground">
-                    Collected: {formatCurrency(appointment.totalCollected)}
+                  <div className="mt-2">
+                    <div className="text-xs text-muted-foreground mb-1">Collected:</div>
+                    <div className={`inline-block px-2 py-1 rounded ${
+                      (() => {
+                        const totalCollected = appointment.totalCollected || 0;
+                        const projectedRevenue = appointment.grossRevenue || 0;
+                        
+                        if (totalCollected < projectedRevenue) {
+                          return "bg-red-500 text-white";
+                        } else if (totalCollected === projectedRevenue) {
+                          return "bg-blue-500 text-white";
+                        } else {
+                          return "bg-green-500 text-white";
+                        }
+                      })()
+                    }`}>
+                      <span className="text-sm font-medium">
+                        {formatCurrency(appointment.totalCollected)}
+                      </span>
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -321,11 +339,28 @@ export default function AppointmentDetailPage() {
                         
                         <div>
                           <h4 className="text-sm font-medium text-muted-foreground mb-1">Total Collected</h4>
-                          <p className="text-lg font-medium">
-                            {formatCurrency((appointment.totalCollectedCash || 0) + 
-                                          (appointment.totalCollectedDigital || 0) + 
-                                          (appointment.depositAmount || 0))}
-                          </p>
+                          <div className={`inline-block px-3 py-2 rounded-md ${
+                            (() => {
+                              const totalCollected = (appointment.totalCollectedCash || 0) + 
+                                                   (appointment.totalCollectedDigital || 0) + 
+                                                   (appointment.depositAmount || 0);
+                              const projectedRevenue = appointment.grossRevenue || 0;
+                              
+                              if (totalCollected < projectedRevenue) {
+                                return "bg-red-500 text-white";
+                              } else if (totalCollected === projectedRevenue) {
+                                return "bg-blue-500 text-white";
+                              } else {
+                                return "bg-green-500 text-white";
+                              }
+                            })()
+                          }`}>
+                            <p className="text-lg font-medium">
+                              {formatCurrency((appointment.totalCollectedCash || 0) + 
+                                            (appointment.totalCollectedDigital || 0) + 
+                                            (appointment.depositAmount || 0))}
+                            </p>
+                          </div>
                         </div>
                       </div>
                       
