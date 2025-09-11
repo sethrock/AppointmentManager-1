@@ -20,7 +20,7 @@ const loginSchema = z.object({
 });
 
 const registerSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
+  username: z.string().min(2, "Username must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string(),
@@ -49,7 +49,7 @@ export default function AuthPage() {
   const registerForm = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      name: "",
+      username: "",
       email: "",
       password: "",
       confirmPassword: "",
@@ -142,6 +142,7 @@ export default function AuthPage() {
                             type="email" 
                             placeholder="you@example.com" 
                             {...field} 
+                            data-testid="input-login-email"
                           />
                         </FormControl>
                         <FormMessage />
@@ -159,6 +160,7 @@ export default function AuthPage() {
                             type="password" 
                             placeholder="••••••••" 
                             {...field} 
+                            data-testid="input-login-password"
                           />
                         </FormControl>
                         <FormMessage />
@@ -169,6 +171,7 @@ export default function AuthPage() {
                     type="submit" 
                     className="w-full" 
                     disabled={loginMutation.isPending}
+                    data-testid="button-login"
                   >
                     {loginMutation.isPending ? "Signing in..." : "Sign In"}
                   </Button>
@@ -181,14 +184,15 @@ export default function AuthPage() {
                 <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
                   <FormField
                     control={registerForm.control}
-                    name="name"
+                    name="username"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Name</FormLabel>
+                        <FormLabel>Username</FormLabel>
                         <FormControl>
                           <Input 
-                            placeholder="John Doe" 
+                            placeholder="johndoe" 
                             {...field} 
+                            data-testid="input-username"
                           />
                         </FormControl>
                         <FormMessage />
@@ -204,7 +208,8 @@ export default function AuthPage() {
                         <FormControl>
                           <Input 
                             type="email" 
-                            placeholder="you@example.com" 
+                            placeholder="you@example.com"
+                            data-testid="input-register-email" 
                             {...field} 
                           />
                         </FormControl>
@@ -221,7 +226,8 @@ export default function AuthPage() {
                         <FormControl>
                           <Input 
                             type="password" 
-                            placeholder="••••••••" 
+                            placeholder="••••••••"
+                            data-testid="input-register-password" 
                             {...field} 
                           />
                         </FormControl>
@@ -238,7 +244,8 @@ export default function AuthPage() {
                         <FormControl>
                           <Input 
                             type="password" 
-                            placeholder="••••••••" 
+                            placeholder="••••••••"
+                            data-testid="input-confirm-password" 
                             {...field} 
                           />
                         </FormControl>
@@ -250,6 +257,7 @@ export default function AuthPage() {
                     type="submit" 
                     className="w-full" 
                     disabled={registerMutation.isPending}
+                    data-testid="button-register"
                   >
                     {registerMutation.isPending ? "Creating account..." : "Create Account"}
                   </Button>

@@ -76,7 +76,7 @@ export async function registerHandler(req: Request, res: Response) {
     
     // Return user without password
     const { password: _, ...userWithoutPassword } = user;
-    res.status(201).json(userWithoutPassword);
+    res.status(201).json({ user: userWithoutPassword });
   } catch (error) {
     console.error("Error registering user:", error);
     res.status(500).json({ message: "Failed to register user" });
@@ -116,7 +116,7 @@ export async function loginHandler(req: Request, res: Response) {
     
     // Return user without password
     const { password: _, ...userWithoutPassword } = user;
-    res.json(userWithoutPassword);
+    res.json({ user: userWithoutPassword });
   } catch (error) {
     console.error("Error logging in:", error);
     res.status(500).json({ message: "Failed to log in" });
