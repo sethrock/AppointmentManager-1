@@ -237,12 +237,14 @@ export default function AppointmentDetailPage() {
                 <div className="text-lg font-medium">
                   {formatCurrency(appointment.grossRevenue || 0)}
                 </div>
-                {appointment.totalCollected > 0 && (
+                {((appointment.depositAmount || 0) + (appointment.totalCollectedCash || 0) + (appointment.totalCollectedDigital || 0)) > 0 && (
                   <div className="mt-2">
                     <div className="text-xs text-muted-foreground mb-1">Total Collected:</div>
                     <div className={`inline-block px-2 py-1 rounded ${
                       (() => {
-                        const totalCollected = appointment.totalCollected || 0;
+                        const totalCollected = (appointment.depositAmount || 0) + 
+                                              (appointment.totalCollectedCash || 0) + 
+                                              (appointment.totalCollectedDigital || 0);
                         const projectedRevenue = appointment.grossRevenue || 0;
                         
                         if (totalCollected < projectedRevenue) {
@@ -255,7 +257,9 @@ export default function AppointmentDetailPage() {
                       })()
                     }`}>
                       <span className="text-sm font-medium">
-                        {formatCurrency(appointment.totalCollected)}
+                        {formatCurrency((appointment.depositAmount || 0) + 
+                                      (appointment.totalCollectedCash || 0) + 
+                                      (appointment.totalCollectedDigital || 0))}
                       </span>
                     </div>
                   </div>
