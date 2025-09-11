@@ -320,12 +320,11 @@ export default function AppointmentForm({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="Sera">Sera</SelectItem>
-                    <SelectItem value="Courtesan Couple">Courtesan Couple</SelectItem>
-                    <SelectItem value="Chloe">Chloe</SelectItem>
-                    <SelectItem value="Alexa">Alexa</SelectItem>
-                    <SelectItem value="Frenchie">Frenchie</SelectItem>
-                    <SelectItem value="Lilly">Lilly</SelectItem>
+                    {providers?.map((provider) => (
+                      <SelectItem key={provider.id} value={provider.name}>
+                        {provider.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <FormMessage />
