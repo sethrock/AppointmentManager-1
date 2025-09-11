@@ -67,7 +67,8 @@ export default function AuthPage() {
         title: "Success",
         description: "You have been logged in successfully.",
       });
-      setLocation("/");
+      // Force a page reload to ensure authentication state is updated
+      window.location.href = "/";
     },
     onError: (error: any) => {
       toast({
@@ -90,7 +91,8 @@ export default function AuthPage() {
         title: "Success",
         description: "Your account has been created successfully.",
       });
-      setLocation("/");
+      // Force a page reload to ensure authentication state is updated
+      window.location.href = "/";
     },
     onError: (error: any) => {
       toast({
