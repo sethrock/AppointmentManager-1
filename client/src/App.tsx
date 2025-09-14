@@ -17,6 +17,10 @@ import AuthPage from "./pages/auth";
 import ConfirmDepositReturn from "./pages/confirm-deposit-return";
 import AppLayout from "@/components/layout/AppLayout";
 import Clients from "./pages/clients";
+import ProvidersIndex from "./pages/providers/index";
+import ProviderDetail from "./pages/providers/[id]";
+import NewProvider from "./pages/providers/new";
+import EditProvider from "./pages/providers/edit";
 
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
@@ -75,6 +79,30 @@ const ProtectedClients = () => (
   </ProtectedRoute>
 );
 
+const ProtectedProviders = () => (
+  <ProtectedRoute>
+    <ProvidersIndex />
+  </ProtectedRoute>
+);
+
+const ProtectedProviderDetail = () => (
+  <ProtectedRoute>
+    <ProviderDetail />
+  </ProtectedRoute>
+);
+
+const ProtectedNewProvider = () => (
+  <ProtectedRoute>
+    <NewProvider />
+  </ProtectedRoute>
+);
+
+const ProtectedEditProvider = () => (
+  <ProtectedRoute>
+    <EditProvider />
+  </ProtectedRoute>
+);
+
 function Router() {
   return (
     <Switch>
@@ -83,6 +111,10 @@ function Router() {
       <Route path="/appointments/new" component={ProtectedNewAppointment} />
       <Route path="/appointments/:id" component={ProtectedAppointmentDetail} />
       <Route path="/clients" component={ProtectedClients} />
+      <Route path="/providers" component={ProtectedProviders} />
+      <Route path="/providers/new" component={ProtectedNewProvider} />
+      <Route path="/providers/:id/edit" component={ProtectedEditProvider} />
+      <Route path="/providers/:id" component={ProtectedProviderDetail} />
       <Route path="/analytics" component={ProtectedAnalytics} />
       <Route path="/import" component={ProtectedImport} />
       <Route path="/resources" component={ProtectedResources} />
