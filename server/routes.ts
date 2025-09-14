@@ -26,13 +26,553 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/me", getCurrentUserHandler);
   
   // ===== Providers ===== //
+  
+  // List providers with filters
   app.get("/api/providers", async (req: Request, res: Response) => {
     try {
-      const providers = await storage.getProviders();
-      res.json(providers);
+      const { search, department, status, archived, limit, offset, sortBy, sortOrder } = req.query;
+      
+      const filters = {
+        search: search as string,
+        department: department as string,
+        status: status as string,
+        archived: archived === 'true',
+        limit: limit ? parseInt(limit as string) : 20,
+        offset: offset ? parseInt(offset as string) : 0,
+        sortBy: sortBy as string,
+        sortOrder: (sortOrder as 'asc' | 'desc') || 'asc'
+      };
+      
+      const result = await storage.listProviders(filters);
+      res.json(result);
     } catch (error) {
       console.error("Error fetching providers:", error);
       res.status(500).json({ message: "Failed to retrieve providers" });
+    }
+  });
+  
+  // Search providers
+  app.get("/api/providers/search", async (req: Request, res: Response) => {
+    try {
+      const { q } = req.query;
+      if (!q) {
+        return res.json({ providers: [], total: 0 });
+      }
+      
+      const result = await storage.listProviders({
+        search: q as string,
+        limit: 10
+      });
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error searching providers:", error);
+      res.status(500).json({ message: "Failed to search providers" });
+    }
+  });
+  
+  // Get provider by ID
+  app.get("/api/providers/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid provider ID" });
+      }
+      
+      const provider = await storage.getProvider(id);
+      if (!provider) {
+        return res.status(404).json({ message: "Provider not found" });
+      }
+      
+      res.json(provider);
+    } catch (error) {
+      console.error("Error fetching provider:", error);
+      res.status(500).json({ message: "Failed to retrieve provider" });
+    }
+  });
+  
+  // Create provider
+  app.post("/api/providers", async (req: Request, res: Response) => {
+    try {
+      const { insertProviderSchema } = await import("@shared/schema");
+      const validation = insertProviderSchema.safeParse(req.body);
+      
+      if (!validation.success) {
+        return res.status(400).json({ 
+          message: "Invalid provider data",
+          errors: fromZodError(validation.error).message 
+        });
+      }
+      
+      // Check for duplicate email
+      if (validation.data.email) {
+        const existingByEmail = await storage.getProviderByEmail(validation.data.email);
+        if (existingByEmail) {
+          return res.status(409).json({ message: "Provider with this email already exists" });
+        }
+      }
+      
+      const provider = await storage.createProvider(validation.data);
+      res.status(201).json(provider);
+    } catch (error) {
+      console.error("Error creating provider:", error);
+      res.status(500).json({ message: "Failed to create provider" });
+    }
+  });
+  
+  // Update provider
+  app.put("/api/providers/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid provider ID" });
+      }
+      
+      const { insertProviderSchema } = await import("@shared/schema");
+      const validation = insertProviderSchema.partial().safeParse(req.body);
+      
+      if (!validation.success) {
+        return res.status(400).json({ 
+          message: "Invalid provider data",
+          errors: fromZodError(validation.error).message 
+        });
+      }
+      
+      const provider = await storage.updateProvider(id, validation.data);
+      if (!provider) {
+        return res.status(404).json({ message: "Provider not found" });
+      }
+      
+      res.json(provider);
+    } catch (error) {
+      console.error("Error updating provider:", error);
+      res.status(500).json({ message: "Failed to update provider" });
+    }
+  });
+  
+  // Archive provider
+  app.patch("/api/providers/:id/archive", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid provider ID" });
+      }
+      
+      // Get current user ID from session if available
+      const userId = (req.session as any)?.userId;
+      
+      const provider = await storage.archiveProvider(id, userId);
+      if (!provider) {
+        return res.status(404).json({ message: "Provider not found" });
+      }
+      
+      res.json(provider);
+    } catch (error) {
+      console.error("Error archiving provider:", error);
+      res.status(500).json({ message: "Failed to archive provider" });
+    }
+  });
+  
+  // Unarchive provider
+  app.patch("/api/providers/:id/unarchive", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid provider ID" });
+      }
+      
+      // Get current user ID from session if available
+      const userId = (req.session as any)?.userId;
+      
+      const provider = await storage.unarchiveProvider(id, userId);
+      if (!provider) {
+        return res.status(404).json({ message: "Provider not found" });
+      }
+      
+      res.json(provider);
+    } catch (error) {
+      console.error("Error unarchiving provider:", error);
+      res.status(500).json({ message: "Failed to unarchive provider" });
+    }
+  });
+  
+  // Delete provider (only if archived)
+  app.delete("/api/providers/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid provider ID" });
+      }
+      
+      const success = await storage.deleteProvider(id);
+      if (!success) {
+        return res.status(400).json({ message: "Provider not found or not archived" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting provider:", error);
+      res.status(500).json({ message: "Failed to delete provider" });
+    }
+  });
+  
+  // ===== Provider Credentials ===== //
+  
+  // Get provider credentials
+  app.get("/api/providers/:id/credentials", async (req: Request, res: Response) => {
+    try {
+      const providerId = parseInt(req.params.id);
+      if (isNaN(providerId)) {
+        return res.status(400).json({ message: "Invalid provider ID" });
+      }
+      
+      const credentials = await storage.getProviderCredentials(providerId);
+      res.json(credentials);
+    } catch (error) {
+      console.error("Error fetching provider credentials:", error);
+      res.status(500).json({ message: "Failed to retrieve provider credentials" });
+    }
+  });
+  
+  // Create provider credentials
+  app.post("/api/providers/:id/credentials", async (req: Request, res: Response) => {
+    try {
+      const providerId = parseInt(req.params.id);
+      if (isNaN(providerId)) {
+        return res.status(400).json({ message: "Invalid provider ID" });
+      }
+      
+      const { insertProviderCredentialsSchema } = await import("@shared/schema");
+      const validation = insertProviderCredentialsSchema.safeParse({ ...req.body, providerId });
+      
+      if (!validation.success) {
+        return res.status(400).json({ 
+          message: "Invalid credentials data",
+          errors: fromZodError(validation.error).message 
+        });
+      }
+      
+      const credentials = await storage.createProviderCredentials(validation.data);
+      res.status(201).json(credentials);
+    } catch (error) {
+      console.error("Error creating provider credentials:", error);
+      res.status(500).json({ message: "Failed to create provider credentials" });
+    }
+  });
+  
+  // Update provider credentials
+  app.put("/api/providers/credentials/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid credentials ID" });
+      }
+      
+      const { insertProviderCredentialsSchema } = await import("@shared/schema");
+      const validation = insertProviderCredentialsSchema.partial().safeParse(req.body);
+      
+      if (!validation.success) {
+        return res.status(400).json({ 
+          message: "Invalid credentials data",
+          errors: fromZodError(validation.error).message 
+        });
+      }
+      
+      const credentials = await storage.updateProviderCredentials(id, validation.data);
+      if (!credentials) {
+        return res.status(404).json({ message: "Credentials not found" });
+      }
+      
+      res.json(credentials);
+    } catch (error) {
+      console.error("Error updating provider credentials:", error);
+      res.status(500).json({ message: "Failed to update provider credentials" });
+    }
+  });
+  
+  // Delete provider credentials
+  app.delete("/api/providers/credentials/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid credentials ID" });
+      }
+      
+      const success = await storage.deleteProviderCredentials(id);
+      if (!success) {
+        return res.status(404).json({ message: "Credentials not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting provider credentials:", error);
+      res.status(500).json({ message: "Failed to delete provider credentials" });
+    }
+  });
+  
+  // ===== Provider Compensation ===== //
+  
+  // Get provider compensation history
+  app.get("/api/providers/:id/compensation", async (req: Request, res: Response) => {
+    try {
+      const providerId = parseInt(req.params.id);
+      if (isNaN(providerId)) {
+        return res.status(400).json({ message: "Invalid provider ID" });
+      }
+      
+      const compensation = await storage.getProviderCompensation(providerId);
+      res.json(compensation);
+    } catch (error) {
+      console.error("Error fetching provider compensation:", error);
+      res.status(500).json({ message: "Failed to retrieve provider compensation" });
+    }
+  });
+  
+  // Get current provider compensation
+  app.get("/api/providers/:id/compensation/current", async (req: Request, res: Response) => {
+    try {
+      const providerId = parseInt(req.params.id);
+      if (isNaN(providerId)) {
+        return res.status(400).json({ message: "Invalid provider ID" });
+      }
+      
+      const compensation = await storage.getCurrentProviderCompensation(providerId);
+      if (!compensation) {
+        return res.status(404).json({ message: "No current compensation found" });
+      }
+      
+      res.json(compensation);
+    } catch (error) {
+      console.error("Error fetching current provider compensation:", error);
+      res.status(500).json({ message: "Failed to retrieve current provider compensation" });
+    }
+  });
+  
+  // Create provider compensation
+  app.post("/api/providers/:id/compensation", async (req: Request, res: Response) => {
+    try {
+      const providerId = parseInt(req.params.id);
+      if (isNaN(providerId)) {
+        return res.status(400).json({ message: "Invalid provider ID" });
+      }
+      
+      const { insertProviderCompensationSchema } = await import("@shared/schema");
+      const validation = insertProviderCompensationSchema.safeParse({ ...req.body, providerId });
+      
+      if (!validation.success) {
+        return res.status(400).json({ 
+          message: "Invalid compensation data",
+          errors: fromZodError(validation.error).message 
+        });
+      }
+      
+      const compensation = await storage.createProviderCompensation(validation.data);
+      res.status(201).json(compensation);
+    } catch (error) {
+      console.error("Error creating provider compensation:", error);
+      res.status(500).json({ message: "Failed to create provider compensation" });
+    }
+  });
+  
+  // Update provider compensation
+  app.put("/api/providers/compensation/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid compensation ID" });
+      }
+      
+      const { insertProviderCompensationSchema } = await import("@shared/schema");
+      const validation = insertProviderCompensationSchema.partial().safeParse(req.body);
+      
+      if (!validation.success) {
+        return res.status(400).json({ 
+          message: "Invalid compensation data",
+          errors: fromZodError(validation.error).message 
+        });
+      }
+      
+      const compensation = await storage.updateProviderCompensation(id, validation.data);
+      if (!compensation) {
+        return res.status(404).json({ message: "Compensation record not found" });
+      }
+      
+      res.json(compensation);
+    } catch (error) {
+      console.error("Error updating provider compensation:", error);
+      res.status(500).json({ message: "Failed to update provider compensation" });
+    }
+  });
+  
+  // Delete provider compensation
+  app.delete("/api/providers/compensation/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid compensation ID" });
+      }
+      
+      const success = await storage.deleteProviderCompensation(id);
+      if (!success) {
+        return res.status(404).json({ message: "Compensation record not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting provider compensation:", error);
+      res.status(500).json({ message: "Failed to delete provider compensation" });
+    }
+  });
+  
+  // ===== Provider Contacts ===== //
+  
+  // Get provider contacts
+  app.get("/api/providers/:id/contacts", async (req: Request, res: Response) => {
+    try {
+      const providerId = parseInt(req.params.id);
+      if (isNaN(providerId)) {
+        return res.status(400).json({ message: "Invalid provider ID" });
+      }
+      
+      const contacts = await storage.getProviderContacts(providerId);
+      res.json(contacts);
+    } catch (error) {
+      console.error("Error fetching provider contacts:", error);
+      res.status(500).json({ message: "Failed to retrieve provider contacts" });
+    }
+  });
+  
+  // Create provider contact
+  app.post("/api/providers/:id/contacts", async (req: Request, res: Response) => {
+    try {
+      const providerId = parseInt(req.params.id);
+      if (isNaN(providerId)) {
+        return res.status(400).json({ message: "Invalid provider ID" });
+      }
+      
+      const { insertProviderContactsSchema } = await import("@shared/schema");
+      const validation = insertProviderContactsSchema.safeParse({ ...req.body, providerId });
+      
+      if (!validation.success) {
+        return res.status(400).json({ 
+          message: "Invalid contact data",
+          errors: fromZodError(validation.error).message 
+        });
+      }
+      
+      const contact = await storage.createProviderContact(validation.data);
+      res.status(201).json(contact);
+    } catch (error) {
+      console.error("Error creating provider contact:", error);
+      res.status(500).json({ message: "Failed to create provider contact" });
+    }
+  });
+  
+  // Update provider contact
+  app.put("/api/providers/contacts/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid contact ID" });
+      }
+      
+      const { insertProviderContactsSchema } = await import("@shared/schema");
+      const validation = insertProviderContactsSchema.partial().safeParse(req.body);
+      
+      if (!validation.success) {
+        return res.status(400).json({ 
+          message: "Invalid contact data",
+          errors: fromZodError(validation.error).message 
+        });
+      }
+      
+      const contact = await storage.updateProviderContact(id, validation.data);
+      if (!contact) {
+        return res.status(404).json({ message: "Contact not found" });
+      }
+      
+      res.json(contact);
+    } catch (error) {
+      console.error("Error updating provider contact:", error);
+      res.status(500).json({ message: "Failed to update provider contact" });
+    }
+  });
+  
+  // Delete provider contact
+  app.delete("/api/providers/contacts/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid contact ID" });
+      }
+      
+      const success = await storage.deleteProviderContact(id);
+      if (!success) {
+        return res.status(404).json({ message: "Contact not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting provider contact:", error);
+      res.status(500).json({ message: "Failed to delete provider contact" });
+    }
+  });
+  
+  // ===== Provider Documents ===== //
+  
+  // Get provider documents
+  app.get("/api/providers/:id/documents", async (req: Request, res: Response) => {
+    try {
+      const providerId = parseInt(req.params.id);
+      if (isNaN(providerId)) {
+        return res.status(400).json({ message: "Invalid provider ID" });
+      }
+      
+      const documents = await storage.getProviderDocuments(providerId);
+      res.json(documents);
+    } catch (error) {
+      console.error("Error fetching provider documents:", error);
+      res.status(500).json({ message: "Failed to retrieve provider documents" });
+    }
+  });
+  
+  // Delete provider document
+  app.delete("/api/providers/documents/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid document ID" });
+      }
+      
+      const success = await storage.deleteProviderDocument(id);
+      if (!success) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting provider document:", error);
+      res.status(500).json({ message: "Failed to delete provider document" });
+    }
+  });
+  
+  // ===== Audit Logs ===== //
+  
+  // Get audit logs for an entity
+  app.get("/api/audit-logs/:entity/:entityId", async (req: Request, res: Response) => {
+    try {
+      const { entity, entityId } = req.params;
+      const id = parseInt(entityId);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid entity ID" });
+      }
+      
+      const logs = await storage.getAuditLogs(entity, id);
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching audit logs:", error);
+      res.status(500).json({ message: "Failed to retrieve audit logs" });
     }
   });
   

@@ -7,12 +7,28 @@ import {
   type InsertUser,
   providers,
   type Provider,
+  type InsertProvider,
+  providerCredentials,
+  type ProviderCredentials,
+  type InsertProviderCredentials,
+  providerCompensation,
+  type ProviderCompensation,
+  type InsertProviderCompensation,
+  providerContacts,
+  type ProviderContacts,
+  type InsertProviderContacts,
+  providerDocuments,
+  type ProviderDocuments,
+  type InsertProviderDocuments,
+  auditLogs,
+  type AuditLog,
+  type InsertAuditLog,
   clients,
   type Client,
   type InsertClient
 } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and, or, like, sql, asc, desc } from "drizzle-orm";
 import { updateAppointmentRevenue } from "./services/revenueService.js";
 
 // Interface for all storage operations
@@ -26,7 +42,50 @@ export interface IStorage {
   // Provider operations
   getProviders(): Promise<Provider[]>;
   getProvider(id: number): Promise<Provider | undefined>;
-  createProvider(name: string, active?: boolean): Promise<Provider>;
+  getProviderByEmail(email: string): Promise<Provider | undefined>;
+  listProviders(filters?: {
+    search?: string;
+    department?: string;
+    status?: string;
+    archived?: boolean;
+    limit?: number;
+    offset?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  }): Promise<{ providers: Provider[]; total: number }>;
+  createProvider(provider: InsertProvider): Promise<Provider>;
+  updateProvider(id: number, provider: Partial<InsertProvider>): Promise<Provider | undefined>;
+  archiveProvider(id: number, userId?: number): Promise<Provider | undefined>;
+  unarchiveProvider(id: number, userId?: number): Promise<Provider | undefined>;
+  deleteProvider(id: number): Promise<boolean>;
+  
+  // Provider Credentials operations
+  getProviderCredentials(providerId: number): Promise<ProviderCredentials[]>;
+  createProviderCredentials(credentials: InsertProviderCredentials): Promise<ProviderCredentials>;
+  updateProviderCredentials(id: number, credentials: Partial<InsertProviderCredentials>): Promise<ProviderCredentials | undefined>;
+  deleteProviderCredentials(id: number): Promise<boolean>;
+  
+  // Provider Compensation operations
+  getProviderCompensation(providerId: number): Promise<ProviderCompensation[]>;
+  getCurrentProviderCompensation(providerId: number): Promise<ProviderCompensation | undefined>;
+  createProviderCompensation(compensation: InsertProviderCompensation): Promise<ProviderCompensation>;
+  updateProviderCompensation(id: number, compensation: Partial<InsertProviderCompensation>): Promise<ProviderCompensation | undefined>;
+  deleteProviderCompensation(id: number): Promise<boolean>;
+  
+  // Provider Contacts operations
+  getProviderContacts(providerId: number): Promise<ProviderContacts[]>;
+  createProviderContact(contact: InsertProviderContacts): Promise<ProviderContacts>;
+  updateProviderContact(id: number, contact: Partial<InsertProviderContacts>): Promise<ProviderContacts | undefined>;
+  deleteProviderContact(id: number): Promise<boolean>;
+  
+  // Provider Documents operations
+  getProviderDocuments(providerId: number): Promise<ProviderDocuments[]>;
+  createProviderDocument(document: InsertProviderDocuments): Promise<ProviderDocuments>;
+  deleteProviderDocument(id: number): Promise<boolean>;
+  
+  // Audit Log operations
+  createAuditLog(log: InsertAuditLog): Promise<AuditLog>;
+  getAuditLogs(entity: string, entityId: number): Promise<AuditLog[]>;
   
   // Appointment operations
   getAppointments(): Promise<Appointment[]>;
@@ -80,7 +139,7 @@ export class DatabaseStorage implements IStorage {
   
   // Provider methods
   async getProviders(): Promise<Provider[]> {
-    return await db.select().from(providers);
+    return await db.select().from(providers).where(eq(providers.isArchived, false));
   }
   
   async getProvider(id: number): Promise<Provider | undefined> {
@@ -88,9 +147,478 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
   
-  async createProvider(name: string, active: boolean = true): Promise<Provider> {
-    const result = await db.insert(providers).values({ name, active }).returning();
+  async getProviderByEmail(email: string): Promise<Provider | undefined> {
+    const result = await db.select().from(providers).where(eq(providers.email, email));
     return result[0];
+  }
+  
+  async listProviders(filters?: {
+    search?: string;
+    department?: string;
+    status?: string;
+    archived?: boolean;
+    limit?: number;
+    offset?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  }): Promise<{ providers: Provider[]; total: number }> {
+    let conditions: any[] = [];
+    
+    // Apply filters
+    if (filters?.search) {
+      const searchTerm = `%${filters.search}%`;
+      conditions.push(
+        or(
+          like(providers.firstName, searchTerm),
+          like(providers.lastName, searchTerm),
+          like(providers.email, searchTerm),
+          like(providers.phone, searchTerm),
+          like(providers.bio, searchTerm)
+        )
+      );
+    }
+    
+    if (filters?.department) {
+      conditions.push(eq(providers.department, filters.department));
+    }
+    
+    if (filters?.status) {
+      conditions.push(eq(providers.status, filters.status));
+    }
+    
+    if (filters?.archived !== undefined) {
+      conditions.push(eq(providers.isArchived, filters.archived));
+    } else {
+      conditions.push(eq(providers.isArchived, false));
+    }
+    
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    
+    // Get total count
+    const countResult = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(providers)
+      .where(whereClause);
+    
+    const total = countResult[0]?.count || 0;
+    
+    // Get paginated results
+    let query = db.select().from(providers).where(whereClause);
+    
+    // Apply sorting
+    if (filters?.sortBy) {
+      const column = providers[filters.sortBy as keyof typeof providers];
+      if (column) {
+        query = filters.sortOrder === 'desc' ? query.orderBy(desc(column)) : query.orderBy(asc(column));
+      }
+    } else {
+      query = query.orderBy(asc(providers.lastName), asc(providers.firstName));
+    }
+    
+    // Apply pagination
+    if (filters?.limit && filters?.offset !== undefined) {
+      query = query.limit(filters.limit).offset(filters.offset);
+    } else if (filters?.limit) {
+      query = query.limit(filters.limit);
+    }
+    
+    const providersList = await query;
+    
+    return { providers: providersList, total };
+  }
+  
+  async createProvider(provider: InsertProvider): Promise<Provider> {
+    // Set the display name for backward compatibility
+    const displayName = provider.preferredName || `${provider.firstName} ${provider.lastName}`;
+    
+    const result = await db.insert(providers).values({
+      ...provider,
+      name: displayName,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }).returning();
+    
+    // Create audit log
+    await this.createAuditLog({
+      entity: 'provider',
+      entityId: result[0].id,
+      action: 'CREATE',
+      metadata: { provider: result[0] }
+    });
+    
+    return result[0];
+  }
+  
+  async updateProvider(id: number, provider: Partial<InsertProvider>): Promise<Provider | undefined> {
+    const existing = await this.getProvider(id);
+    if (!existing) return undefined;
+    
+    // Update display name if names changed
+    let displayName = existing.name;
+    if (provider.firstName || provider.lastName || provider.preferredName) {
+      const firstName = provider.firstName || existing.firstName;
+      const lastName = provider.lastName || existing.lastName;
+      const preferredName = provider.preferredName || existing.preferredName;
+      displayName = preferredName || `${firstName} ${lastName}`;
+    }
+    
+    const result = await db
+      .update(providers)
+      .set({
+        ...provider,
+        name: displayName,
+        updatedAt: new Date()
+      })
+      .where(eq(providers.id, id))
+      .returning();
+    
+    // Create audit log
+    await this.createAuditLog({
+      entity: 'provider',
+      entityId: id,
+      action: 'UPDATE',
+      diff: { before: existing, after: result[0] }
+    });
+    
+    return result[0];
+  }
+  
+  async archiveProvider(id: number, userId?: number): Promise<Provider | undefined> {
+    const result = await db
+      .update(providers)
+      .set({
+        isArchived: true,
+        status: 'TERMINATED',
+        endDate: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(providers.id, id))
+      .returning();
+    
+    if (result[0]) {
+      await this.createAuditLog({
+        entity: 'provider',
+        entityId: id,
+        action: 'ARCHIVE',
+        actorUserId: userId
+      });
+    }
+    
+    return result[0];
+  }
+  
+  async unarchiveProvider(id: number, userId?: number): Promise<Provider | undefined> {
+    const result = await db
+      .update(providers)
+      .set({
+        isArchived: false,
+        status: 'ACTIVE',
+        endDate: null,
+        updatedAt: new Date()
+      })
+      .where(eq(providers.id, id))
+      .returning();
+    
+    if (result[0]) {
+      await this.createAuditLog({
+        entity: 'provider',
+        entityId: id,
+        action: 'UNARCHIVE',
+        actorUserId: userId
+      });
+    }
+    
+    return result[0];
+  }
+  
+  async deleteProvider(id: number): Promise<boolean> {
+    // Only allow deletion if archived
+    const provider = await this.getProvider(id);
+    if (!provider || !provider.isArchived) {
+      return false;
+    }
+    
+    const result = await db.delete(providers).where(eq(providers.id, id)).returning();
+    
+    if (result.length > 0) {
+      await this.createAuditLog({
+        entity: 'provider',
+        entityId: id,
+        action: 'DELETE',
+        metadata: { deletedProvider: provider }
+      });
+    }
+    
+    return result.length > 0;
+  }
+  
+  // Provider Credentials methods
+  async getProviderCredentials(providerId: number): Promise<ProviderCredentials[]> {
+    return await db
+      .select()
+      .from(providerCredentials)
+      .where(eq(providerCredentials.providerId, providerId));
+  }
+  
+  async createProviderCredentials(credentials: InsertProviderCredentials): Promise<ProviderCredentials> {
+    const result = await db.insert(providerCredentials).values({
+      ...credentials,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }).returning();
+    
+    await this.createAuditLog({
+      entity: 'provider_credentials',
+      entityId: result[0].id,
+      action: 'CREATE',
+      metadata: { providerId: credentials.providerId }
+    });
+    
+    return result[0];
+  }
+  
+  async updateProviderCredentials(id: number, credentials: Partial<InsertProviderCredentials>): Promise<ProviderCredentials | undefined> {
+    const result = await db
+      .update(providerCredentials)
+      .set({
+        ...credentials,
+        updatedAt: new Date()
+      })
+      .where(eq(providerCredentials.id, id))
+      .returning();
+    
+    if (result[0]) {
+      await this.createAuditLog({
+        entity: 'provider_credentials',
+        entityId: id,
+        action: 'UPDATE'
+      });
+    }
+    
+    return result[0];
+  }
+  
+  async deleteProviderCredentials(id: number): Promise<boolean> {
+    const result = await db.delete(providerCredentials).where(eq(providerCredentials.id, id)).returning();
+    
+    if (result.length > 0) {
+      await this.createAuditLog({
+        entity: 'provider_credentials',
+        entityId: id,
+        action: 'DELETE'
+      });
+    }
+    
+    return result.length > 0;
+  }
+  
+  // Provider Compensation methods
+  async getProviderCompensation(providerId: number): Promise<ProviderCompensation[]> {
+    return await db
+      .select()
+      .from(providerCompensation)
+      .where(eq(providerCompensation.providerId, providerId))
+      .orderBy(desc(providerCompensation.effectiveDate));
+  }
+  
+  async getCurrentProviderCompensation(providerId: number): Promise<ProviderCompensation | undefined> {
+    const result = await db
+      .select()
+      .from(providerCompensation)
+      .where(
+        and(
+          eq(providerCompensation.providerId, providerId),
+          or(
+            eq(providerCompensation.endDate, null),
+            sql`${providerCompensation.endDate} > NOW()`
+          )
+        )
+      )
+      .orderBy(desc(providerCompensation.effectiveDate))
+      .limit(1);
+    
+    return result[0];
+  }
+  
+  async createProviderCompensation(compensation: InsertProviderCompensation): Promise<ProviderCompensation> {
+    const result = await db.insert(providerCompensation).values({
+      ...compensation,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }).returning();
+    
+    await this.createAuditLog({
+      entity: 'provider_compensation',
+      entityId: result[0].id,
+      action: 'CREATE',
+      metadata: { providerId: compensation.providerId }
+    });
+    
+    return result[0];
+  }
+  
+  async updateProviderCompensation(id: number, compensation: Partial<InsertProviderCompensation>): Promise<ProviderCompensation | undefined> {
+    const result = await db
+      .update(providerCompensation)
+      .set({
+        ...compensation,
+        updatedAt: new Date()
+      })
+      .where(eq(providerCompensation.id, id))
+      .returning();
+    
+    if (result[0]) {
+      await this.createAuditLog({
+        entity: 'provider_compensation',
+        entityId: id,
+        action: 'UPDATE'
+      });
+    }
+    
+    return result[0];
+  }
+  
+  async deleteProviderCompensation(id: number): Promise<boolean> {
+    const result = await db.delete(providerCompensation).where(eq(providerCompensation.id, id)).returning();
+    
+    if (result.length > 0) {
+      await this.createAuditLog({
+        entity: 'provider_compensation',
+        entityId: id,
+        action: 'DELETE'
+      });
+    }
+    
+    return result.length > 0;
+  }
+  
+  // Provider Contacts methods
+  async getProviderContacts(providerId: number): Promise<ProviderContacts[]> {
+    return await db
+      .select()
+      .from(providerContacts)
+      .where(eq(providerContacts.providerId, providerId))
+      .orderBy(desc(providerContacts.isPrimary));
+  }
+  
+  async createProviderContact(contact: InsertProviderContacts): Promise<ProviderContacts> {
+    const result = await db.insert(providerContacts).values({
+      ...contact,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }).returning();
+    
+    await this.createAuditLog({
+      entity: 'provider_contacts',
+      entityId: result[0].id,
+      action: 'CREATE',
+      metadata: { providerId: contact.providerId }
+    });
+    
+    return result[0];
+  }
+  
+  async updateProviderContact(id: number, contact: Partial<InsertProviderContacts>): Promise<ProviderContacts | undefined> {
+    const result = await db
+      .update(providerContacts)
+      .set({
+        ...contact,
+        updatedAt: new Date()
+      })
+      .where(eq(providerContacts.id, id))
+      .returning();
+    
+    if (result[0]) {
+      await this.createAuditLog({
+        entity: 'provider_contacts',
+        entityId: id,
+        action: 'UPDATE'
+      });
+    }
+    
+    return result[0];
+  }
+  
+  async deleteProviderContact(id: number): Promise<boolean> {
+    const result = await db.delete(providerContacts).where(eq(providerContacts.id, id)).returning();
+    
+    if (result.length > 0) {
+      await this.createAuditLog({
+        entity: 'provider_contacts',
+        entityId: id,
+        action: 'DELETE'
+      });
+    }
+    
+    return result.length > 0;
+  }
+  
+  // Provider Documents methods
+  async getProviderDocuments(providerId: number): Promise<ProviderDocuments[]> {
+    return await db
+      .select()
+      .from(providerDocuments)
+      .where(eq(providerDocuments.providerId, providerId))
+      .orderBy(desc(providerDocuments.uploadedAt));
+  }
+  
+  async createProviderDocument(document: InsertProviderDocuments): Promise<ProviderDocuments> {
+    const result = await db.insert(providerDocuments).values({
+      ...document,
+      uploadedAt: new Date(),
+      createdAt: new Date()
+    }).returning();
+    
+    await this.createAuditLog({
+      entity: 'provider_documents',
+      entityId: result[0].id,
+      action: 'CREATE',
+      metadata: { providerId: document.providerId, fileName: document.fileName }
+    });
+    
+    return result[0];
+  }
+  
+  async deleteProviderDocument(id: number): Promise<boolean> {
+    const doc = await db.select().from(providerDocuments).where(eq(providerDocuments.id, id));
+    
+    if (doc.length === 0) return false;
+    
+    const result = await db.delete(providerDocuments).where(eq(providerDocuments.id, id)).returning();
+    
+    if (result.length > 0) {
+      await this.createAuditLog({
+        entity: 'provider_documents',
+        entityId: id,
+        action: 'DELETE',
+        metadata: { deletedDocument: doc[0] }
+      });
+    }
+    
+    return result.length > 0;
+  }
+  
+  // Audit Log methods
+  async createAuditLog(log: InsertAuditLog): Promise<AuditLog> {
+    const result = await db.insert(auditLogs).values({
+      ...log,
+      createdAt: new Date()
+    }).returning();
+    
+    return result[0];
+  }
+  
+  async getAuditLogs(entity: string, entityId: number): Promise<AuditLog[]> {
+    return await db
+      .select()
+      .from(auditLogs)
+      .where(
+        and(
+          eq(auditLogs.entity, entity),
+          eq(auditLogs.entityId, entityId)
+        )
+      )
+      .orderBy(desc(auditLogs.createdAt));
   }
   
   // Appointment methods
