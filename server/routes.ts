@@ -10,8 +10,10 @@ import { importAppointmentsFromJson, validateImportFile } from "./services/impor
 import { log } from "./vite";
 import multer from "multer";
 import path from "path";
+import fs from "fs";
 import { setupSession } from "./middleware/session";
 import { registerHandler, loginHandler, logoutHandler, getCurrentUserHandler, isAuthenticated } from "./middleware/auth";
+import { uploadPhoto, uploadDocument, handleUploadError } from "./middleware/upload";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup session middleware
@@ -215,6 +217,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to delete provider" });
     }
   });
+  
+  // ===== Provider Photo Upload ===== //
+  
+  // Upload provider photo
+  app.post("/api/providers/:id/photo", 
+    uploadPhoto.single('photo'),
+    handleUploadError,
+    async (req: Request, res: Response) => {
+      try {
+        const providerId = parseInt(req.params.id);
+        if (isNaN(providerId)) {
+          return res.status(400).json({ message: "Invalid provider ID" });
+        }
+        
+        if (!req.file) {
+          return res.status(400).json({ message: "No file uploaded" });
+        }
+        
+        // Generate the relative URL path for the uploaded photo
+        const photoUrl = `/uploads/providers/${providerId}/photos/${req.file.filename}`;
+        
+        // Update provider's photoUrl in database
+        const provider = await storage.updateProvider(providerId, { photoUrl });
+        if (!provider) {
+          // Clean up uploaded file if provider not found
+          fs.unlinkSync(req.file.path);
+          return res.status(404).json({ message: "Provider not found" });
+        }
+        
+        // Create audit log
+        const userId = (req.session as any)?.userId;
+        await storage.createAuditLog({
+          entity: 'provider',
+          entityId: providerId,
+          action: 'PHOTO_UPLOAD',
+          actorUserId: userId,
+          metadata: { filename: req.file.filename, photoUrl }
+        });
+        
+        res.json({ 
+          photoUrl,
+          message: "Photo uploaded successfully"
+        });
+      } catch (error) {
+        console.error("Error uploading provider photo:", error);
+        res.status(500).json({ message: "Failed to upload photo" });
+      }
+    }
+  );
   
   // ===== Provider Credentials ===== //
   
@@ -536,23 +587,128 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Upload provider document
+  app.post("/api/providers/:id/documents",
+    uploadDocument.single('document'),
+    handleUploadError,
+    async (req: Request, res: Response) => {
+      try {
+        const providerId = parseInt(req.params.id);
+        if (isNaN(providerId)) {
+          return res.status(400).json({ message: "Invalid provider ID" });
+        }
+        
+        if (!req.file) {
+          return res.status(400).json({ message: "No file uploaded" });
+        }
+        
+        // Extract document type and description from request body
+        const { documentType, description } = req.body;
+        if (!documentType) {
+          // Clean up uploaded file
+          fs.unlinkSync(req.file.path);
+          return res.status(400).json({ message: "Document type is required" });
+        }
+        
+        // Generate the relative URL path for the document
+        const filePath = `/uploads/providers/${providerId}/documents/${req.file.filename}`;
+        
+        // Create document record in database
+        const { insertProviderDocumentsSchema } = await import("@shared/schema");
+        const documentData = {
+          providerId,
+          documentType,
+          description: description || null,
+          filePath,
+          fileName: req.file.originalname,
+          fileSize: req.file.size,
+          mimeType: req.file.mimetype,
+          uploadedBy: (req.session as any)?.userId || null
+        };
+        
+        const validation = insertProviderDocumentsSchema.safeParse(documentData);
+        if (!validation.success) {
+          // Clean up uploaded file
+          fs.unlinkSync(req.file.path);
+          return res.status(400).json({ 
+            message: "Invalid document data",
+            errors: fromZodError(validation.error).message 
+          });
+        }
+        
+        const document = await storage.createProviderDocument(validation.data);
+        
+        // Create audit log
+        const userId = (req.session as any)?.userId;
+        await storage.createAuditLog({
+          entity: 'provider',
+          entityId: providerId,
+          action: 'DOCUMENT_UPLOAD',
+          actorUserId: userId,
+          metadata: { 
+            documentId: document.id,
+            documentType,
+            fileName: req.file.originalname,
+            filePath 
+          }
+        });
+        
+        res.status(201).json(document);
+      } catch (error) {
+        console.error("Error uploading provider document:", error);
+        res.status(500).json({ message: "Failed to upload document" });
+      }
+    }
+  );
+  
   // Delete provider document
-  app.delete("/api/providers/documents/:id", async (req: Request, res: Response) => {
+  app.delete("/api/providers/:id/documents/:docId", async (req: Request, res: Response) => {
     try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ message: "Invalid document ID" });
+      const providerId = parseInt(req.params.id);
+      const docId = parseInt(req.params.docId);
+      
+      if (isNaN(providerId) || isNaN(docId)) {
+        return res.status(400).json({ message: "Invalid provider or document ID" });
       }
       
-      const success = await storage.deleteProviderDocument(id);
+      // Get document to find file path
+      const documents = await storage.getProviderDocuments(providerId);
+      const document = documents.find(d => d.id === docId);
+      
+      if (!document) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+      
+      // Delete file from filesystem
+      const fullPath = path.join(process.cwd(), document.filePath);
+      if (fs.existsSync(fullPath)) {
+        fs.unlinkSync(fullPath);
+      }
+      
+      // Delete database record
+      const success = await storage.deleteProviderDocument(docId);
       if (!success) {
         return res.status(404).json({ message: "Document not found" });
       }
       
+      // Create audit log
+      const userId = (req.session as any)?.userId;
+      await storage.createAuditLog({
+        entity: 'provider',
+        entityId: providerId,
+        action: 'DOCUMENT_DELETE',
+        actorUserId: userId,
+        metadata: { 
+          documentId: docId,
+          documentType: document.documentType,
+          fileName: document.fileName
+        }
+      });
+      
       res.status(204).send();
     } catch (error) {
       console.error("Error deleting provider document:", error);
-      res.status(500).json({ message: "Failed to delete provider document" });
+      res.status(500).json({ message: "Failed to delete document" });
     }
   });
   
