@@ -14,6 +14,7 @@ import fs from "fs";
 import { setupSession } from "./middleware/session";
 import { registerHandler, loginHandler, logoutHandler, getCurrentUserHandler, isAuthenticated } from "./middleware/auth";
 import { uploadPhoto, uploadDocument, handleUploadError } from "./middleware/upload";
+import { parseCSV, generateCSV, validateProviderRow, generateSampleCSV } from "./utils/csv";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup session middleware
