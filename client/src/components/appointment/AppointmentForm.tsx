@@ -179,7 +179,7 @@ export default function AppointmentForm({
   onSubmit,
   isSubmitting = false,
 }: AppointmentFormProps) {
-  const { data: providers } = useQuery<Provider[]>({
+  const { data } = useQuery<{ providers: Provider[]; total: number }>({
     queryKey: ["/api/providers"],
   });
   
@@ -320,7 +320,7 @@ export default function AppointmentForm({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {providers?.map((provider) => (
+                    {data?.providers?.map((provider) => (
                       <SelectItem key={provider.id} value={provider.name}>
                         {provider.name}
                       </SelectItem>
