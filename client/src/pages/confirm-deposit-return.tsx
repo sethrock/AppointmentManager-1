@@ -25,8 +25,8 @@ export default function ConfirmDepositReturn() {
         }
 
         // First get the current appointment to check status
-        const appointmentResponse = await apiRequest('GET', `/api/appointments/${appointmentId}`);
-        const appointmentData = await appointmentResponse.json();
+        // apiRequest already returns parsed JSON data
+        const appointmentData = await apiRequest('GET', `/api/appointments/${appointmentId}`);
         
         if (appointmentData.depositReturned) {
           setStatus('already-confirmed');
@@ -35,16 +35,15 @@ export default function ConfirmDepositReturn() {
         }
 
         // Update the deposit return status
-        const response = await apiRequest('PATCH', `/api/appointments/${appointmentId}/confirm-deposit-return`);
+        // apiRequest returns the parsed response directly
+        const updatedAppointment = await apiRequest('PATCH', `/api/appointments/${appointmentId}/confirm-deposit-return`);
         
-        if (response.ok) {
-          const updatedAppointment = await response.json();
+        if (updatedAppointment) {
           setAppointment(updatedAppointment);
           setStatus('success');
         } else {
-          const errorData = await response.json();
           setStatus('error');
-          setError(errorData.message || 'Failed to confirm deposit return');
+          setError('Failed to confirm deposit return');
         }
       } catch (err) {
         setStatus('error');
