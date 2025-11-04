@@ -694,7 +694,10 @@ export class DatabaseStorage implements IStorage {
     }
 
     // If no deposit return amount is set, default to full deposit return
-    const depositReturnAmount = appointment.depositReturnAmount ?? appointment.depositAmount ?? 0;
+    // Use deposit amount as the default return amount if depositReturnAmount is null or 0
+    const depositReturnAmount = (appointment.depositReturnAmount && appointment.depositReturnAmount > 0) 
+      ? appointment.depositReturnAmount 
+      : (appointment.depositAmount ?? 0);
 
     // Update the appointment with proper financial calculations
     const updated = await this.updateAppointment(id, {
