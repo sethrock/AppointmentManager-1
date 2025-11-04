@@ -687,15 +687,28 @@ export class DatabaseStorage implements IStorage {
   }
 
   async confirmDepositReturn(id: number): Promise<Appointment | undefined> {
-    const result = await db.update(appointments)
-      .set({
-        depositReturned: true,
-        updatedAt: new Date()
-      })
-      .where(eq(appointments.id, id))
-      .returning();
-    
-    return result[0];
+    // First get the current appointment to ensure we have the deposit amount
+    const appointment = await this.getAppointment(id);
+    if (!appointment) {
+      return undefined;
+    }
+
+    // If no deposit return amount is set, default to full deposit return
+    const depositReturnAmount = appointment.depositReturnAmount ?? appointment.depositAmount ?? 0;
+
+    // Update the appointment with proper financial calculations
+    const updated = await this.updateAppointment(id, {
+      depositReturned: true,
+      depositReturnAmount: depositReturnAmount,
+      dispositionStatus: 'Cancel' // Ensure it's marked as cancelled
+    });
+
+    // Update client metrics to reflect the financial changes
+    if (appointment.clientId) {
+      await this.updateClientMetrics(appointment.clientId);
+    }
+
+    return updated;
   }
   
   async updateAppointment(id: number, updateData: Partial<InsertAppointment>): Promise<Appointment | undefined> {
