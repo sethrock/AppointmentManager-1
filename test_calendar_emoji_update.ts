@@ -1,8 +1,6 @@
+import 'dotenv/config';
 import { google } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
-import dotenv from 'dotenv';
-
-dotenv.config();
 
 interface TestResult {
   testName: string;

@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import fs from 'fs';
 import { Pool } from 'pg';
 
