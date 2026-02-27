@@ -179,9 +179,11 @@ export default function AppointmentForm({
   onSubmit,
   isSubmitting = false,
 }: AppointmentFormProps) {
-  const { data: providers } = useQuery<Provider[]>({
+  const { data: providersData } = useQuery<{ providers: Provider[]; total: number }>({
     queryKey: ["/api/providers"],
   });
+  
+  const providers = providersData?.providers || [];
   
   const [showEmailField, setShowEmailField] = useState(false);
   const [callType, setCallType] = useState<string>("");
