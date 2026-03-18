@@ -169,7 +169,8 @@ export default function ConversationCreate() {
             AI-Powered Appointment Creation
           </h2>
           <p className="text-sm text-primary-foreground/80 mt-1">
-            Paste or upload a conversation and let AI fill out the appointment form for you
+            Paste or upload a conversation and let AI fill out the appointment form for you.
+            You can also rebook an existing client by typing their name and a new date/time.
           </p>
         </div>
 
@@ -197,7 +198,7 @@ export default function ConversationCreate() {
                   conversation for best results.
                 </p>
                 <Textarea
-                  placeholder="Paste your conversation here...&#10;&#10;Example:&#10;Client: Hi, I'd like to book an appointment for Friday at 2pm&#10;Provider: Sure! Would you prefer in-call or out-call?&#10;Client: Out-call please. I'm at the Hilton downtown, room 412..."
+                  placeholder="Paste your conversation here...&#10;&#10;Example:&#10;Client: Hi, I'd like to book an appointment for Friday at 2pm&#10;Provider: Sure! Would you prefer in-call or out-call?&#10;Client: Out-call please. I'm at the Hilton downtown, room 412...&#10;&#10;— Or rebook an existing client —&#10;Rebook Michael Brandon Ponsoll for Saturday March 22 at 3pm"
                   className="min-h-[300px] font-mono text-sm"
                   value={pastedText}
                   onChange={(e) => setPastedText(e.target.value)}

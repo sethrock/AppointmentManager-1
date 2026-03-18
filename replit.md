@@ -180,6 +180,7 @@ Changelog:
 - Frontend: `client/src/pages/appointments/conversation-create.tsx` with tab-based upload UI
 - Pre-fills the existing appointment form via sessionStorage transfer
 - Protected by authentication middleware
+- **Rebook Sub-feature**: Type "Rebook [client name] for [date/time]" to look up an existing client's previous appointment, pull all their details (provider, marketing channel, call type, phone, revenue, etc.), and pre-fill the form with the new date/time. Uses exact name matching with fallback to partial match. Shows a "Rebooked from [client]'s previous appointment" banner on the form.
 
 ## User Preferences
 

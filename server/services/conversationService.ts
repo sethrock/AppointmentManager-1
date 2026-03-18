@@ -26,11 +26,21 @@ export interface ExtractedAppointmentData {
   marketingChannel?: string;
   provider?: string;
   hasClientNotes?: boolean;
+  isRebookRequest?: boolean;
+  rebookClientName?: string;
 }
 
-const SYSTEM_PROMPT = `You are an AI assistant that extracts appointment booking details from conversations. You will receive text from SMS/MMS messages, WhatsApp chats, CSV data, or screenshots of conversations between a service provider/agency and a client.
+const SYSTEM_PROMPT = `You are an AI assistant that extracts appointment booking details from conversations OR processes rebook/repeat appointment requests. You will receive text from SMS/MMS messages, WhatsApp chats, CSV data, screenshots of conversations, or direct instructions from a user.
 
 Your job is to extract ALL relevant appointment details and return them as a structured JSON object. Be thorough and accurate.
+
+REBOOK/REPEAT DETECTION:
+If the input mentions rebooking, repeating, or creating a new appointment for an existing client by name (e.g., "Rebook Michael Brandon Ponsoll for Friday at 3pm", "New appointment for John Smith on March 25 at 2pm", "Same client Jane Doe, book her for next Tuesday 5pm"), then:
+- Set "isRebookRequest" to true
+- Set "rebookClientName" to the client's name exactly as mentioned
+- Extract the new date and time into startDate and startTime
+- Extract any other NEW details mentioned (if they say a different duration, rate, call type, etc.)
+- Leave fields as null if they are not explicitly mentioned (the system will fill them from the existing record)
 
 Here are the fields you need to extract (use null for any field you cannot determine):
 
@@ -55,9 +65,11 @@ Here are the fields you need to extract (use null for any field you cannot deter
 - clientNotes: Any special requests, preferences, or important notes about the client
 - marketingChannel: The platform the conversation originated from. Must be one of: "Private Delights", "Eros", "Tryst", "P411", "Slixa", "Instagram", "X", "Referral". Infer from context clues if possible.
 - provider: The provider's name if mentioned
+- isRebookRequest: true if this is a request to rebook/repeat an existing client, false otherwise
+- rebookClientName: The client's name to look up if this is a rebook request
 
 Important rules:
-1. For dates, try to determine the actual calendar date. If the conversation says "tomorrow" or "next Tuesday", try to calculate the actual date based on any timestamps in the conversation.
+1. For dates, try to determine the actual calendar date. If the conversation says "tomorrow" or "next Tuesday", try to calculate the actual date based on any timestamps in the conversation. Today's date will be provided in the message.
 2. For times, always use 24-hour format (e.g., 14:00 not 2:00 PM).
 3. If a duration is mentioned (e.g., "1 hour", "2 hours"), calculate the end time from the start time.
 4. Phone numbers should be 10 digits, no formatting.
@@ -68,6 +80,8 @@ Important rules:
 Return ONLY a valid JSON object with these fields. Use null for any field you cannot confidently determine. Do not include any explanation or markdown formatting - just the raw JSON object.`;
 
 export async function extractFromText(conversationText: string): Promise<ExtractedAppointmentData> {
+  const today = new Date().toISOString().split("T")[0];
+  const dayOfWeek = new Date().toLocaleDateString("en-US", { weekday: "long" });
   const response = await client.messages.create({
     model: "claude-sonnet-4-20250514",
     max_tokens: 2000,
@@ -75,7 +89,7 @@ export async function extractFromText(conversationText: string): Promise<Extract
     messages: [
       {
         role: "user",
-        content: `Here is the conversation to analyze:\n\n${conversationText}`,
+        content: `Today's date is ${today} (${dayOfWeek}). Here is the conversation/request to analyze:\n\n${conversationText}`,
       },
     ],
   });
@@ -246,6 +260,8 @@ function parseAIResponse(responseText: string): ExtractedAppointmentData {
   }
   if (parsed.marketingChannel) result.marketingChannel = String(parsed.marketingChannel);
   if (parsed.provider) result.provider = String(parsed.provider);
+  if (parsed.isRebookRequest) result.isRebookRequest = true;
+  if (parsed.rebookClientName) result.rebookClientName = String(parsed.rebookClientName);
 
   return result;
 }

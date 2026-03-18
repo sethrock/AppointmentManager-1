@@ -1189,6 +1189,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No conversation data provided. Please paste text or upload files." });
       }
 
+      if (result.isRebookRequest && result.rebookClientName) {
+        const allAppointments = await storage.getAppointments();
+        const searchName = result.rebookClientName.toLowerCase();
+        const matchingAppointments = allAppointments
+          .filter(a => {
+            const name = a.clientName?.toLowerCase() || "";
+            if (!name || name.length < 2) return false;
+            return name === searchName || name.includes(searchName) || searchName.includes(name);
+          });
+        
+        const exactMatch = matchingAppointments.find(a => a.clientName?.toLowerCase() === searchName);
+        const matchingAppointment = exactMatch || matchingAppointments.sort((a, b) => (b.id || 0) - (a.id || 0))[0];
+
+        if (matchingAppointment) {
+          const existingData: Record<string, any> = {
+            clientName: matchingAppointment.clientName,
+            phoneNumber: matchingAppointment.phoneNumber,
+            clientEmail: matchingAppointment.clientEmail,
+            clientUsesEmail: matchingAppointment.clientUsesEmail,
+            callType: matchingAppointment.callType,
+            streetAddress: matchingAppointment.streetAddress,
+            addressLine2: matchingAppointment.addressLine2,
+            city: matchingAppointment.city,
+            state: matchingAppointment.state,
+            zipCode: matchingAppointment.zipCode,
+            outcallDetails: matchingAppointment.outcallDetails,
+            callDuration: matchingAppointment.callDuration,
+            grossRevenue: matchingAppointment.grossRevenue,
+            depositAmount: matchingAppointment.depositAmount,
+            marketingChannel: matchingAppointment.marketingChannel,
+            provider: matchingAppointment.provider,
+            clientNotes: matchingAppointment.clientNotes,
+            hasClientNotes: matchingAppointment.hasClientNotes,
+            setBy: matchingAppointment.setBy,
+            inOutGoesTo: matchingAppointment.inOutGoesTo,
+            client_id: matchingAppointment.client_id,
+          };
+
+          const merged: Record<string, any> = { ...existingData };
+          for (const [key, value] of Object.entries(result)) {
+            if (key === "isRebookRequest" || key === "rebookClientName") continue;
+            if (value !== null && value !== undefined && value !== "") {
+              merged[key] = value;
+            }
+          }
+
+          merged.rebookedFrom = matchingAppointment.id;
+          merged.rebookedClientName = matchingAppointment.clientName;
+
+          res.json(merged);
+          return;
+        } else {
+          result.clientNotes = `[Rebook requested for "${result.rebookClientName}" but no matching client was found in the system. Please verify the client name.]`;
+          result.hasClientNotes = true;
+          result.clientName = result.rebookClientName;
+        }
+      }
+
+      delete result.isRebookRequest;
+      delete result.rebookClientName;
+
       res.json(result);
     } catch (error: any) {
       console.error("Conversation analysis error:", error);

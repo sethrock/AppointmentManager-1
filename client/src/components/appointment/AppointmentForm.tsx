@@ -229,7 +229,7 @@ export default function AppointmentForm({
       if (initialData.callType) setCallType(initialData.callType as string);
       if (initialData.hasClientNotes) setHasClientNotes(true);
     }
-  }, [initialData]);
+  }, [initialData, data]);
 
   // Derived field calculations
   useEffect(() => {
@@ -308,7 +308,7 @@ export default function AppointmentForm({
                 <FormLabel className="font-medium required">Set By</FormLabel>
                 <Select 
                   onValueChange={field.onChange} 
-                  defaultValue={field.value}
+                  value={field.value || ""}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -333,7 +333,7 @@ export default function AppointmentForm({
                 <FormLabel className="font-medium required">Provider</FormLabel>
                 <Select 
                   onValueChange={field.onChange} 
-                  defaultValue={field.value}
+                  value={field.value || ""}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -361,7 +361,7 @@ export default function AppointmentForm({
                 <FormLabel className="font-medium required">Marketing Channel</FormLabel>
                 <Select 
                   onValueChange={field.onChange} 
-                  defaultValue={field.value}
+                  value={field.value || ""}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -469,7 +469,7 @@ export default function AppointmentForm({
                   <FormLabel className="required">In or Out Call</FormLabel>
                   <Select 
                     onValueChange={field.onChange} 
-                    defaultValue={field.value}
+                    value={field.value || ""}
                   >
                     <FormControl>
                       <SelectTrigger className="w-full md:w-1/3">
@@ -550,7 +550,7 @@ export default function AppointmentForm({
                       <FormLabel>State</FormLabel>
                       <Select 
                         onValueChange={field.onChange} 
-                        defaultValue={field.value}
+                        value={field.value || ""}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -859,7 +859,7 @@ export default function AppointmentForm({
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value || ""}
                       className="flex space-x-4"
                     >
                       <div className="flex items-center space-x-2">
@@ -968,7 +968,7 @@ export default function AppointmentForm({
                   <FormLabel>Deposit Received By</FormLabel>
                   <Select 
                     onValueChange={field.onChange} 
-                    defaultValue={field.value}
+                    value={field.value || ""}
                   >
                     <FormControl>
                       <SelectTrigger className="w-full md:w-1/2">
@@ -997,7 +997,7 @@ export default function AppointmentForm({
                   <FormLabel className="required">Payment Process Used</FormLabel>
                   <Select 
                     onValueChange={field.onChange} 
-                    defaultValue={field.value}
+                    value={field.value || ""}
                   >
                     <FormControl>
                       <SelectTrigger className="w-full md:w-1/2">
@@ -1097,7 +1097,7 @@ export default function AppointmentForm({
                   <FormLabel>Disposition Status</FormLabel>
                   <Select 
                     onValueChange={field.onChange} 
-                    defaultValue={field.value}
+                    value={field.value || ""}
                   >
                     <FormControl>
                       <SelectTrigger className="w-full md:w-1/2">
@@ -1388,7 +1388,7 @@ export default function AppointmentForm({
                       <FormControl>
                         <RadioGroup
                           onValueChange={field.onChange}
-                          defaultValue={field.value}
+                          value={field.value || ""}
                           className="flex space-x-4"
                         >
                           <div className="flex items-center space-x-2">

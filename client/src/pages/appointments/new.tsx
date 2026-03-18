@@ -17,6 +17,7 @@ export default function NewAppointment() {
 
   const [conversationData, setConversationData] = useState<Partial<InsertAppointment> | null>(null);
   const [showBanner, setShowBanner] = useState(false);
+  const [rebookedClientName, setRebookedClientName] = useState<string | null>(null);
 
   useEffect(() => {
     if (fromConversation) {
@@ -24,6 +25,11 @@ export default function NewAppointment() {
       if (stored) {
         try {
           const parsed = JSON.parse(stored);
+          if (parsed.rebookedClientName) {
+            setRebookedClientName(parsed.rebookedClientName);
+            delete parsed.rebookedClientName;
+            delete parsed.rebookedFrom;
+          }
           setConversationData(parsed);
           setShowBanner(true);
           sessionStorage.removeItem("conversationData");
@@ -78,7 +84,11 @@ export default function NewAppointment() {
         <div className="mb-4 flex items-center justify-between bg-primary/10 border border-primary/30 rounded-lg px-4 py-3">
           <div className="flex items-center gap-2 text-sm">
             <Sparkles className="h-4 w-4 text-primary" />
-            <span className="font-medium">Form auto-filled from conversation</span>
+            <span className="font-medium">
+              {rebookedClientName
+                ? `Rebooked from ${rebookedClientName}'s previous appointment`
+                : "Form auto-filled from conversation"}
+            </span>
             <span className="text-muted-foreground">— please review all fields before submitting</span>
           </div>
           <Button variant="ghost" size="sm" onClick={() => setShowBanner(false)}>
