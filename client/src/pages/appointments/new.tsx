@@ -1,15 +1,38 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import AppointmentForm from "@/components/appointment/AppointmentForm";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { InsertAppointment } from "@shared/schema";
 import { queryClient } from "@/lib/queryClient";
+import { Sparkles, X } from "lucide-react";
 
 export default function NewAppointment() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const searchString = useSearch();
+  const fromConversation = new URLSearchParams(searchString).get("fromConversation") === "true";
+
+  const [conversationData, setConversationData] = useState<Partial<InsertAppointment> | null>(null);
+  const [showBanner, setShowBanner] = useState(false);
+
+  useEffect(() => {
+    if (fromConversation) {
+      const stored = sessionStorage.getItem("conversationData");
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          setConversationData(parsed);
+          setShowBanner(true);
+          sessionStorage.removeItem("conversationData");
+        } catch {
+          // ignore parse errors
+        }
+      }
+    }
+  }, [fromConversation]);
 
   const createAppointmentMutation = useMutation({
     mutationFn: async (data: InsertAppointment) => {
@@ -44,12 +67,25 @@ export default function NewAppointment() {
         <div>
           <Button variant="outline" asChild className="hover:bg-accent hover:text-accent-foreground transition-colors">
             <Link href="/appointments">
-              <span className="mr-2">←</span> Back to Appointments
+              <span className="mr-2">&larr;</span> Back to Appointments
             </Link>
           </Button>
         </div>
         <h1 className="text-2xl font-semibold text-foreground">New Appointment</h1>
       </div>
+
+      {showBanner && (
+        <div className="mb-4 flex items-center justify-between bg-primary/10 border border-primary/30 rounded-lg px-4 py-3">
+          <div className="flex items-center gap-2 text-sm">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span className="font-medium">Form auto-filled from conversation</span>
+            <span className="text-muted-foreground">— please review all fields before submitting</span>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => setShowBanner(false)}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
 
       <div className="bg-card text-card-foreground border border-border shadow-lg rounded-lg overflow-hidden">
         <div className="bg-gradient-to-r from-primary to-accent px-6 py-4">
@@ -60,6 +96,7 @@ export default function NewAppointment() {
         <AppointmentForm 
           onSubmit={handleSubmit}
           isSubmitting={createAppointmentMutation.isPending}
+          initialData={conversationData || undefined}
         />
       </div>
     </div>

@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { Appointment } from "@shared/schema";
-import { Calendar, Clock, DollarSign, Users, Plus, Search, ArrowUpDown, Filter } from "lucide-react";
+import { Calendar, Clock, DollarSign, Users, Search, ArrowUpDown, Filter } from "lucide-react";
+import NewAppointmentDropdown from "@/components/appointment/NewAppointmentDropdown";
 import { formatCurrency, formatDate, formatPhoneNumber } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -102,12 +103,7 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Dashboard</h1>
           <p className="text-muted-foreground mt-1">Overview of your appointment system</p>
         </div>
-        <Button className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white" asChild>
-          <Link href="/appointments/new" className="flex items-center gap-1.5">
-            <Plus className="h-4 w-4" />
-            New Appointment
-          </Link>
-        </Button>
+        <NewAppointmentDropdown />
       </div>
 
 {isLoading ? (

@@ -12,7 +12,8 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { Search, Calendar, Plus, ArrowUpDown, Filter } from "lucide-react";
+import { Search, Calendar, ArrowUpDown, Filter } from "lucide-react";
+import NewAppointmentDropdown from "@/components/appointment/NewAppointmentDropdown";
 import { formatPhoneNumber } from "@/lib/format";
 
 export default function AppointmentsPage() {
@@ -97,11 +98,7 @@ export default function AppointmentsPage() {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Appointments</h1>
-        <Button className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white" asChild>
-          <Link href="/appointments/new">
-            <Plus className="mr-2 h-4 w-4" /> New Appointment
-          </Link>
-        </Button>
+        <NewAppointmentDropdown />
       </div>
       
       <div className="search-container-gradient">

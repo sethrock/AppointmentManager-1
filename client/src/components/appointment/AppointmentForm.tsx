@@ -183,10 +183,10 @@ export default function AppointmentForm({
     queryKey: ["/api/providers"],
   });
   
-  const [showEmailField, setShowEmailField] = useState(false);
-  const [callType, setCallType] = useState<string>("");
-  const [hasClientNotes, setHasClientNotes] = useState(false);
-  const [dispositionStatus, setDispositionStatus] = useState<string>("");
+  const [showEmailField, setShowEmailField] = useState(initialData?.clientUsesEmail || false);
+  const [callType, setCallType] = useState<string>(initialData?.callType || "");
+  const [hasClientNotes, setHasClientNotes] = useState(initialData?.hasClientNotes || false);
+  const [dispositionStatus, setDispositionStatus] = useState<string>(initialData?.dispositionStatus || "");
   
   // Calculate derived fields
   const [totalExpenses, setTotalExpenses] = useState(0);
@@ -210,6 +210,27 @@ export default function AppointmentForm({
     },
   });
   
+  useEffect(() => {
+    if (initialData && Object.keys(initialData).length > 0) {
+      form.reset({
+        setBy: "",
+        provider: "",
+        marketingChannel: "",
+        clientName: "",
+        phoneNumber: "",
+        clientUsesEmail: false,
+        clientEmail: "",
+        callType: "",
+        startDate: "",
+        startTime: "",
+        ...initialData,
+      });
+      if (initialData.clientUsesEmail) setShowEmailField(true);
+      if (initialData.callType) setCallType(initialData.callType as string);
+      if (initialData.hasClientNotes) setHasClientNotes(true);
+    }
+  }, [initialData]);
+
   // Derived field calculations
   useEffect(() => {
     const travelExpense = form.watch("travelExpense") || 0;

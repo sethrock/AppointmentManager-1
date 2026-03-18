@@ -170,6 +170,17 @@ Changelog:
   - Fixed search functionality with debouncing for better performance
   - All appointments now linked to clients via foreign key relationship
 
+### Conversation Create (AI-Powered)
+- AI-powered appointment creation from conversation data
+- Entry point: "New Appointment" dropdown on Dashboard and Appointments pages
+- Two options: "Manual Create" (existing form) and "Conversation Create" (AI-powered)
+- Supports: pasted text (SMS/MMS), WhatsApp .zip exports, CSV files, screenshot images
+- Backend: `POST /api/conversation/analyze` processes uploads and calls Anthropic Claude
+- Service: `server/services/conversationService.ts` handles file parsing and AI extraction
+- Frontend: `client/src/pages/appointments/conversation-create.tsx` with tab-based upload UI
+- Pre-fills the existing appointment form via sessionStorage transfer
+- Protected by authentication middleware
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.

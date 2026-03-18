@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import AppointmentList from "@/pages/appointments/index";
 import NewAppointment from "@/pages/appointments/new";
+import ConversationCreate from "@/pages/appointments/conversation-create";
 import AppointmentDetail from "@/pages/appointments/[id]";
 import ImportPage from "./pages/import";
 import Resources from "./pages/resources";
@@ -40,6 +41,12 @@ const ProtectedAppointmentList = () => (
 const ProtectedNewAppointment = () => (
   <ProtectedRoute>
     <NewAppointment />
+  </ProtectedRoute>
+);
+
+const ProtectedConversationCreate = () => (
+  <ProtectedRoute>
+    <ConversationCreate />
   </ProtectedRoute>
 );
 
@@ -108,6 +115,7 @@ function Router() {
     <Switch>
       <Route path="/" component={ProtectedDashboard} />
       <Route path="/appointments" component={ProtectedAppointmentList} />
+      <Route path="/appointments/new/conversation" component={ProtectedConversationCreate} />
       <Route path="/appointments/new" component={ProtectedNewAppointment} />
       <Route path="/appointments/:id" component={ProtectedAppointmentDetail} />
       <Route path="/clients" component={ProtectedClients} />

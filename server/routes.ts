@@ -1130,6 +1130,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // ===== Conversation Create (AI-powered) ===== //
+  
+  const conversationUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 20 * 1024 * 1024 },
+  });
+
+  app.post("/api/conversation/analyze", isAuthenticated, conversationUpload.array('files', 10), async (req: Request, res: Response) => {
+    try {
+      const { extractFromText, extractFromImages, extractTextFromZip, parseCSVToConversation } = await import("./services/conversationService");
+      
+      const conversationText = req.body.text || "";
+      const files = (req.files as Express.Multer.File[]) || [];
+      
+      let allText = conversationText;
+      const imageBuffers: { data: Buffer; mediaType: string }[] = [];
+
+      for (const file of files) {
+        const ext = file.originalname.toLowerCase().split('.').pop() || "";
+        
+        if (ext === "zip") {
+          const zipText = await extractTextFromZip(file.buffer);
+          allText += "\n" + zipText;
+        } else if (ext === "csv") {
+          const csvText = parseCSVToConversation(file.buffer.toString("utf-8"));
+          allText += "\n" + csvText;
+        } else if (["png", "jpg", "jpeg", "webp"].includes(ext)) {
+          const mimeMap: Record<string, string> = {
+            png: "image/png",
+            jpg: "image/jpeg",
+            jpeg: "image/jpeg",
+            webp: "image/webp",
+          };
+          imageBuffers.push({
+            data: file.buffer,
+            mediaType: mimeMap[ext] || "image/jpeg",
+          });
+        }
+      }
+
+      let result;
+      if (imageBuffers.length > 0 && allText.trim()) {
+        const textResult = await extractFromText(allText);
+        const imageResult = await extractFromImages(imageBuffers);
+        result = { ...imageResult, ...textResult };
+        Object.keys(result).forEach(key => {
+          const k = key as keyof typeof result;
+          if (result[k] === null || result[k] === undefined) {
+            (result as any)[k] = (imageResult as any)[k];
+          }
+        });
+      } else if (imageBuffers.length > 0) {
+        result = await extractFromImages(imageBuffers);
+      } else if (allText.trim()) {
+        result = await extractFromText(allText);
+      } else {
+        return res.status(400).json({ message: "No conversation data provided. Please paste text or upload files." });
+      }
+
+      res.json(result);
+    } catch (error: any) {
+      console.error("Conversation analysis error:", error);
+      res.status(500).json({ message: error.message || "Failed to analyze conversation" });
+    }
+  });
+  
   // ===== Import Data ===== //
   
   // Configure multer for file uploads
