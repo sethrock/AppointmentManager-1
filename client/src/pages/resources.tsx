@@ -20,6 +20,7 @@ export default function Resources() {
   const [isBankingIframeLoading, setIsBankingIframeLoading] = useState(true);
   const [isPhotoForensicIframeLoading, setIsPhotoForensicIframeLoading] = useState(true);
   const [isHppSwiftIframeLoading, setIsHppSwiftIframeLoading] = useState(true);
+  const [isPhoneAuthBankIframeLoading, setIsPhoneAuthBankIframeLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'tabs' | 'grid'>('tabs');
   const { toast } = useToast();
 
@@ -86,6 +87,15 @@ export default function Resources() {
       description: "Advanced photo analysis and forensic verification",
       category: "Analysis",
       important: false
+    },
+    {
+      id: "phone-auth-bank",
+      name: "Phone Auth Bank Details",
+      url: "https://Phone-auth-bank-details.replit.app",
+      icon: Phone,
+      description: "Phone-verified access to wire/ACH banking information",
+      category: "Financial",
+      important: false
     }
   ];
 
@@ -125,6 +135,8 @@ export default function Resources() {
         return [isPhotoForensicIframeLoading, setIsPhotoForensicIframeLoading];
       case "hpp-swift":
         return [isHppSwiftIframeLoading, setIsHppSwiftIframeLoading];
+      case "phone-auth-bank":
+        return [isPhoneAuthBankIframeLoading, setIsPhoneAuthBankIframeLoading];
       default:
         return [true, () => {}];
     }
