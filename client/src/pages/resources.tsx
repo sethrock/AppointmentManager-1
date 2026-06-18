@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Video, Shield, Building, Copy, ExternalLink, Phone, MessageSquare, Star, Camera, Grid3X3, List } from "lucide-react";
+import { Video, Shield, Building, Copy, ExternalLink, Phone, MessageSquare, Star, Camera, Grid3X3, List, Banknote } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 export default function Resources() {
@@ -21,6 +21,7 @@ export default function Resources() {
   const [isPhotoForensicIframeLoading, setIsPhotoForensicIframeLoading] = useState(true);
   const [isHppSwiftIframeLoading, setIsHppSwiftIframeLoading] = useState(true);
   const [isPhoneAuthBankIframeLoading, setIsPhoneAuthBankIframeLoading] = useState(true);
+  const [isNfcuWireIframeLoading, setIsNfcuWireIframeLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'tabs' | 'grid'>('tabs');
   const { toast } = useToast();
 
@@ -96,6 +97,15 @@ export default function Resources() {
       description: "Phone-verified access to wire/ACH banking information",
       category: "Financial",
       important: false
+    },
+    {
+      id: "nfcu-wire-instructions",
+      name: "Her Personal NFCU Wire Instructions",
+      url: "https://wire-instructions.replit.app",
+      icon: Banknote,
+      description: "Personal NFCU wire transfer instructions",
+      category: "Financial",
+      important: false
     }
   ];
 
@@ -137,6 +147,8 @@ export default function Resources() {
         return [isHppSwiftIframeLoading, setIsHppSwiftIframeLoading];
       case "phone-auth-bank":
         return [isPhoneAuthBankIframeLoading, setIsPhoneAuthBankIframeLoading];
+      case "nfcu-wire-instructions":
+        return [isNfcuWireIframeLoading, setIsNfcuWireIframeLoading];
       default:
         return [true, () => {}];
     }
