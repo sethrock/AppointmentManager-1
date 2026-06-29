@@ -18,6 +18,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertCircle, Calendar, Clock, ArrowLeft, Trash2 } from "lucide-react";
 import AppointmentDetail from "@/components/appointment/AppointmentDetail";
 import AppointmentStatus from "@/components/appointment/AppointmentStatus";
+import CollectionStatusBadge from "@/components/appointment/CollectionStatusBadge";
+import { computeAppointmentFinancials } from "@/lib/appointmentFinancials";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -237,31 +239,13 @@ export default function AppointmentDetailPage() {
                 <div className="text-lg font-medium">
                   {formatCurrency(appointment.grossRevenue || 0)}
                 </div>
-                {((appointment.depositAmount || 0) + (appointment.totalCollectedCash || 0) + (appointment.totalCollectedDigital || 0)) > 0 && (
-                  <div className="mt-2">
-                    <div className="text-xs text-muted-foreground mb-1">Total Collected:</div>
-                    <div className={`inline-block px-2 py-1 rounded ${
-                      (() => {
-                        const totalCollected = (appointment.depositAmount || 0) + 
-                                              (appointment.totalCollectedCash || 0) + 
-                                              (appointment.totalCollectedDigital || 0);
-                        const projectedRevenue = appointment.grossRevenue || 0;
-                        
-                        if (totalCollected < projectedRevenue) {
-                          return "bg-red-500 text-white";
-                        } else if (totalCollected === projectedRevenue) {
-                          return "bg-blue-500 text-white";
-                        } else {
-                          return "bg-green-500 text-white";
-                        }
-                      })()
-                    }`}>
-                      <span className="text-sm font-medium">
-                        {formatCurrency((appointment.depositAmount || 0) + 
-                                      (appointment.totalCollectedCash || 0) + 
-                                      (appointment.totalCollectedDigital || 0))}
-                      </span>
+                {(appointment.totalCollected || 0) > 0 && (
+                  <div className="mt-2 space-y-2">
+                    <div className="text-xs text-muted-foreground">Total Collected:</div>
+                    <div className="text-sm font-medium">
+                      {formatCurrency(appointment.totalCollected || 0)}
                     </div>
+                    <CollectionStatusBadge appointment={appointment} />
                   </div>
                 )}
               </CardContent>
@@ -289,7 +273,10 @@ export default function AppointmentDetailPage() {
             <TabsContent value="financials">
               <Card>
                 <CardHeader>
-                  <CardTitle>Financial Information</CardTitle>
+                  <CardTitle className="flex items-center justify-between gap-2">
+                    Financial Information
+                    <CollectionStatusBadge appointment={appointment} />
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -343,30 +330,29 @@ export default function AppointmentDetailPage() {
                         
                         <div>
                           <h4 className="text-sm font-medium text-muted-foreground mb-1">Total Collected</h4>
-                          <div className={`inline-block px-3 py-2 rounded-md ${
-                            (() => {
-                              const totalCollected = (appointment.totalCollectedCash || 0) + 
-                                                   (appointment.totalCollectedDigital || 0) + 
-                                                   (appointment.depositAmount || 0);
-                              const projectedRevenue = appointment.grossRevenue || 0;
-                              
-                              if (totalCollected < projectedRevenue) {
-                                return "bg-red-500 text-white";
-                              } else if (totalCollected === projectedRevenue) {
-                                return "bg-blue-500 text-white";
-                              } else {
-                                return "bg-green-500 text-white";
-                              }
-                            })()
-                          }`}>
-                            <p className="text-lg font-medium">
-                              {formatCurrency((appointment.totalCollectedCash || 0) + 
-                                            (appointment.totalCollectedDigital || 0) + 
-                                            (appointment.depositAmount || 0))}
-                            </p>
-                          </div>
+                          <p className="text-lg font-medium">{formatCurrency(appointment.totalCollected || 0)}</p>
                         </div>
                       </div>
+
+                      {(() => {
+                        const f = computeAppointmentFinancials(appointment);
+                        return (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                            {f.overageAmount > 0 && (
+                              <div>
+                                <h4 className="text-sm font-medium text-muted-foreground mb-1">Overage</h4>
+                                <p className="text-lg font-medium text-emerald-600">+{formatCurrency(f.overageAmount)}</p>
+                              </div>
+                            )}
+                            {f.isUnderpayment && (
+                              <div>
+                                <h4 className="text-sm font-medium text-muted-foreground mb-1">Underpayment</h4>
+                                <p className="text-lg font-medium text-destructive">−{formatCurrency(f.underpaymentAmount)}</p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                       
                       {appointment.paymentProcessor && (
                         <div className="mt-4">
@@ -422,7 +408,11 @@ export default function AppointmentDetailPage() {
                           <h4 className="text-sm font-medium text-yellow-800 mb-2">Deposit Return Information</h4>
                           <div className="space-y-1 text-sm">
                             <p><span className="text-muted-foreground">Original Deposit:</span> {formatCurrency(appointment.depositAmount || 0)}</p>
-                            <p><span className="text-muted-foreground">Amount to Return:</span> {formatCurrency(appointment.depositReturnAmount || 0)}</p>
+                            <p><span className="text-muted-foreground">Deposit Return:</span> {formatCurrency(appointment.depositReturnAmount || 0)}</p>
+                            {(appointment.expenseReimbursementAmount || 0) > 0 && (
+                              <p><span className="text-muted-foreground">Expense Reimbursement:</span> {formatCurrency(appointment.expenseReimbursementAmount || 0)}</p>
+                            )}
+                            <p><span className="text-muted-foreground">Revenue Kept:</span> {formatCurrency(computeAppointmentFinancials(appointment).cancelRevenueKept)}</p>
                             <p className="flex items-center gap-1">
                               <span className="text-muted-foreground">Refund Status:</span>
                               {appointment.depositReturned ? (

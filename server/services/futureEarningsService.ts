@@ -174,7 +174,7 @@ export async function calculateFutureEarnings(options: FutureEarningsOptions): P
 function calculateSummaryMetrics(appointments: Appointment[]): EarningsSummary {
   const projectedRevenue = appointments.reduce((sum, apt) => sum + (apt.grossRevenue || 0), 0);
   const expectedDeposits = appointments.reduce((sum, apt) => sum + (apt.depositAmount || 0), 0);
-  const expectedExpenses = appointments.reduce((sum, apt) => sum + (apt.expenseAmount || 0), 0);
+  const expectedExpenses = appointments.reduce((sum, apt) => sum + (apt.totalExpenses || 0), 0);
   const netProjectedIncome = projectedRevenue - expectedExpenses;
   const appointmentCount = appointments.length;
   const averageValue = appointmentCount > 0 ? projectedRevenue / appointmentCount : 0;

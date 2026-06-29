@@ -27,6 +27,7 @@ import {
 } from "recharts";
 import { useState, useMemo } from "react";
 import FutureEarnings from "@/components/FutureEarnings";
+import { computeDashboardMetrics } from "@/lib/appointmentFinancials";
 
 export default function Analytics() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
@@ -86,15 +87,10 @@ export default function Analytics() {
         apt.dispositionStatus === 'Reschedule' || !apt.dispositionStatus
       ).length;
       
-      const revenue = apts
-        .filter(apt => apt.dispositionStatus === 'Complete')
-        .reduce((sum, apt) => sum + (apt.totalCollected || 0), 0);
-      
-      const projected = apts
-        .reduce((sum, apt) => sum + (apt.grossRevenue || 0), 0);
-      
-      const recognized = apts
-        .reduce((sum, apt) => sum + (apt.recognizedRevenue || 0), 0);
+      const dash = computeDashboardMetrics(apts);
+      const revenue = dash.completedRevenue;
+      const projected = dash.projectedGross;
+      const recognized = dash.moneyWeControl;
       
       const avgValue = completed > 0 ? revenue / completed : 0;
       const completion = total > 0 ? (completed / total) * 100 : 0;
@@ -108,6 +104,8 @@ export default function Analytics() {
         totalRevenue: revenue,
         projectedRevenue: projected,
         recognizedRevenue: recognized,
+        moneyWeControl: recognized,
+        projectedGross: projected,
         averageAppointmentValue: avgValue,
         completionRate: completion,
         uniqueClients: clients

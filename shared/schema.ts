@@ -184,6 +184,8 @@ export const appointments = pgTable("appointments", {
   totalCollectedCash: doublePrecision("total_collected_cash").default(0),
   totalCollectedDigital: doublePrecision("total_collected_digital").default(0),
   totalCollected: doublePrecision("total_collected").default(0),
+  overageAmount: doublePrecision("overage_amount").default(0),
+  underpaymentAmount: doublePrecision("underpayment_amount").default(0),
   recognizedRevenue: doublePrecision("recognized_revenue").default(0),
   deferredRevenue: doublePrecision("deferred_revenue").default(0),
   realizedRevenue: doublePrecision("realized_revenue").default(0),
@@ -203,6 +205,7 @@ export const appointments = pgTable("appointments", {
   whoCanceled: text("who_canceled"), // 'client' or 'provider'
   cancellationDetails: text("cancellation_details"),
   depositReturnAmount: doublePrecision("deposit_return_amount").default(0),
+  expenseReimbursementAmount: doublePrecision("expense_reimbursement_amount").default(0),
   depositReturned: boolean("deposit_returned").default(false),
   
   // Calendar integration
@@ -221,6 +224,8 @@ export const insertAppointmentSchema = createInsertSchema(appointments).omit({
   totalExpenses: true,
   dueToProvider: true,
   totalCollected: true,
+  overageAmount: true,
+  underpaymentAmount: true,
   recognizedRevenue: true,
   deferredRevenue: true,
   realizedRevenue: true

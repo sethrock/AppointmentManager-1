@@ -29,7 +29,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, like, sql, asc, desc } from "drizzle-orm";
-import { updateAppointmentRevenue } from "./services/revenueService.js";
+import { computeAppointmentFinancials } from "./services/appointmentFinancials.js";
 
 // Interface for all storage operations
 export interface IStorage {
@@ -632,42 +632,23 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createAppointment(insertAppointment: InsertAppointment): Promise<Appointment> {
-    // Calculate derived values
-    const totalExpenses = (insertAppointment.travelExpense || 0) + (insertAppointment.hostingExpense || 0);
-    const dueToProvider = (insertAppointment.grossRevenue || 0) - (insertAppointment.depositAmount || 0);
-    const totalCollected = (insertAppointment.totalCollectedCash || 0) + (insertAppointment.totalCollectedDigital || 0) + (insertAppointment.depositAmount || 0);
-    const realizedRevenue = (insertAppointment.depositAmount || 0) + totalCollected;
-    
-    // Create appointment object for revenue calculation
-    const newAppointment: Appointment = {
-      ...insertAppointment,
-      id: 0, // Temporary ID for calculation
-      totalCollected,
-      totalExpenses,
-      dueToProvider,
-      recognizedRevenue: 0,
-      deferredRevenue: 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as Appointment;
-    
-    // Calculate revenue based on business logic
-    const revenueUpdate = updateAppointmentRevenue(newAppointment);
-    
+    const financials = computeAppointmentFinancials(insertAppointment);
     const now = new Date();
-    
+
     const result = await db.insert(appointments).values({
       ...insertAppointment,
-      totalExpenses,
-      dueToProvider,
-      totalCollected,
-      realizedRevenue,
-      recognizedRevenue: revenueUpdate.recognizedRevenue,
-      deferredRevenue: revenueUpdate.deferredRevenue,
+      totalExpenses: financials.totalExpenses,
+      dueToProvider: financials.dueToProvider,
+      totalCollected: financials.totalCollected,
+      overageAmount: financials.overageAmount,
+      underpaymentAmount: financials.underpaymentAmount,
+      recognizedRevenue: financials.recognizedRevenue,
+      deferredRevenue: financials.deferredRevenue,
+      realizedRevenue: financials.realizedRevenue,
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
     }).returning();
-    
+
     return result[0];
   }
   
@@ -722,19 +703,6 @@ export class DatabaseStorage implements IStorage {
       return undefined;
     }
     
-    // Calculate derived values
-    const travelExpense = updateData.travelExpense !== undefined ? updateData.travelExpense : currentAppointment.travelExpense;
-    const hostingExpense = updateData.hostingExpense !== undefined ? updateData.hostingExpense : currentAppointment.hostingExpense;
-    const totalExpenses = (travelExpense || 0) + (hostingExpense || 0);
-    
-    const grossRevenue = updateData.grossRevenue !== undefined ? updateData.grossRevenue : currentAppointment.grossRevenue;
-    const depositAmount = updateData.depositAmount !== undefined ? updateData.depositAmount : currentAppointment.depositAmount;
-    const dueToProvider = (grossRevenue || 0) - (depositAmount || 0);
-    
-    const totalCollectedCash = updateData.totalCollectedCash !== undefined ? updateData.totalCollectedCash : currentAppointment.totalCollectedCash;
-    const totalCollectedDigital = updateData.totalCollectedDigital !== undefined ? updateData.totalCollectedDigital : currentAppointment.totalCollectedDigital;
-    const totalCollected = (totalCollectedCash || 0) + (totalCollectedDigital || 0);
-    
     // Handle reschedule occurrences
     let rescheduleOccurrences = currentAppointment.rescheduleOccurrences || 0;
     
@@ -749,30 +717,27 @@ export class DatabaseStorage implements IStorage {
       rescheduleOccurrences += 1;
     }
     
-    // Create updated appointment object for revenue calculation
-    const updatedAppointment: Appointment = {
+    const mergedAppointment: Appointment = {
       ...currentAppointment,
       ...updateData,
-      totalExpenses,
-      dueToProvider,
-      totalCollected,
-      depositAmount,
+      rescheduleOccurrences,
     };
-    
-    // Calculate revenue based on business logic
-    const revenueUpdate = updateAppointmentRevenue(updatedAppointment);
-    
+
+    const financials = computeAppointmentFinancials(mergedAppointment);
+
     const result = await db.update(appointments)
       .set({
         ...updateData,
-        totalExpenses,
-        dueToProvider,
-        totalCollected,
-        recognizedRevenue: revenueUpdate.recognizedRevenue,
-        deferredRevenue: revenueUpdate.deferredRevenue,
-        realizedRevenue: revenueUpdate.realizedRevenue,
+        totalExpenses: financials.totalExpenses,
+        dueToProvider: financials.dueToProvider,
+        totalCollected: financials.totalCollected,
+        overageAmount: financials.overageAmount,
+        underpaymentAmount: financials.underpaymentAmount,
+        recognizedRevenue: financials.recognizedRevenue,
+        deferredRevenue: financials.deferredRevenue,
+        realizedRevenue: financials.realizedRevenue,
         rescheduleOccurrences,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(appointments.id, id))
       .returning();
@@ -896,7 +861,8 @@ export class DatabaseStorage implements IStorage {
     
     for (const appointment of clientAppointments) {
       if (appointment.dispositionStatus === 'Complete') {
-        totalRevenue += appointment.recognizedRevenue || 0;
+        const f = computeAppointmentFinancials(appointment);
+        totalRevenue += f.completedRevenue;
       }
       appointmentCount++;
       
