@@ -1,5 +1,8 @@
 import { Appointment } from "../../shared/schema.js";
-import { computeAppointmentFinancials } from "../../shared/appointmentFinancials.js";
+import {
+  applyAppointmentFinancials,
+  computeAppointmentFinancials,
+} from "../../shared/appointmentFinancials.js";
 
 /**
  * @deprecated Use computeAppointmentFinancials from shared/appointmentFinancials.ts
@@ -18,15 +21,8 @@ export function calculateRevenue(appointment: Appointment): {
 }
 
 /**
- * @deprecated Use computeAppointmentFinancials from shared/appointmentFinancials.ts
+ * @deprecated Use applyAppointmentFinancials from shared/appointmentFinancials.ts
  */
 export function updateAppointmentRevenue(appointment: Appointment): Partial<Appointment> {
-  const f = computeAppointmentFinancials(appointment);
-  return {
-    recognizedRevenue: f.recognizedRevenue,
-    deferredRevenue: f.deferredRevenue,
-    realizedRevenue: f.realizedRevenue,
-    overageAmount: f.overageAmount,
-    underpaymentAmount: f.underpaymentAmount,
-  };
+  return applyAppointmentFinancials(appointment);
 }

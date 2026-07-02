@@ -128,6 +128,59 @@ export function computeDashboardMetrics(
   };
 }
 
+/** DB columns always derived from user-input fields — never trust import JSON for these */
+export const COMPUTED_FINANCIAL_KEYS = [
+  "totalExpenses",
+  "dueToProvider",
+  "totalCollected",
+  "overageAmount",
+  "underpaymentAmount",
+  "recognizedRevenue",
+  "deferredRevenue",
+  "realizedRevenue",
+] as const;
+
+export type AppointmentFinancialFields = {
+  totalExpenses: number;
+  dueToProvider: number;
+  totalCollected: number;
+  overageAmount: number;
+  underpaymentAmount: number;
+  recognizedRevenue: number;
+  deferredRevenue: number;
+  realizedRevenue: number;
+};
+
+export function applyAppointmentFinancials(
+  input: FinancialInput,
+): AppointmentFinancialFields {
+  const f = computeAppointmentFinancials(input);
+  return {
+    totalExpenses: f.totalExpenses,
+    dueToProvider: f.dueToProvider,
+    totalCollected: f.totalCollected,
+    overageAmount: f.overageAmount,
+    underpaymentAmount: f.underpaymentAmount,
+    recognizedRevenue: f.recognizedRevenue,
+    deferredRevenue: f.deferredRevenue,
+    realizedRevenue: f.realizedRevenue,
+  };
+}
+
+/**
+ * Strip stale computed fields from an import record, then re-apply unified financials.
+ */
+export function prepareImportRecord<T extends Record<string, unknown>>(
+  record: T,
+): Omit<T, (typeof COMPUTED_FINANCIAL_KEYS)[number]> & AppointmentFinancialFields {
+  const stripped = { ...record };
+  for (const key of COMPUTED_FINANCIAL_KEYS) {
+    delete stripped[key];
+  }
+  const financials = applyAppointmentFinancials(stripped as FinancialInput);
+  return { ...stripped, ...financials };
+}
+
 export type CollectionStatus = "underpayment" | "exact" | "overage" | "none";
 
 export function getCollectionStatus(
