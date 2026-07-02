@@ -252,11 +252,11 @@ function CompleteForm({
     }
     
     // Prepare data with proper number types
+    // Server recomputes totalCollected (deposit + cash + digital) via computeAppointmentFinancials
     const submissionData = {
       ...data,
       totalCollectedCash: cashAmount,
       totalCollectedDigital: digitalAmount,
-      totalCollected: cashAmount + digitalAmount
     };
     
     updateMutation.mutate(submissionData);

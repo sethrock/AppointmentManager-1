@@ -17,7 +17,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { computeDashboardMetrics } from "@/lib/appointmentFinancials";
+import { computeDashboardMetrics, getAppointmentTotalCollected } from "@/lib/appointmentFinancials";
 import CollectionStatusBadge from "@/components/appointment/CollectionStatusBadge";
 
 export default function Dashboard() {
@@ -440,7 +440,7 @@ export default function Dashboard() {
                       Projected Revenue: {formatCurrency(appointment.grossRevenue || 0)}
                       {(appointment.dispositionStatus === "Complete" || appointment.dispositionStatus === "Cancel") && (
                         <div className="text-xs text-muted-foreground mt-0.5">
-                          Total Collected: {formatCurrency(appointment.totalCollected || 0)}
+                          Total Collected: {formatCurrency(getAppointmentTotalCollected(appointment))}
                         </div>
                       )}
                       {appointment.dispositionStatus === "Complete" && (

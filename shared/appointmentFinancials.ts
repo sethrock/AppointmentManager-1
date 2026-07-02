@@ -183,6 +183,11 @@ export function prepareImportRecord<T extends Record<string, unknown>>(
 
 export type CollectionStatus = "underpayment" | "exact" | "overage" | "none";
 
+/** Single display source for per-appointment total collected (deposit + cash + digital). */
+export function getAppointmentTotalCollected(input: FinancialInput): number {
+  return computeAppointmentFinancials(input).totalCollected;
+}
+
 export function getCollectionStatus(
   input: FinancialInput,
 ): CollectionStatus {

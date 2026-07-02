@@ -17,6 +17,7 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import CollectionStatusBadge from "@/components/appointment/CollectionStatusBadge";
+import { getAppointmentTotalCollected } from "@/lib/appointmentFinancials";
 
 interface AppointmentListProps {
   appointments: Appointment[];
@@ -193,7 +194,7 @@ export default function AppointmentList({
                 Projected Revenue: {formatCurrency(appointment.grossRevenue || 0)}
                 {(appointment.dispositionStatus === "Complete" || appointment.dispositionStatus === "Cancel") && (
                   <div className="text-sm text-muted-foreground mt-1">
-                    Total Collected: {formatCurrency(appointment.totalCollected || 0)}
+                    Total Collected: {formatCurrency(getAppointmentTotalCollected(appointment))}
                   </div>
                 )}
                 {appointment.dispositionStatus === "Complete" && (

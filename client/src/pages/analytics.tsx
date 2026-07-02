@@ -27,7 +27,7 @@ import {
 } from "recharts";
 import { useState, useMemo } from "react";
 import FutureEarnings from "@/components/FutureEarnings";
-import { computeDashboardMetrics } from "@/lib/appointmentFinancials";
+import { computeDashboardMetrics, getAppointmentTotalCollected } from "@/lib/appointmentFinancials";
 
 export default function Analytics() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
@@ -130,7 +130,7 @@ export default function Analytics() {
         const date = new Date(apt.startDate);
         if (!isNaN(date.getTime())) {
           const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-          acc[monthKey] = (acc[monthKey] || 0) + (apt.totalCollected || 0);
+          acc[monthKey] = (acc[monthKey] || 0) + getAppointmentTotalCollected(apt);
         }
       }
       return acc;
@@ -170,7 +170,7 @@ export default function Analytics() {
       acc[provider].totalDuration += apt.callDuration || 0;
       if (apt.dispositionStatus === 'Complete') {
         acc[provider].completed++;
-        acc[provider].revenue += apt.totalCollected || 0;
+        acc[provider].revenue += getAppointmentTotalCollected(apt);
       }
       return acc;
     }, {} as Record<string, any>);
@@ -190,7 +190,7 @@ export default function Analytics() {
       acc[channel].appointments++;
       if (apt.dispositionStatus === 'Complete') {
         acc[channel].completed++;
-        acc[channel].revenue += apt.totalCollected || 0;
+        acc[channel].revenue += getAppointmentTotalCollected(apt);
       }
       return acc;
     }, {} as Record<string, any>);
@@ -210,7 +210,7 @@ export default function Analytics() {
         }
         acc[day].appointments++;
         if (apt.dispositionStatus === 'Complete') {
-          acc[day].revenue += apt.totalCollected || 0;
+          acc[day].revenue += getAppointmentTotalCollected(apt);
         }
         return acc;
       }, {} as Record<string, any>);

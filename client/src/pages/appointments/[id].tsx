@@ -19,7 +19,7 @@ import { AlertCircle, Calendar, Clock, ArrowLeft, Trash2 } from "lucide-react";
 import AppointmentDetail from "@/components/appointment/AppointmentDetail";
 import AppointmentStatus from "@/components/appointment/AppointmentStatus";
 import CollectionStatusBadge from "@/components/appointment/CollectionStatusBadge";
-import { computeAppointmentFinancials } from "@/lib/appointmentFinancials";
+import { computeAppointmentFinancials, getAppointmentTotalCollected } from "@/lib/appointmentFinancials";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -239,11 +239,11 @@ export default function AppointmentDetailPage() {
                 <div className="text-lg font-medium">
                   {formatCurrency(appointment.grossRevenue || 0)}
                 </div>
-                {(appointment.totalCollected || 0) > 0 && (
+                {getAppointmentTotalCollected(appointment) > 0 && (
                   <div className="mt-2 space-y-2">
                     <div className="text-xs text-muted-foreground">Total Collected:</div>
                     <div className="text-sm font-medium">
-                      {formatCurrency(appointment.totalCollected || 0)}
+                      {formatCurrency(getAppointmentTotalCollected(appointment))}
                     </div>
                     <CollectionStatusBadge appointment={appointment} />
                   </div>
@@ -330,7 +330,7 @@ export default function AppointmentDetailPage() {
                         
                         <div>
                           <h4 className="text-sm font-medium text-muted-foreground mb-1">Total Collected</h4>
-                          <p className="text-lg font-medium">{formatCurrency(appointment.totalCollected || 0)}</p>
+                          <p className="text-lg font-medium">{formatCurrency(getAppointmentTotalCollected(appointment))}</p>
                         </div>
                       </div>
 
