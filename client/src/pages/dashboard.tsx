@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { Appointment } from "@shared/schema";
-import { Calendar, Clock, DollarSign, Users, Search, ArrowUpDown, Filter } from "lucide-react";
+import { Calendar, Clock, DollarSign, Users, Search, ArrowUpDown, Filter, Plus } from "lucide-react";
 import NewAppointmentDropdown from "@/components/appointment/NewAppointmentDropdown";
 import { formatCurrency, formatDate, formatPhoneNumber } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,6 +17,8 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
+import { computeDashboardMetrics, getAppointmentTotalCollected } from "@/lib/appointmentFinancials";
+import CollectionStatusBadge from "@/components/appointment/CollectionStatusBadge";
 
 export default function Dashboard() {
   const { data: appointments, isLoading } = useQuery<Appointment[]>({
@@ -82,7 +84,11 @@ export default function Dashboard() {
     });
   }, [filteredAppointments, sortOption]);
   
-  // Calculate summary stats using filtered appointments
+  const financials = useMemo(
+    () => computeDashboardMetrics(appointments ?? []),
+    [appointments],
+  );
+
   const stats = useMemo(() => ({
     total: appointments?.length || 0,
     upcoming: appointments?.filter(a => 
@@ -90,11 +96,9 @@ export default function Dashboard() {
       a.dispositionStatus !== "Cancel"
     ).length || 0,
     completed: appointments?.filter(a => a.dispositionStatus === "Complete").length || 0,
-    recognizedRevenue: appointments?.reduce((sum, a) => sum + (a.recognizedRevenue || 0), 0) || 0,
-    deferredRevenue: appointments?.reduce((sum, a) => sum + (a.deferredRevenue || 0), 0) || 0,
-    realizedRevenue: appointments?.reduce((sum, a) => sum + (a.realizedRevenue || 0), 0) || 0,
-    filtered: filteredAppointments?.length || 0
-  }), [appointments, filteredAppointments]);
+    filtered: filteredAppointments?.length || 0,
+    ...financials,
+  }), [appointments, filteredAppointments, financials]);
 
   return (
     <div className="p-6">
@@ -122,11 +126,11 @@ export default function Dashboard() {
         </div>
       ) : (
         <div className="mb-8">
-          {/* Realized Revenue - Prominent Top Card */}
+          {/* Money We Control - Primary headline */}
           <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5 backdrop-blur-sm overflow-hidden mb-6 shadow-lg">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg font-semibold text-primary">
-                Realized Revenue
+                Money We Control
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
@@ -136,16 +140,16 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <p className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                    {formatCurrency(stats.realizedRevenue)}
+                    {formatCurrency(stats.moneyWeControl)}
                   </p>
-                  <p className="text-sm text-muted-foreground font-medium mt-1">Top Line Total</p>
+                  <p className="text-sm text-muted-foreground font-medium mt-1">Actual cash collected</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           
           {/* Other Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             <Card className="border-border bg-card/50 backdrop-blur-sm overflow-hidden">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -206,7 +210,7 @@ export default function Dashboard() {
             <Card className="border-border bg-card/50 backdrop-blur-sm overflow-hidden">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Recognized Revenue
+                  Projected Gross
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-2">
@@ -215,8 +219,46 @@ export default function Dashboard() {
                     <DollarSign className="h-5 w-5 text-[hsl(142,76%,36%)]" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">{formatCurrency(stats.recognizedRevenue)}</p>
-                    <p className="text-xs text-muted-foreground">Earned revenue</p>
+                    <p className="text-2xl font-bold">{formatCurrency(stats.projectedGross)}</p>
+                    <p className="text-xs text-muted-foreground">Total quoted pipeline</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border bg-card/50 backdrop-blur-sm overflow-hidden">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Completed Revenue
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-2">
+                <div className="flex items-center">
+                  <div className="h-10 w-10 rounded-lg bg-[hsl(200,76%,36%)]/10 flex items-center justify-center mr-3">
+                    <DollarSign className="h-5 w-5 text-[hsl(200,76%,36%)]" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{formatCurrency(stats.completedRevenue)}</p>
+                    <p className="text-xs text-muted-foreground">Finished appointments</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border bg-card/50 backdrop-blur-sm overflow-hidden">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Cancel Revenue Kept
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-2">
+                <div className="flex items-center">
+                  <div className="h-10 w-10 rounded-lg bg-[hsl(0,76%,36%)]/10 flex items-center justify-center mr-3">
+                    <DollarSign className="h-5 w-5 text-[hsl(0,76%,36%)]" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{formatCurrency(stats.cancelRevenueKept)}</p>
+                    <p className="text-xs text-muted-foreground">Net deposits on cancels</p>
                   </div>
                 </div>
               </CardContent>
@@ -398,7 +440,12 @@ export default function Dashboard() {
                       Projected Revenue: {formatCurrency(appointment.grossRevenue || 0)}
                       {(appointment.dispositionStatus === "Complete" || appointment.dispositionStatus === "Cancel") && (
                         <div className="text-xs text-muted-foreground mt-0.5">
-                          Total Collected: {formatCurrency((appointment.totalCollectedCash || 0) + (appointment.totalCollectedDigital || 0) + (appointment.depositAmount || 0))}
+                          Total Collected: {formatCurrency(getAppointmentTotalCollected(appointment))}
+                        </div>
+                      )}
+                      {appointment.dispositionStatus === "Complete" && (
+                        <div className="mt-1">
+                          <CollectionStatusBadge appointment={appointment} />
                         </div>
                       )}
                     </span>

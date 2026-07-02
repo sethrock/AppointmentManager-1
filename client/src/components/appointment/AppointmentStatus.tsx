@@ -252,11 +252,11 @@ function CompleteForm({
     }
     
     // Prepare data with proper number types
+    // Server recomputes totalCollected (deposit + cash + digital) via computeAppointmentFinancials
     const submissionData = {
       ...data,
       totalCollectedCash: cashAmount,
       totalCollectedDigital: digitalAmount,
-      totalCollected: cashAmount + digitalAmount
     };
     
     updateMutation.mutate(submissionData);
@@ -419,6 +419,7 @@ function CancelForm({
       dispositionStatus: "Cancel" as const,
       whoCanceled: "",
       depositReturnAmount: 0,
+      expenseReimbursementAmount: 0,
       cancellationDetails: "",
     }
   });
@@ -509,6 +510,30 @@ function CancelForm({
                   step="0.01"
                   min="0"
                   max={appointment.depositAmount || 0}
+                  placeholder="0.00"
+                  {...field}
+                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="expenseReimbursementAmount"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="font-medium">Travel/Hosting Reimbursement</FormLabel>
+              <FormDescription>
+                Amount returned to client for prepaid travel or hosting expenses (airfare, venue, etc.)
+              </FormDescription>
+              <FormControl>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
                   placeholder="0.00"
                   {...field}
                   onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}

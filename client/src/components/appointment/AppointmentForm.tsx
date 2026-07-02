@@ -247,11 +247,15 @@ export default function AppointmentForm({
   }, [form.watch("grossRevenue"), form.watch("depositAmount")]);
   
   useEffect(() => {
+    const depositAmount = form.watch("depositAmount") || 0;
     const totalCash = form.watch("totalCollectedCash") || 0;
     const totalDigital = form.watch("totalCollectedDigital") || 0;
-    const calculatedTotal = totalCash + totalDigital;
-    setTotalCollected(calculatedTotal);
-  }, [form.watch("totalCollectedCash"), form.watch("totalCollectedDigital")]);
+    setTotalCollected(depositAmount + totalCash + totalDigital);
+  }, [
+    form.watch("depositAmount"),
+    form.watch("totalCollectedCash"),
+    form.watch("totalCollectedDigital"),
+  ]);
   
   // Watch for form value changes
   useEffect(() => {

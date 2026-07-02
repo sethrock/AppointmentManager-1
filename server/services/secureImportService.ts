@@ -5,7 +5,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { validateImportData, cleanImportData } from './dataValidationService';
 import { createAppointmentsBackup, restoreFromBackup } from './databaseBackupService';
-import { updateAppointmentRevenue } from './revenueService';
+import { prepareImportRecord } from './appointmentFinancials';
 
 interface ImportResult {
   success: boolean;
@@ -84,11 +84,7 @@ export async function secureImportAppointments(filePath: string): Promise<Import
         // Process each record in the batch
         for (const record of batch) {
           try {
-            // Apply revenue calculations
-            const recordWithRevenue = updateAppointmentRevenue(record as any);
-            const finalRecord = { ...record, ...recordWithRevenue };
-            
-            // Insert the record
+            const finalRecord = prepareImportRecord(record);
             await db.insert(appointments).values(finalRecord);
             importedCount++;
           } catch (recordError) {
@@ -149,7 +145,7 @@ export async function previewImport(filePath: string): Promise<{
     return {
       totalRecords: importData.length,
       validationResult,
-      sampleRecords: cleanedData.slice(0, 3) // Show first 3 records as preview
+      sampleRecords: cleanedData.slice(0, 3).map(prepareImportRecord),
     };
   } catch (error) {
     throw new Error(`Preview error: ${error}`);

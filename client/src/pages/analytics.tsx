@@ -27,6 +27,7 @@ import {
 } from "recharts";
 import { useState, useMemo } from "react";
 import FutureEarnings from "@/components/FutureEarnings";
+import { computeDashboardMetrics, getAppointmentTotalCollected } from "@/lib/appointmentFinancials";
 
 export default function Analytics() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
@@ -86,15 +87,10 @@ export default function Analytics() {
         apt.dispositionStatus === 'Reschedule' || !apt.dispositionStatus
       ).length;
       
-      const revenue = apts
-        .filter(apt => apt.dispositionStatus === 'Complete')
-        .reduce((sum, apt) => sum + (apt.totalCollected || 0), 0);
-      
-      const projected = apts
-        .reduce((sum, apt) => sum + (apt.grossRevenue || 0), 0);
-      
-      const recognized = apts
-        .reduce((sum, apt) => sum + (apt.recognizedRevenue || 0), 0);
+      const dash = computeDashboardMetrics(apts);
+      const revenue = dash.completedRevenue;
+      const projected = dash.projectedGross;
+      const recognized = dash.moneyWeControl;
       
       const avgValue = completed > 0 ? revenue / completed : 0;
       const completion = total > 0 ? (completed / total) * 100 : 0;
@@ -108,6 +104,8 @@ export default function Analytics() {
         totalRevenue: revenue,
         projectedRevenue: projected,
         recognizedRevenue: recognized,
+        moneyWeControl: recognized,
+        projectedGross: projected,
         averageAppointmentValue: avgValue,
         completionRate: completion,
         uniqueClients: clients
@@ -132,7 +130,7 @@ export default function Analytics() {
         const date = new Date(apt.startDate);
         if (!isNaN(date.getTime())) {
           const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-          acc[monthKey] = (acc[monthKey] || 0) + (apt.totalCollected || 0);
+          acc[monthKey] = (acc[monthKey] || 0) + getAppointmentTotalCollected(apt);
         }
       }
       return acc;
@@ -172,7 +170,7 @@ export default function Analytics() {
       acc[provider].totalDuration += apt.callDuration || 0;
       if (apt.dispositionStatus === 'Complete') {
         acc[provider].completed++;
-        acc[provider].revenue += apt.totalCollected || 0;
+        acc[provider].revenue += getAppointmentTotalCollected(apt);
       }
       return acc;
     }, {} as Record<string, any>);
@@ -192,7 +190,7 @@ export default function Analytics() {
       acc[channel].appointments++;
       if (apt.dispositionStatus === 'Complete') {
         acc[channel].completed++;
-        acc[channel].revenue += apt.totalCollected || 0;
+        acc[channel].revenue += getAppointmentTotalCollected(apt);
       }
       return acc;
     }, {} as Record<string, any>);
@@ -212,7 +210,7 @@ export default function Analytics() {
         }
         acc[day].appointments++;
         if (apt.dispositionStatus === 'Complete') {
-          acc[day].revenue += apt.totalCollected || 0;
+          acc[day].revenue += getAppointmentTotalCollected(apt);
         }
         return acc;
       }, {} as Record<string, any>);

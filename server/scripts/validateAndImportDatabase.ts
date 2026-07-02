@@ -1,5 +1,6 @@
 import { db } from '../db';
 import { appointments } from '@shared/schema';
+import { prepareImportRecord } from '../../shared/appointmentFinancials.js';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -60,7 +61,8 @@ async function validateAndImportDatabase() {
 
     for (const record of cleanedData) {
       try {
-        await db.insert(appointments).values(record);
+        const finalRecord = prepareImportRecord(record);
+        await db.insert(appointments).values(finalRecord);
         importedCount++;
       } catch (error) {
         errors.push(`Failed to import record ID ${record.id}: ${error}`);
