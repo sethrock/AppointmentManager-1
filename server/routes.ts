@@ -839,9 +839,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cancelledAppointments: cancelledAppointments.length,
         rescheduledAppointments: rescheduledAppointments.length,
         cancellationRate: appointments.length > 0 ? (cancelledAppointments.length / appointments.length) * 100 : 0,
-        lifetimeValue: client.totalRevenue || 0,
+        lifetimeValue: client.lifetimeGrossCashCollections || 0,
         averageAppointmentValue: completedAppointments.length > 0 
-          ? (client.totalRevenue || 0) / completedAppointments.length 
+          ? (client.lifetimeGrossCashCollections || 0) / completedAppointments.length 
           : 0,
         lastAppointmentDate: client.lastAppointmentDate,
         preferredProviders: getPreferredProviders(appointments),
@@ -1216,15 +1216,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             zipCode: matchingAppointment.zipCode,
             outcallDetails: matchingAppointment.outcallDetails,
             callDuration: matchingAppointment.callDuration,
-            grossRevenue: matchingAppointment.grossRevenue,
-            depositAmount: matchingAppointment.depositAmount,
+            contractPrice: matchingAppointment.contractPrice,
+            clientDeposit: matchingAppointment.clientDeposit,
             marketingChannel: matchingAppointment.marketingChannel,
             provider: matchingAppointment.provider,
             clientNotes: matchingAppointment.clientNotes,
             hasClientNotes: matchingAppointment.hasClientNotes,
             setBy: matchingAppointment.setBy,
             inOutGoesTo: matchingAppointment.inOutGoesTo,
-            client_id: matchingAppointment.client_id,
+            clientId: matchingAppointment.clientId,
           };
 
           const merged: Record<string, any> = { ...existingData };
@@ -1524,7 +1524,7 @@ function convertClientsToCSV(clients: any[]): string {
     'Phone',
     'Status',
     'Marketing Channel',
-    'Total Revenue',
+    'Lifetime Gross Cash Collections',
     'Appointment Count',
     'Last Appointment',
     'Tags',
@@ -1538,7 +1538,7 @@ function convertClientsToCSV(clients: any[]): string {
     client.phoneNumber || '',
     client.status || 'active',
     client.marketingChannel || '',
-    client.totalRevenue || '0',
+    client.lifetimeGrossCashCollections || '0',
     client.appointmentCount || '0',
     client.lastAppointmentDate ? new Date(client.lastAppointmentDate).toISOString() : '',
     client.tags ? client.tags.join('; ') : '',

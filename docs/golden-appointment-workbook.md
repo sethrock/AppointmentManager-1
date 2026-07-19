@@ -1,5 +1,7 @@
 # Golden Appointment Workbook
 
+> **Naming note (July 2026):** Dashboard metrics now use CPA cash-basis labels — Gross Cash Collections (was Money We Control), Booked Contract Value (was Projected Gross), Completed Engagement Collections, Nonrefundable Deposits Retained, Excess Collections, Uncollected Contract Balance. DB columns unchanged.
+
 **Session 3 deliverable**  
 **Generated:** 2026-06-29 from live Neon database (121 appointments)  
 **Machine-readable data:** [golden-appointment-workbook.json](./golden-appointment-workbook.json)  

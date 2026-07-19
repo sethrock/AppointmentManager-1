@@ -3,6 +3,7 @@ import { log } from '../vite';
 import { google, Auth, calendar_v3 } from 'googleapis';
 import { storage } from '../storage';
 import { formatDate, formatTime } from '../../client/src/lib/format';
+import { getAppointmentTotalClientCollections } from '../../shared/appointmentFinancials.js';
 
 // Calendar IDs for different appointment statuses
 const CALENDARS = {
@@ -196,10 +197,10 @@ async function createCalendarEvent(
     }
     
     // Format financial information
-    const deposit = appointment.depositAmount ? `$${appointment.depositAmount}` : '$0';
+    const deposit = appointment.clientDeposit ? `$${appointment.clientDeposit}` : '$0';
     const paymentMethod = appointment.paymentProcessUsed || 'Not specified';
-    const dueToProvider = appointment.dueToProvider || 
-      ((appointment.grossRevenue || 0) - (appointment.depositAmount || 0));
+    const providerBalanceDue = appointment.providerBalanceDue || 
+      ((appointment.contractPrice || 0) - (appointment.clientDeposit || 0));
     
     // Build a detailed description with all appointment information
     const description = `
@@ -208,7 +209,7 @@ DISPOSITION STATUS: SCHEDULED
 APPOINTMENT DETAILS:
 Client: ${appointment.clientName || 'Not specified'}
 Phone: ${appointment.phoneNumber || 'Not provided'}
-Revenue: $${appointment.grossRevenue || 0}
+Revenue: $${appointment.contractPrice || 0}
 Marketing Channel: ${appointment.marketingChannel || 'Not specified'}
 
 Location: ${appointment.callType === 'in-call' ? 'INCALL AT YOUR LOCATION' : 'OUTCALL TO CLIENT'}
@@ -223,7 +224,7 @@ ${appointment.outcallDetails ? `Location Notes: ${appointment.outcallDetails}` :
 
 Financial Details:
 - Deposit Received: ${deposit} via ${paymentMethod}
-- Balance Due: $${dueToProvider}
+- Balance Due: $${providerBalanceDue}
 - Travel Expenses: $${appointment.travelExpense || 0}
 - Hosting Expenses: $${appointment.hostingExpense || 0}
 
@@ -341,10 +342,10 @@ async function updateCalendarEvent(
     }
     
     // Format financial information
-    const deposit = appointment.depositAmount ? `$${appointment.depositAmount}` : '$0';
+    const deposit = appointment.clientDeposit ? `$${appointment.clientDeposit}` : '$0';
     const paymentMethod = appointment.paymentProcessUsed || 'Not specified';
-    const dueToProvider = appointment.dueToProvider || 
-      ((appointment.grossRevenue || 0) - (appointment.depositAmount || 0));
+    const providerBalanceDue = appointment.providerBalanceDue || 
+      ((appointment.contractPrice || 0) - (appointment.clientDeposit || 0));
     
     // Build a detailed description with all appointment information
     let description = '';
@@ -376,7 +377,7 @@ CURRENT SCHEDULE:
 Date: ${formatDate(appointment.updatedStartDate || appointment.startDate)}
 Time: ${formatTime(appointment.updatedStartTime || appointment.startTime)} - ${formatTime(newEndTime)}
 Duration: ${appointment.callDuration || 1} hour(s)
-Revenue: $${appointment.grossRevenue || 0}
+Revenue: $${appointment.contractPrice || 0}
 
 Location: ${appointment.callType === 'in-call' ? 'INCALL AT YOUR LOCATION' : 'OUTCALL TO CLIENT'}
 ${appointment.streetAddress ? `Address: ${[
@@ -390,7 +391,7 @@ ${appointment.outcallDetails ? `Location Notes: ${appointment.outcallDetails}` :
 
 Financial Details:
 - Deposit Received: ${deposit} via ${paymentMethod}
-- Balance Due: $${dueToProvider}
+- Balance Due: $${providerBalanceDue}
 - Travel Expenses: $${appointment.travelExpense || 0}
 - Hosting Expenses: $${appointment.hostingExpense || 0}
 
@@ -410,9 +411,9 @@ Time: ${formatTime(appointment.startTime)} - ${formatTime(appointment.endTime ||
 Duration: ${appointment.callDuration || 1} hour(s)
 
 Financial Summary:
-- Total Collected: $${appointment.totalCollected || 0}
-- Cash Payment: $${appointment.totalCollectedCash || 0}
-- Digital Payment: $${appointment.totalCollectedDigital || 0}
+- Total Client Collections: $${getAppointmentTotalClientCollections(appointment)}
+- Cash Payment: $${appointment.cashCollections || 0}
+- Digital Payment: $${appointment.electronicCollections || 0}
 - Payment Method: ${appointment.paymentProcessor || 'Not specified'}
 - Payment Notes: ${appointment.paymentNotes || 'None'}
 
@@ -446,7 +447,7 @@ Cancellation Information:
 Financial Resolution:
 - Deposit amount: ${deposit}
 - Applied to future booking: ${applyToFutureBooking}
-- Refunded: ${(appointment.totalCollected || 0) > 0 ? `YES - $${appointment.totalCollected}` : 'NO'}
+- Refunded: ${(appointment.totalClientCollections || 0) > 0 ? `YES - $${appointment.totalClientCollections}` : 'NO'}
 
 Set by: ${appointment.setBy}
       `.trim();
@@ -458,7 +459,7 @@ DISPOSITION STATUS: SCHEDULED
 APPOINTMENT DETAILS:
 Client: ${appointment.clientName || 'Not specified'}
 Phone: ${appointment.phoneNumber || 'Not provided'}
-Revenue: $${appointment.grossRevenue || 0}
+Revenue: $${appointment.contractPrice || 0}
 Marketing Channel: ${appointment.marketingChannel || 'Not specified'}
 
 Location: ${appointment.callType === 'in-call' ? 'INCALL AT YOUR LOCATION' : 'OUTCALL TO CLIENT'}
@@ -473,7 +474,7 @@ ${appointment.outcallDetails ? `Location Notes: ${appointment.outcallDetails}` :
 
 Financial Details:
 - Deposit Received: ${deposit} via ${paymentMethod}
-- Balance Due: $${dueToProvider}
+- Balance Due: $${providerBalanceDue}
 - Travel Expenses: $${appointment.travelExpense || 0}
 - Hosting Expenses: $${appointment.hostingExpense || 0}
 

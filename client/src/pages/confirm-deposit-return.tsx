@@ -103,8 +103,8 @@ export default function ConfirmDepositReturn() {
             <div className="bg-white p-4 rounded-md border border-green-200">
               <h3 className="font-semibold text-green-800 mb-3">Deposit Information</h3>
               <div className="space-y-2 text-sm">
-                <p><span className="font-medium">Original Deposit:</span> {formatCurrency(appointment?.depositAmount || 0)}</p>
-                <p><span className="font-medium">Amount Returned:</span> {formatCurrency(appointment?.depositReturnAmount || 0)}</p>
+                <p><span className="font-medium">Original Deposit:</span> {formatCurrency(appointment?.clientDeposit || 0)}</p>
+                <p><span className="font-medium">Amount Returned:</span> {formatCurrency(appointment?.depositRefundedToClient || 0)}</p>
                 <p className="flex items-center gap-2">
                   <span className="font-medium">Status:</span>
                   <span className="inline-flex items-center gap-1 text-green-600 font-medium">
@@ -146,7 +146,7 @@ export default function ConfirmDepositReturn() {
               <h3 className="font-semibold text-blue-800 mb-3">Appointment Details</h3>
               <div className="space-y-2 text-sm">
                 <p><span className="font-medium">Client:</span> {appointment?.clientName || 'Not specified'}</p>
-                <p><span className="font-medium">Amount Returned:</span> {formatCurrency(appointment?.depositReturnAmount || 0)}</p>
+                <p><span className="font-medium">Amount Returned:</span> {formatCurrency(appointment?.depositRefundedToClient || 0)}</p>
                 <p className="flex items-center gap-2">
                   <span className="font-medium">Status:</span>
                   <span className="inline-flex items-center gap-1 text-blue-600 font-medium">

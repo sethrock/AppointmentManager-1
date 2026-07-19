@@ -172,9 +172,9 @@ export async function calculateFutureEarnings(options: FutureEarningsOptions): P
  * Calculate summary metrics for future appointments
  */
 function calculateSummaryMetrics(appointments: Appointment[]): EarningsSummary {
-  const projectedRevenue = appointments.reduce((sum, apt) => sum + (apt.grossRevenue || 0), 0);
-  const expectedDeposits = appointments.reduce((sum, apt) => sum + (apt.depositAmount || 0), 0);
-  const expectedExpenses = appointments.reduce((sum, apt) => sum + (apt.totalExpenses || 0), 0);
+  const projectedRevenue = appointments.reduce((sum, apt) => sum + (apt.contractPrice || 0), 0);
+  const expectedDeposits = appointments.reduce((sum, apt) => sum + (apt.clientDeposit || 0), 0);
+  const expectedExpenses = appointments.reduce((sum, apt) => sum + (apt.totalDirectCosts || 0), 0);
   const netProjectedIncome = projectedRevenue - expectedExpenses;
   const appointmentCount = appointments.length;
   const averageValue = appointmentCount > 0 ? projectedRevenue / appointmentCount : 0;
@@ -202,7 +202,7 @@ function calculateProviderBreakdown(appointments: Appointment[]): ProviderEarnin
     const providerName = apt.provider || 'Unknown';
     const current = providerMap.get(providerName) || { revenue: 0, count: 0 };
     providerMap.set(providerName, {
-      revenue: current.revenue + (apt.grossRevenue || 0),
+      revenue: current.revenue + (apt.contractPrice || 0),
       count: current.count + 1
     });
   });
@@ -237,7 +237,7 @@ function calculateDateBreakdown(appointments: Appointment[]): DateEarnings[] {
     const dateKey = date.toISOString().split('T')[0]; // YYYY-MM-DD format
     const current = dateMap.get(dateKey) || { revenue: 0, count: 0 };
     dateMap.set(dateKey, {
-      revenue: current.revenue + (apt.grossRevenue || 0),
+      revenue: current.revenue + (apt.contractPrice || 0),
       count: current.count + 1
     });
   });

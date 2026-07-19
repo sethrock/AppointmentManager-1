@@ -78,11 +78,11 @@ const appointmentFormSchema = insertAppointmentSchema
     }
     
     // Validate financial fields
-    if (data.grossRevenue && data.grossRevenue < 0) {
+    if (data.contractPrice && data.contractPrice < 0) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Gross revenue cannot be negative",
-        path: ["grossRevenue"],
+        path: ["contractPrice"],
       });
     }
     
@@ -102,30 +102,30 @@ const appointmentFormSchema = insertAppointmentSchema
       });
     }
     
-    if (data.depositAmount && data.depositAmount < 0) {
+    if (data.clientDeposit && data.clientDeposit < 0) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Deposit amount cannot be negative",
-        path: ["depositAmount"],
+        path: ["clientDeposit"],
       });
     }
     
     // Validate that deposit amount is not greater than gross revenue
-    if (data.depositAmount && data.grossRevenue && data.depositAmount > data.grossRevenue) {
+    if (data.clientDeposit && data.contractPrice && data.clientDeposit > data.contractPrice) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Deposit amount cannot be greater than gross revenue",
-        path: ["depositAmount"],
+        path: ["clientDeposit"],
       });
     }
     
     // Complete status validation
     if (data.dispositionStatus === "Complete") {
-      if (data.totalCollectedCash === undefined && data.totalCollectedDigital === undefined) {
+      if (data.cashCollections === undefined && data.electronicCollections === undefined) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: "Either cash or digital collection must be provided",
-          path: ["totalCollectedCash"],
+          path: ["cashCollections"],
         });
       }
       
@@ -189,9 +189,9 @@ export default function AppointmentForm({
   const [dispositionStatus, setDispositionStatus] = useState<string>(initialData?.dispositionStatus || "");
   
   // Calculate derived fields
-  const [totalExpenses, setTotalExpenses] = useState(0);
-  const [dueToProvider, setDueToProvider] = useState(0);
-  const [totalCollected, setTotalCollected] = useState(0);
+  const [totalDirectCosts, setTotalExpenses] = useState(0);
+  const [providerBalanceDue, setDueToProvider] = useState(0);
+  const [totalClientCollections, setTotalCollected] = useState(0);
   
   const form = useForm<AppointmentFormValues>({
     resolver: zodResolver(appointmentFormSchema),
@@ -240,21 +240,21 @@ export default function AppointmentForm({
   }, [form.watch("travelExpense"), form.watch("hostingExpense")]);
   
   useEffect(() => {
-    const grossRevenue = form.watch("grossRevenue") || 0;
-    const depositAmount = form.watch("depositAmount") || 0;
-    const calculatedDueToProvider = grossRevenue - depositAmount;
+    const contractPrice = form.watch("contractPrice") || 0;
+    const clientDeposit = form.watch("clientDeposit") || 0;
+    const calculatedDueToProvider = contractPrice - clientDeposit;
     setDueToProvider(calculatedDueToProvider);
-  }, [form.watch("grossRevenue"), form.watch("depositAmount")]);
+  }, [form.watch("contractPrice"), form.watch("clientDeposit")]);
   
   useEffect(() => {
-    const depositAmount = form.watch("depositAmount") || 0;
-    const totalCash = form.watch("totalCollectedCash") || 0;
-    const totalDigital = form.watch("totalCollectedDigital") || 0;
-    setTotalCollected(depositAmount + totalCash + totalDigital);
+    const clientDeposit = form.watch("clientDeposit") || 0;
+    const totalCash = form.watch("cashCollections") || 0;
+    const totalDigital = form.watch("electronicCollections") || 0;
+    setTotalCollected(clientDeposit + totalCash + totalDigital);
   }, [
-    form.watch("depositAmount"),
-    form.watch("totalCollectedCash"),
-    form.watch("totalCollectedDigital"),
+    form.watch("clientDeposit"),
+    form.watch("cashCollections"),
+    form.watch("electronicCollections"),
   ]);
   
   // Watch for form value changes
@@ -764,10 +764,10 @@ export default function AppointmentForm({
           <div className="mb-6">
             <FormField
               control={form.control}
-              name="grossRevenue"
+              name="contractPrice"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="required">Projected Revenue</FormLabel>
+                  <FormLabel className="required">Contract Price</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -891,7 +891,7 @@ export default function AppointmentForm({
                 <Input 
                   type="text"
                   readOnly 
-                  value={totalExpenses.toFixed(2)} 
+                  value={totalDirectCosts.toFixed(2)} 
                   className="readonly-field pl-7 w-40"
                 />
               </div>
@@ -904,16 +904,16 @@ export default function AppointmentForm({
                 Calculate
               </Button>
             </div>
-            <Label className="mt-1 text-sm text-foreground/60">Total Expenses</Label>
+            <Label className="mt-1 text-sm text-foreground/60">Total Direct Costs</Label>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <FormField
               control={form.control}
-              name="depositAmount"
+              name="clientDeposit"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Deposit Amount</FormLabel>
+                  <FormLabel>Client Deposit</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -946,7 +946,7 @@ export default function AppointmentForm({
                   <Input 
                     type="text"
                     readOnly 
-                    value={(form.watch("depositAmount") || 0).toFixed(2)} 
+                    value={(form.watch("clientDeposit") || 0).toFixed(2)} 
                     className="readonly-field pl-7 w-40"
                   />
                 </div>
@@ -959,7 +959,7 @@ export default function AppointmentForm({
                   Calculate
                 </Button>
               </div>
-              <Label className="mt-1 text-sm text-foreground/60">Deposit Amount Calculated</Label>
+              <Label className="mt-1 text-sm text-foreground/60">Client Deposit Calculated</Label>
             </div>
           </div>
           
@@ -1035,7 +1035,7 @@ export default function AppointmentForm({
                 <Input 
                   type="text"
                   readOnly 
-                  value={dueToProvider.toFixed(2)} 
+                  value={providerBalanceDue.toFixed(2)} 
                   className="readonly-field pl-7 w-40"
                 />
               </div>
@@ -1127,10 +1127,10 @@ export default function AppointmentForm({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <FormField
                   control={form.control}
-                  name="totalCollectedCash"
+                  name="cashCollections"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Total Collected In Cash</FormLabel>
+                      <FormLabel>Cash Collections</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -1156,10 +1156,10 @@ export default function AppointmentForm({
                 
                 <FormField
                   control={form.control}
-                  name="totalCollectedDigital"
+                  name="electronicCollections"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Total Collected Digitally</FormLabel>
+                      <FormLabel>Electronic Collections</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -1193,7 +1193,7 @@ export default function AppointmentForm({
                     <Input 
                       type="text"
                       readOnly 
-                      value={totalCollected.toFixed(2)} 
+                      value={totalClientCollections.toFixed(2)} 
                       className="readonly-field pl-7 w-40"
                     />
                   </div>
@@ -1206,7 +1206,7 @@ export default function AppointmentForm({
                     Calculate
                   </Button>
                 </div>
-                <Label className="mt-1 text-sm text-foreground/60">Total Collected</Label>
+                <Label className="mt-1 text-sm text-foreground/60">Total Client Collections</Label>
               </div>
               
               <div className="mb-6">

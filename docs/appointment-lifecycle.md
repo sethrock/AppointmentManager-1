@@ -39,26 +39,26 @@ stateDiagram-v2
 ```mermaid
 flowchart LR
     Client[Client pays deposit] -->|"$1,000"| Agency[Agency or Provider holds deposit]
-    Agency --> MWC[Money We Control +$1,000]
-    Agency --> PG[Projected Gross +$5,000 booked]
+    Agency --> MWC[Gross Cash Collections +$1,000]
+    Agency --> PG[Booked Contract Value +$5,000 booked]
 ```
 
 | Metric | Value | Dashboard effect |
 |--------|-------|------------------|
-| Projected Revenue | $5,000 | +$5,000 Projected Gross |
-| Deposit Amount | $1,000 | +$1,000 Money We Control |
+| Contract Price | $5,000 | +$5,000 Booked Contract Value |
+| Client Deposit | $1,000 | +$1,000 Gross Cash Collections |
 | Due to Provider Upon Arrival | $4,000 | Informational — balance client owes at arrival |
-| Overage | $0 | Not applicable yet |
-| Completed Revenue | $0 | Not complete |
+| Excess Collections | $0 | Not applicable yet |
+| Completed Engagement Collections | $0 | Not complete |
 | Unearned portion | $4,000 | $5,000 quoted − $1,000 collected |
 
 **Formulas at booking:**
 
 ```
-dueToProviderUponArrival = projectedRevenue − depositAmount   → $4,000
+providerBalanceDue = contractPrice − clientDeposit   → $4,000
 totalExpenses            = travelExpense + hostingExpense
-moneyWeControl          += depositAmount                       → +$1,000
-projectedGross          += projectedRevenue                      → +$5,000
+grossCashCollections          += clientDeposit                       → +$1,000
+projectedGross          += contractPrice                      → +$5,000
 ```
 
 ---
@@ -69,7 +69,7 @@ projectedGross          += projectedRevenue                      → +$5,000
 
 **Money impact:** No automatic change unless deposit or projected revenue is edited.
 
-| Scenario | Money We Control | Projected Gross |
+| Scenario | Gross Cash Collections | Booked Contract Value |
 |----------|------------------|-----------------|
 | Date only changes | Unchanged | Unchanged |
 | Deposit increased by $200 | +$200 | Unchanged (unless projected also changes) |
@@ -94,38 +94,38 @@ flowchart LR
         CASH[Cash $1,000]
         DIG[Digital $4,000]
     end
-    DEP --> TC[Total Collected $6,000]
+    DEP --> TC[Total Client Collections $6,000]
     CASH --> TC
     DIG --> TC
-    TC --> OVR[Overage $1,000]
-    TC --> CR[Completed Revenue $6,000]
+    TC --> OVR[Excess Collections $1,000]
+    TC --> CR[Completed Engagement Collections $6,000]
 ```
 
 | Metric | Value |
 |--------|-------|
-| Total Collected | $6,000 |
-| Overage Amount | $1,000 (`$6,000 − $5,000 projected`) |
-| Completed Revenue | $6,000 |
-| Money We Control | Counts full $6,000 for this appointment |
+| Total Client Collections | $6,000 |
+| Excess Collections | $1,000 (`$6,000 − $5,000 projected`) |
+| Completed Engagement Collections | $6,000 |
+| Gross Cash Collections | Counts full $6,000 for this appointment |
 
 **Formulas at complete:**
 
 ```
-totalCollected      = depositAmount + totalCollectedCash + totalCollectedDigital
-overageAmount       = max(0, totalCollected − projectedRevenue)
-underpaymentAmount  = max(0, projectedRevenue − totalCollected)
-isUnderpayment      = underpaymentAmount > 0   → show UI warning badge
-completedRevenue    = totalCollected
+totalClientCollections      = clientDeposit + totalClientCollectionsCash + totalClientCollectionsDigital
+excessCollections       = max(0, totalClientCollections − contractPrice)
+uncollectedContractBalance  = max(0, contractPrice − totalClientCollections)
+isUncollected Contract Balance      = uncollectedContractBalance > 0   → show UI warning badge
+completedEngagementCollections    = totalClientCollections
 ```
 
-Overage and underpayment are mutually exclusive.
+Excess Collections and underpayment are mutually exclusive.
 
 **Due Upon Arrival check (informational):**
 
 ```
 cash + digital at completion = $5,000
 dueUponArrival             = $4,000
-excess at arrival            = $1,000  → flows into overageAmount
+excess at arrival            = $1,000  → flows into excessCollections
 ```
 
 ---
@@ -149,33 +149,33 @@ flowchart LR
 
 | Metric | Value |
 |--------|-------|
-| Deposit Amount | $1,000 |
+| Client Deposit | $1,000 |
 | Deposit Return Amount | $500 (service portion) |
 | Expense Reimbursement Amount | $200 (travel/hosting) |
-| Cancel Revenue Kept | $500 |
+| Nonrefundable Deposits Retained | $500 |
 | Total returned to client | $700 |
-| Money We Control (net for this apt) | $300 (`$1,000 − $500 − $200`) |
+| Gross Cash Collections (net for this apt) | $300 (`$1,000 − $500 − $200`) |
 
 **Formulas at cancel:**
 
 ```
-cancelRevenueKept        = depositAmount − depositReturnAmount
-totalCashReturnedToClient = depositReturnAmount + expenseReimbursementAmount
-moneyWeControl           = depositAmount − depositReturnAmount
+nonrefundableDepositsRetained        = clientDeposit − depositRefundedToClient
+totalCashReturnedToClient = depositRefundedToClient + expenseReimbursementAmount
+grossCashCollections           = clientDeposit − depositRefundedToClient
                            (expense reimbursement reduces cash separately)
 ```
 
-**Projected Gross:** Cancelled appointments still count in projected gross if using all-appointments sum. Consider filtering cancelled from pipeline views in UI (product decision).
+**Booked Contract Value:** Cancelled appointments still count in projected gross if using all-appointments sum. Consider filtering cancelled from pipeline views in UI (product decision).
 
 ---
 
 ## State → Formula quick reference
 
-| Status | totalCollected | overageAmount | completedRevenue | cancelRevenueKept | moneyWeControl contribution |
+| Status | totalClientCollections | excessCollections | completedEngagementCollections | nonrefundableDepositsRetained | grossCashCollections contribution |
 |--------|----------------|---------------|------------------|-------------------|----------------------------|
-| Scheduled | — | 0 | 0 | — | depositAmount |
-| Reschedule | — | 0 | 0 | — | depositAmount |
-| Complete | dep + cash + digital | max(0, TC − projected) | totalCollected | — | totalCollected |
+| Scheduled | — | 0 | 0 | — | clientDeposit |
+| Reschedule | — | 0 | 0 | — | clientDeposit |
+| Complete | dep + cash + digital | max(0, TC − projected) | totalClientCollections | — | totalClientCollections |
 | Cancel | — | 0 | 0 | dep − depReturn | dep − depReturn |
 
 ---
@@ -192,7 +192,7 @@ flowchart TB
     IOGT -->|provider| ProviderPays[Provider bears cost]
 ```
 
-| Field | Affects Due Upon Arrival? | Affects Money We Control? | Affects Projected Gross? |
+| Field | Affects Due Upon Arrival? | Affects Gross Cash Collections? | Affects Booked Contract Value? |
 |-------|---------------------------|---------------------------|--------------------------|
 | travelExpense | No | Only when actually paid/reimbursed | No |
 | hostingExpense | No | Only when actually paid/reimbursed | No |
@@ -220,7 +220,7 @@ Use these scenarios to reconcile app numbers against this document. Pick real ap
 | 9 | Deposit only, no completion payment | $500 | $500 | $0 / $0 | — | $0 | $500 |
 | 10 | Complete under projected (underpay) | $500 | $100 | $300 cash | — | $0 underpay $100 | $400 |
 
-**Underpayment (confirmed):** Flag in UI when `totalCollected < projectedRevenue` on complete appointments. Live example: **ID 175** — projected $5,000, collected $2,000, underpayment $3,000.
+**Uncollected Contract Balance (confirmed):** Flag in UI when `totalClientCollections < contractPrice` on complete appointments. Live example: **ID 175** — projected $5,000, collected $2,000, underpayment $3,000.
 
 ---
 

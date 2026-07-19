@@ -25,27 +25,27 @@ export default function CollectionStatusBadge({
     return null;
   }
 
-  if (status === "underpayment") {
+  if (status === "uncollected") {
     return (
       <Badge
         variant="destructive"
         className={className}
       >
         <AlertTriangle className="h-3 w-3 mr-1" />
-        Underpayment
-        {showAmount && ` — ${formatCurrency(financials.underpaymentAmount)} short`}
+        Uncollected Balance
+        {showAmount && ` — ${formatCurrency(financials.uncollectedContractBalance)} short`}
       </Badge>
     );
   }
 
-  if (status === "overage") {
+  if (status === "excess") {
     return (
       <Badge
         className={`bg-emerald-600 hover:bg-emerald-600 text-white ${className ?? ""}`}
       >
         <TrendingUp className="h-3 w-3 mr-1" />
-        Overage
-        {showAmount && ` +${formatCurrency(financials.overageAmount)}`}
+        Excess Collections
+        {showAmount && ` +${formatCurrency(financials.excessCollections)}`}
       </Badge>
     );
   }

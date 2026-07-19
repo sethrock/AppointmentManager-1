@@ -84,10 +84,10 @@ export default function AppointmentsPage() {
           return b.provider.localeCompare(a.provider);
         case "revenueDesc":
           // Highest revenue first
-          return (b.grossRevenue || 0) - (a.grossRevenue || 0);
+          return (b.contractPrice || 0) - (a.contractPrice || 0);
         case "revenueAsc":
           // Lowest revenue first
-          return (a.grossRevenue || 0) - (b.grossRevenue || 0);
+          return (a.contractPrice || 0) - (b.contractPrice || 0);
         default:
           return 0;
       }

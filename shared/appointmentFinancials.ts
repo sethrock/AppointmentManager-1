@@ -1,31 +1,28 @@
-import type { Appointment } from "./schema";
-
-export type FinancialInput = Pick<
-  Appointment,
-  | "grossRevenue"
-  | "depositAmount"
-  | "totalCollectedCash"
-  | "totalCollectedDigital"
-  | "travelExpense"
-  | "hostingExpense"
-  | "dispositionStatus"
-  | "depositReturnAmount"
-  | "expenseReimbursementAmount"
->;
+export type FinancialInput = {
+  contractPrice?: number | null;
+  clientDeposit?: number | null;
+  cashCollections?: number | null;
+  electronicCollections?: number | null;
+  travelExpense?: number | null;
+  hostingExpense?: number | null;
+  dispositionStatus?: string | null;
+  depositRefundedToClient?: number | null;
+  expenseReimbursementToClient?: number | null;
+};
 
 export interface ComputedFinancials {
-  totalExpenses: number;
-  dueToProvider: number;
-  totalCollected: number;
-  overageAmount: number;
-  underpaymentAmount: number;
-  isUnderpayment: boolean;
-  cancelRevenueKept: number;
-  moneyWeControlContribution: number;
-  completedRevenue: number;
-  /** @deprecated Legacy column — maps to projected revenue */
+  totalDirectCosts: number;
+  providerBalanceDue: number;
+  totalClientCollections: number;
+  excessCollections: number;
+  uncollectedContractBalance: number;
+  hasUncollectedBalance: boolean;
+  nonrefundableDepositsRetained: number;
+  grossCashCollectionsContribution: number;
+  completedEngagementCollections: number;
+  /** @deprecated Legacy column — maps to contract price */
   recognizedRevenue: number;
-  /** @deprecated Legacy column — maps to money-we-control contribution */
+  /** @deprecated Legacy column — maps to gross cash collections contribution */
   realizedRevenue: number;
   /** @deprecated Legacy column — zeroed; use dashboard aggregates instead */
   deferredRevenue: number;
@@ -38,114 +35,114 @@ function n(value: number | null | undefined): number {
 export function computeAppointmentFinancials(
   input: FinancialInput,
 ): ComputedFinancials {
-  const projected = n(input.grossRevenue);
-  const deposit = n(input.depositAmount);
-  const cash = n(input.totalCollectedCash);
-  const digital = n(input.totalCollectedDigital);
-  const depositReturn = n(input.depositReturnAmount);
+  const contractPrice = n(input.contractPrice);
+  const deposit = n(input.clientDeposit);
+  const cash = n(input.cashCollections);
+  const electronic = n(input.electronicCollections);
+  const depositRefunded = n(input.depositRefundedToClient);
   const status = input.dispositionStatus;
 
-  const totalExpenses = n(input.travelExpense) + n(input.hostingExpense);
-  const dueToProvider = projected - deposit;
-  const totalCollected = deposit + cash + digital;
+  const totalDirectCosts = n(input.travelExpense) + n(input.hostingExpense);
+  const providerBalanceDue = contractPrice - deposit;
+  const totalClientCollections = deposit + cash + electronic;
 
-  const overageAmount =
-    status === "Complete" ? Math.max(0, totalCollected - projected) : 0;
-  const underpaymentAmount =
-    status === "Complete" ? Math.max(0, projected - totalCollected) : 0;
+  const excessCollections =
+    status === "Complete" ? Math.max(0, totalClientCollections - contractPrice) : 0;
+  const uncollectedContractBalance =
+    status === "Complete" ? Math.max(0, contractPrice - totalClientCollections) : 0;
 
-  let cancelRevenueKept = 0;
-  let moneyWeControlContribution = 0;
-  let completedRevenue = 0;
+  let nonrefundableDepositsRetained = 0;
+  let grossCashCollectionsContribution = 0;
+  let completedEngagementCollections = 0;
 
   if (status === "Complete") {
-    moneyWeControlContribution = totalCollected;
-    completedRevenue = totalCollected;
+    grossCashCollectionsContribution = totalClientCollections;
+    completedEngagementCollections = totalClientCollections;
   } else if (status === "Cancel") {
-    cancelRevenueKept = deposit - depositReturn;
-    moneyWeControlContribution = cancelRevenueKept;
+    nonrefundableDepositsRetained = deposit - depositRefunded;
+    grossCashCollectionsContribution = nonrefundableDepositsRetained;
   } else {
     // Scheduled, Reschedule, or unset
-    moneyWeControlContribution = deposit;
+    grossCashCollectionsContribution = deposit;
   }
 
   return {
-    totalExpenses,
-    dueToProvider,
-    totalCollected,
-    overageAmount,
-    underpaymentAmount,
-    isUnderpayment: underpaymentAmount > 0,
-    cancelRevenueKept,
-    moneyWeControlContribution,
-    completedRevenue,
-    recognizedRevenue: projected,
-    realizedRevenue: moneyWeControlContribution,
+    totalDirectCosts,
+    providerBalanceDue,
+    totalClientCollections,
+    excessCollections,
+    uncollectedContractBalance,
+    hasUncollectedBalance: uncollectedContractBalance > 0,
+    nonrefundableDepositsRetained,
+    grossCashCollectionsContribution,
+    completedEngagementCollections,
+    recognizedRevenue: contractPrice,
+    realizedRevenue: grossCashCollectionsContribution,
     deferredRevenue: 0,
   };
 }
 
 export interface DashboardMetrics {
-  moneyWeControl: number;
-  projectedGross: number;
-  completedRevenue: number;
-  cancelRevenueKept: number;
-  underpaymentCount: number;
-  overageCount: number;
+  grossCashCollections: number;
+  bookedContractValue: number;
+  completedEngagementCollections: number;
+  nonrefundableDepositsRetained: number;
+  uncollectedBalanceCount: number;
+  excessCollectionsCount: number;
 }
 
 export function computeDashboardMetrics(
   appointments: FinancialInput[],
 ): DashboardMetrics {
-  let moneyWeControl = 0;
-  let projectedGross = 0;
-  let completedRevenue = 0;
-  let cancelRevenueKept = 0;
-  let underpaymentCount = 0;
-  let overageCount = 0;
+  let grossCashCollections = 0;
+  let bookedContractValue = 0;
+  let completedEngagementCollections = 0;
+  let nonrefundableDepositsRetained = 0;
+  let uncollectedBalanceCount = 0;
+  let excessCollectionsCount = 0;
 
   for (const apt of appointments) {
     const f = computeAppointmentFinancials(apt);
-    moneyWeControl += f.moneyWeControlContribution;
-    projectedGross += n(apt.grossRevenue);
+    grossCashCollections += f.grossCashCollectionsContribution;
+    bookedContractValue += n(apt.contractPrice);
     if (apt.dispositionStatus === "Complete") {
-      completedRevenue += f.completedRevenue;
-      if (f.isUnderpayment) underpaymentCount++;
-      if (f.overageAmount > 0) overageCount++;
+      completedEngagementCollections += f.completedEngagementCollections;
+      if (f.hasUncollectedBalance) uncollectedBalanceCount++;
+      if (f.excessCollections > 0) excessCollectionsCount++;
     }
     if (apt.dispositionStatus === "Cancel") {
-      cancelRevenueKept += f.cancelRevenueKept;
+      nonrefundableDepositsRetained += f.nonrefundableDepositsRetained;
     }
   }
 
   return {
-    moneyWeControl,
-    projectedGross,
-    completedRevenue,
-    cancelRevenueKept,
-    underpaymentCount,
-    overageCount,
+    grossCashCollections,
+    bookedContractValue,
+    completedEngagementCollections,
+    nonrefundableDepositsRetained,
+    uncollectedBalanceCount,
+    excessCollectionsCount,
   };
 }
 
 /** DB columns always derived from user-input fields — never trust import JSON for these */
 export const COMPUTED_FINANCIAL_KEYS = [
-  "totalExpenses",
-  "dueToProvider",
-  "totalCollected",
-  "overageAmount",
-  "underpaymentAmount",
+  "totalDirectCosts",
+  "providerBalanceDue",
+  "totalClientCollections",
+  "excessCollections",
+  "uncollectedContractBalance",
   "recognizedRevenue",
   "deferredRevenue",
   "realizedRevenue",
 ] as const;
 
 export type AppointmentFinancialFields = {
-  totalExpenses: number;
-  dueToProvider: number;
-  totalCollected: number;
-  overageAmount: number;
-  underpaymentAmount: number;
+  totalDirectCosts: number;
+  providerBalanceDue: number;
+  totalClientCollections: number;
+  excessCollections: number;
+  uncollectedContractBalance: number;
   recognizedRevenue: number;
   deferredRevenue: number;
   realizedRevenue: number;
@@ -156,11 +153,11 @@ export function applyAppointmentFinancials(
 ): AppointmentFinancialFields {
   const f = computeAppointmentFinancials(input);
   return {
-    totalExpenses: f.totalExpenses,
-    dueToProvider: f.dueToProvider,
-    totalCollected: f.totalCollected,
-    overageAmount: f.overageAmount,
-    underpaymentAmount: f.underpaymentAmount,
+    totalDirectCosts: f.totalDirectCosts,
+    providerBalanceDue: f.providerBalanceDue,
+    totalClientCollections: f.totalClientCollections,
+    excessCollections: f.excessCollections,
+    uncollectedContractBalance: f.uncollectedContractBalance,
     recognizedRevenue: f.recognizedRevenue,
     deferredRevenue: f.deferredRevenue,
     realizedRevenue: f.realizedRevenue,
@@ -177,15 +174,32 @@ export function prepareImportRecord<T extends Record<string, unknown>>(
   for (const key of COMPUTED_FINANCIAL_KEYS) {
     delete stripped[key];
   }
+  // Strip legacy camelCase keys from older transforms/imports
+  const legacyKeys = [
+    "totalExpenses",
+    "dueToProvider",
+    "totalCollected",
+    "overageAmount",
+    "underpaymentAmount",
+    "grossRevenue",
+    "depositAmount",
+    "totalCollectedCash",
+    "totalCollectedDigital",
+    "depositReturnAmount",
+    "expenseReimbursementAmount",
+  ] as const;
+  for (const key of legacyKeys) {
+    delete stripped[key];
+  }
   const financials = applyAppointmentFinancials(stripped as FinancialInput);
   return { ...stripped, ...financials };
 }
 
-export type CollectionStatus = "underpayment" | "exact" | "overage" | "none";
+export type CollectionStatus = "uncollected" | "exact" | "excess" | "none";
 
-/** Single display source for per-appointment total collected (deposit + cash + digital). */
-export function getAppointmentTotalCollected(input: FinancialInput): number {
-  return computeAppointmentFinancials(input).totalCollected;
+/** Single display source for per-appointment total client collections (deposit + cash + electronic). */
+export function getAppointmentTotalClientCollections(input: FinancialInput): number {
+  return computeAppointmentFinancials(input).totalClientCollections;
 }
 
 export function getCollectionStatus(
@@ -193,8 +207,8 @@ export function getCollectionStatus(
 ): CollectionStatus {
   if (input.dispositionStatus !== "Complete") return "none";
   const f = computeAppointmentFinancials(input);
-  if (f.isUnderpayment) return "underpayment";
-  if (f.overageAmount > 0) return "overage";
-  if (f.totalCollected === n(input.grossRevenue)) return "exact";
+  if (f.hasUncollectedBalance) return "uncollected";
+  if (f.excessCollections > 0) return "excess";
+  if (f.totalClientCollections === n(input.contractPrice)) return "exact";
   return "none";
 }

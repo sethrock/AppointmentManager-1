@@ -1,6 +1,6 @@
 import { db } from "../db";
 import { appointments, clients } from "@shared/schema";
-import { eq, or, and, isNull } from "drizzle-orm";
+import { eq, or, and, isNull, isNotNull, count } from "drizzle-orm";
 
 async function linkAppointmentsToClients() {
   console.log("Starting appointment linking process...");
@@ -52,18 +52,20 @@ async function linkAppointmentsToClients() {
     console.log(`Linked ${linkedCount} appointments to clients`);
     
     // Show statistics
-    const stats = await db
-      .select({
-        totalAppointments: db.$count(appointments),
-        linkedAppointments: db.$count(appointments, and(isNull(appointments.clientId).not())),
-        unlinkedAppointments: db.$count(appointments, isNull(appointments.clientId))
-      })
-      .from(appointments);
-    
+    const [totalRow] = await db.select({ value: count() }).from(appointments);
+    const [linkedRow] = await db
+      .select({ value: count() })
+      .from(appointments)
+      .where(isNotNull(appointments.clientId));
+    const [unlinkedRow] = await db
+      .select({ value: count() })
+      .from(appointments)
+      .where(isNull(appointments.clientId));
+
     console.log("\nAppointment Statistics:");
-    console.log(`Total Appointments: ${stats[0].totalAppointments}`);
-    console.log(`Linked to Clients: ${stats[0].linkedAppointments}`);
-    console.log(`Not Linked: ${stats[0].unlinkedAppointments}`);
+    console.log(`Total Appointments: ${totalRow.value}`);
+    console.log(`Linked to Clients: ${linkedRow.value}`);
+    console.log(`Not Linked: ${unlinkedRow.value}`);
     
   } catch (error) {
     console.error("Linking failed:", error);

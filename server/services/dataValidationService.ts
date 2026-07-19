@@ -102,21 +102,22 @@ function transformFieldNames(record: any): any {
     'end_date': 'endDate',
     'end_time': 'endTime',
     'call_duration': 'callDuration',
-    'projected_revenue': 'grossRevenue',
+    'client_id': 'clientId',
+    'projected_revenue': 'contractPrice',
     'travel_expense': 'travelExpense',
     'hosting_expense': 'hostingExpense',
     'in_out_goes_to': 'inOutGoesTo',
-    'total_expenses': 'totalExpenses',
-    'deposit_amount': 'depositAmount',
+    'total_expenses': 'totalDirectCosts',
+    'deposit_amount': 'clientDeposit',
     'deposit_received_by': 'depositReceivedBy',
     'payment_process_used': 'paymentProcessUsed',
-    'due_to_provider': 'dueToProvider',
+    'due_to_provider': 'providerBalanceDue',
     'has_client_notes': 'hasClientNotes',
     'client_notes': 'clientNotes',
     'disposition_status': 'dispositionStatus',
-    'total_collected_cash': 'totalCollectedCash',
-    'total_collected_digital': 'totalCollectedDigital',
-    'total_collected': 'totalCollected',
+    'total_collected_cash': 'cashCollections',
+    'total_collected_digital': 'electronicCollections',
+    'total_collected': 'totalClientCollections',
     'recognized_revenue': 'recognizedRevenue',
     'deferred_revenue': 'deferredRevenue',
     'realized_revenue': 'realizedRevenue',
@@ -130,10 +131,10 @@ function transformFieldNames(record: any): any {
     'updated_end_time': 'updatedEndTime',
     'who_canceled': 'whoCanceled',
     'cancellation_details': 'cancellationDetails',
-    'deposit_return_amount': 'depositReturnAmount',
-    'expense_reimbursement_amount': 'expenseReimbursementAmount',
-    'overage_amount': 'overageAmount',
-    'underpayment_amount': 'underpaymentAmount',
+    'deposit_return_amount': 'depositRefundedToClient',
+    'expense_reimbursement_amount': 'expenseReimbursementToClient',
+    'overage_amount': 'excessCollections',
+    'underpayment_amount': 'uncollectedContractBalance',
     'deposit_returned': 'depositReturned',
     'calendar_event_id': 'calendarEventId',
     'created_at': 'createdAt',
@@ -184,7 +185,21 @@ export function cleanImportData(data: any[]): any[] {
       if (booleanFields.includes(key) && typeof transformed[key] === 'string') {
         transformed[key] = transformed[key].toLowerCase() === 'true';
       }
+
+      // Drizzle timestamp columns require Date instances, not ISO strings
+      const timestampFields = ['createdAt', 'updatedAt'];
+      if (timestampFields.includes(key)) {
+        if (typeof transformed[key] === 'string' && transformed[key]) {
+          const parsed = new Date(transformed[key]);
+          transformed[key] = Number.isNaN(parsed.getTime()) ? null : parsed;
+        } else if (transformed[key] == null) {
+          delete transformed[key];
+        }
+      }
     });
+
+    // Never import stale client FKs — remigrate/link after appointment import
+    transformed.clientId = null;
     
     return transformed;
   });

@@ -85,7 +85,7 @@ export async function secureImportAppointments(filePath: string): Promise<Import
         for (const record of batch) {
           try {
             const finalRecord = prepareImportRecord(record);
-            await db.insert(appointments).values(finalRecord);
+            await db.insert(appointments).values(finalRecord as typeof appointments.$inferInsert);
             importedCount++;
           } catch (recordError) {
             result.skippedRecords++;
