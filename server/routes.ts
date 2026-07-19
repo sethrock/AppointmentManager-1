@@ -15,6 +15,7 @@ import { setupSession } from "./middleware/session";
 import { registerHandler, loginHandler, logoutHandler, getCurrentUserHandler, isAuthenticated } from "./middleware/auth";
 import { uploadPhoto, uploadDocument, handleUploadError } from "./middleware/upload";
 import { parseCSV, generateCSV, validateProviderRow, generateSampleCSV } from "./utils/csv";
+import { getUploadRoot } from "./uploadPath";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup session middleware
@@ -1259,9 +1260,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // ===== Import Data ===== //
   
-  // Configure multer for file uploads
+  // Configure multer for file uploads (/tmp on Vercel — filesystem is read-only)
   const upload = multer({
-    dest: 'uploads/',
+    dest: getUploadRoot() + path.sep,
     limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
     fileFilter: (req, file, cb) => {
       // Accept any file with .json extension regardless of mimetype

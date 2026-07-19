@@ -2,6 +2,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { Request, Response, NextFunction } from "express";
+import { getUploadRoot } from "../uploadPath";
 
 // Helper function to sanitize filenames
 const sanitizeFilename = (filename: string): string => {
@@ -24,7 +25,7 @@ const ensureDir = (dirPath: string): void => {
 const photoStorage = multer.diskStorage({
   destination: (req: Request, file: Express.Multer.File, cb) => {
     const providerId = req.params.id;
-    const uploadPath = path.join("uploads", "providers", providerId, "photos");
+    const uploadPath = path.join(getUploadRoot(), "providers", providerId, "photos");
     ensureDir(uploadPath);
     cb(null, uploadPath);
   },
@@ -38,7 +39,7 @@ const photoStorage = multer.diskStorage({
 const documentStorage = multer.diskStorage({
   destination: (req: Request, file: Express.Multer.File, cb) => {
     const providerId = req.params.id;
-    const uploadPath = path.join("uploads", "providers", providerId, "documents");
+    const uploadPath = path.join(getUploadRoot(), "providers", providerId, "documents");
     ensureDir(uploadPath);
     cb(null, uploadPath);
   },
