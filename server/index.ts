@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import type { Server } from "http";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage, DatabaseStorage } from "./storage";
@@ -9,7 +10,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Serve static files from uploads directory
-app.use('/uploads', express.static('uploads'));
+app.use("/uploads", express.static("uploads"));
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -41,19 +42,30 @@ app.use((req, res, next) => {
   next();
 });
 
-(async () => {
+let resolveReady: () => void;
+const ready = new Promise<void>((resolve) => {
+  resolveReady = resolve;
+});
+
+// Hold requests until routes/static are registered (needed for Vercel cold start)
+app.use(async (_req, _res, next) => {
+  await ready;
+  next();
+});
+
+let httpServer: Server;
+
+async function bootstrap() {
   try {
-    // Push schema to database
     log("Pushing database schema...");
     await db.execute(
       `CREATE TABLE IF NOT EXISTS _drizzle_migrations (
         id SERIAL PRIMARY KEY,
         hash text NOT NULL,
         created_at timestamp with time zone DEFAULT now()
-      )`
+      )`,
     );
-    
-    // Initialize default data
+
     log("Initializing default data...");
     if (storage instanceof DatabaseStorage) {
       await storage.initializeDefaultProviders();
@@ -63,7 +75,7 @@ app.use((req, res, next) => {
     console.error(error);
   }
 
-  const server = await registerRoutes(app);
+  httpServer = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -73,23 +85,39 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
+  const isDev =
+    app.get("env") === "development" || process.env.NODE_ENV === "development";
+
+  if (isDev && !process.env.VERCEL) {
+    await setupVite(app, httpServer);
   } else {
     serveStatic(app);
   }
 
-  // Serve the app on port 5050 locally (port 5000 is taken by macOS Control Center / AirPlay Receiver).
-  // Note: `reusePort` is not supported on macOS and throws ENOTSUP, so it's omitted here.
-  // This serves both the API and the client.
-  const port = 5050;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-  }, () => {
-    log(`serving on port ${port}`);
-  });
-})();
+  resolveReady!();
+}
+
+const bootstrapPromise = bootstrap();
+
+export default app;
+
+// Local / traditional Node hosting — Vercel uses the default export instead of listen()
+if (!process.env.VERCEL) {
+  bootstrapPromise
+    .then(() => {
+      const port = Number(process.env.PORT) || 5050;
+      httpServer.listen(
+        {
+          port,
+          host: "0.0.0.0",
+        },
+        () => {
+          log(`serving on port ${port}`);
+        },
+      );
+    })
+    .catch((err) => {
+      console.error("Failed to start server:", err);
+      process.exit(1);
+    });
+}

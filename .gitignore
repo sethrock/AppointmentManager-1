@@ -4,3 +4,12 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+.env
+.env.*
+!.env.example
+.vercel
+.vscode/
+attached_assets/Database_exports_*/
+attached_assets/replit_credentials.txt
+server/data/backup_*.json
+uploads/
