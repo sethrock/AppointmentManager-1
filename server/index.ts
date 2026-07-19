@@ -58,6 +58,39 @@ let httpServer: Server;
 
 async function bootstrap() {
   try {
+    httpServer = await registerRoutes(app);
+
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+
+      res.status(status).json({ message });
+      throw err;
+    });
+
+    const isDev =
+      app.get("env") === "development" || process.env.NODE_ENV === "development";
+
+    if (isDev && !process.env.VERCEL) {
+      // Expression import so esbuild does not bundle vite/rollup into dist/index.js
+      const { pathToFileURL } = await import("url");
+      const { join } = await import("path");
+      const { setupVite } = await import(
+        pathToFileURL(join(import.meta.dirname, "vite.ts")).href
+      );
+      await setupVite(app, httpServer);
+    } else {
+      serveStatic(app);
+    }
+  } catch (error) {
+    log(`Error during bootstrap: ${(error as Error).message}`);
+    console.error(error);
+  } finally {
+    // Always open the gate so requests do not hang forever on cold start
+    resolveReady!();
+  }
+
+  try {
     log("Pushing database schema...");
     await db.execute(
       `CREATE TABLE IF NOT EXISTS _drizzle_migrations (
@@ -75,33 +108,6 @@ async function bootstrap() {
     log(`Error initializing database: ${(error as Error).message}`);
     console.error(error);
   }
-
-  httpServer = await registerRoutes(app);
-
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
-  });
-
-  const isDev =
-    app.get("env") === "development" || process.env.NODE_ENV === "development";
-
-  if (isDev && !process.env.VERCEL) {
-    // Expression import so esbuild does not bundle vite/rollup into dist/index.js
-    const { pathToFileURL } = await import("url");
-    const { join } = await import("path");
-    const { setupVite } = await import(
-      pathToFileURL(join(import.meta.dirname, "vite.ts")).href
-    );
-    await setupVite(app, httpServer);
-  } else {
-    serveStatic(app);
-  }
-
-  resolveReady!();
 }
 
 const bootstrapPromise = bootstrap();

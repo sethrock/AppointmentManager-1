@@ -29,7 +29,7 @@ export function setupSession(app: Express) {
       cookie: {
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
         httpOnly: true,
-        secure: false, // Set to false for both dev and prod in Replit's environment
+        secure: Boolean(process.env.VERCEL),
         sameSite: 'lax'
       }
     })
