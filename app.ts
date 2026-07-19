@@ -1,4 +1,7 @@
-/**
- * Vercel Express entrypoint (framework autodetection looks for app.ts / index.ts at repo root).
- */
-export { default } from "./server/index.js";
+import express from "express";
+import application from "./server/index.js";
+
+// Vercel Express autodetection requires this entry file to import `express`.
+void express;
+
+export default application;
