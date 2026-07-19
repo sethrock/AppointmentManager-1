@@ -101,8 +101,9 @@ const bootstrapPromise = bootstrap();
 
 export default app;
 
-// Local / traditional Node hosting — Vercel uses the default export instead of listen()
-if (!process.env.VERCEL) {
+// Local `tsx server/index.ts` listen path.
+// Production/Vercel uses root `server.js` which imports this app and listens on PORT.
+if (!process.env.VERCEL && process.env.npm_lifecycle_event !== "start") {
   bootstrapPromise
     .then(() => {
       const port = Number(process.env.PORT) || 5050;
