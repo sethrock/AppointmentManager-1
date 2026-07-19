@@ -1,13 +1,14 @@
-/**
- * Production Node server entry for Vercel (and local `npm start`).
- * Requires `npm run build` first so ./dist/index.js exists.
- */
+import express from "express";
 import app from "./dist/index.js";
-import { createServer } from "node:http";
+
+// Required for Vercel Express autodetection
+void express;
 
 const port = Number(process.env.PORT) || 5050;
-const server = createServer(app);
 
-server.listen(port, "0.0.0.0", () => {
+// Vercel intercepts listen(); locally this serves production builds.
+app.listen(port, () => {
   console.log(`serving on port ${port}`);
 });
+
+export default app;
