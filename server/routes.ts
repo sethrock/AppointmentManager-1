@@ -7,7 +7,7 @@ import { insertAppointmentSchema, insertClientSchema } from "@shared/schema";
 import { handleNewAppointmentNotifications, handleAppointmentStatusNotifications } from "./services/notificationService";
 import { testEmailSending, testCalendarConnection } from "./services/testService";
 import { importAppointmentsFromJson, validateImportFile } from "./services/importService";
-import { log } from "./vite";
+import { log } from './logger';
 import multer from "multer";
 import path from "path";
 import fs from "fs";

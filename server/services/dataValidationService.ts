@@ -1,5 +1,5 @@
 import { Appointment, insertAppointmentSchema } from '@shared/schema';
-import { log } from '../vite';
+import { log } from '../logger';
 import { z } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 

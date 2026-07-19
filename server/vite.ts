@@ -1,25 +1,18 @@
-import express, { type Express } from "express";
+import type { Express } from "express";
+import type { Server } from "http";
 import fs from "fs";
 import path from "path";
-import { createServer as createViteServer, createLogger } from "vite";
-import { type Server } from "http";
-import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
 
-const viteLogger = createLogger();
-
-export function log(message: string, source = "express") {
-  const formattedTime = new Date().toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-  });
-
-  console.log(`${formattedTime} [${source}] ${message}`);
-}
-
+/** Dev-only Vite middleware. Loaded dynamically so production never imports vite/rollup. */
 export async function setupVite(app: Express, server: Server) {
+  const viteModule = await import("vite");
+  const viteConfigModule = await import("../vite.config");
+  const createViteServer = viteModule.createServer;
+  const createLogger = viteModule.createLogger;
+  const viteConfig = viteConfigModule.default;
+  const viteLogger = createLogger();
+
   const vite = await createViteServer({
     ...viteConfig,
     configFile: false,
@@ -50,7 +43,6 @@ export async function setupVite(app: Express, server: Server) {
         "index.html",
       );
 
-      // always reload the index.html file from disk incase it changes
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
       template = template.replace(
         `src="/src/main.tsx"`,
@@ -62,35 +54,5 @@ export async function setupVite(app: Express, server: Server) {
       vite.ssrFixStacktrace(e as Error);
       next(e);
     }
-  });
-}
-
-export function serveStatic(app: Express) {
-  const candidates = [
-    path.resolve(import.meta.dirname, "public"), // dist/public when running bundled server
-    path.resolve(process.cwd(), "dist/public"),
-    path.resolve(process.cwd(), "server/public"),
-  ];
-  const distPath = candidates.find((candidate) => fs.existsSync(candidate));
-
-  if (!distPath) {
-    log(
-      `Client build not found (tried: ${candidates.join(", ")}). API-only mode.`,
-    );
-    app.get("*", (_req, res) => {
-      res
-        .status(503)
-        .type("text")
-        .send("Client build missing. Redeploy after a successful Vite build.");
-    });
-    return;
-  }
-
-  log(`Serving static client from ${distPath}`);
-  app.use(express.static(distPath));
-
-  // fall through to index.html if the file doesn't exist
-  app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
   });
 }

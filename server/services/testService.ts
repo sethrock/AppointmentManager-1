@@ -1,4 +1,4 @@
-import { log } from '../vite';
+import { log } from '../logger';
 import { getAuthClient } from './calendarService';
 import { sendEmail } from './emailService';
 

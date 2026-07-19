@@ -1,5 +1,5 @@
 import { Appointment } from '@shared/schema';
-import { log } from '../vite';
+import { log } from '../logger';
 import { google, Auth, calendar_v3 } from 'googleapis';
 import { storage } from '../storage';
 import { formatDate, formatTime } from '../../client/src/lib/format';

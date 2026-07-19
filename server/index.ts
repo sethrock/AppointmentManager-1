@@ -1,7 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import type { Server } from "http";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+import { log } from "./logger";
+import { serveStatic } from "./static";
 import { storage, DatabaseStorage } from "./storage";
 import { db } from "./db";
 
@@ -89,6 +90,12 @@ async function bootstrap() {
     app.get("env") === "development" || process.env.NODE_ENV === "development";
 
   if (isDev && !process.env.VERCEL) {
+    // Expression import so esbuild does not bundle vite/rollup into dist/index.js
+    const { pathToFileURL } = await import("url");
+    const { join } = await import("path");
+    const { setupVite } = await import(
+      pathToFileURL(join(import.meta.dirname, "vite.ts")).href
+    );
     await setupVite(app, httpServer);
   } else {
     serveStatic(app);

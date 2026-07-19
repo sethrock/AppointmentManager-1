@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 import { Appointment } from '@shared/schema';
-import { log } from '../vite';
+import { log } from '../logger';
 import { formatDate, formatTime } from '../../client/src/lib/format';
 import { getAppointmentTotalClientCollections } from '../../shared/appointmentFinancials.js';
 

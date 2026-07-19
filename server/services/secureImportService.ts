@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { appointments, Appointment } from '@shared/schema';
-import { log } from '../vite';
+import { log } from '../logger';
 import fs from 'fs/promises';
 import path from 'path';
 import { validateImportData, cleanImportData } from './dataValidationService';
