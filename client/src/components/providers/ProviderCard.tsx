@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Mail, Phone, MapPin, Calendar, Briefcase } from "lucide-react";
 import { Provider } from "@shared/schema";
 import StatusBadge from "./StatusBadge";
+import { authUploadUrl } from "@/lib/uploadUrl";
 
 interface ProviderCardProps {
   provider: Provider;
@@ -27,7 +28,7 @@ export default function ProviderCard({ provider }: ProviderCardProps) {
           <div className="flex flex-col items-center text-center space-y-4">
             {/* Avatar */}
             <Avatar className="h-20 w-20">
-              <AvatarImage src={provider.photoUrl || undefined} />
+              <AvatarImage src={authUploadUrl(provider.photoUrl)} />
               <AvatarFallback className="text-lg">
                 {getInitials(provider.name)}
               </AvatarFallback>

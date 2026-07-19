@@ -27,9 +27,9 @@ export function setupSession(app: Express) {
       resave: false,
       saveUninitialized: false,
       cookie: {
-        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         httpOnly: true,
-        secure: Boolean(process.env.VERCEL),
+        secure: Boolean(process.env.VERCEL) || process.env.NODE_ENV === 'production',
         sameSite: 'lax'
       }
     })

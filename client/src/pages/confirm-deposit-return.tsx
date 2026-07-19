@@ -17,27 +17,32 @@ export default function ConfirmDepositReturn() {
     const confirmDepositReturn = async () => {
       try {
         const appointmentId = params.id;
-        
+        const token = new URLSearchParams(window.location.search).get("token") || "";
+
         if (!appointmentId || isNaN(Number(appointmentId))) {
           setStatus('error');
           setError('Invalid appointment ID');
           return;
         }
 
-        // First get the current appointment to check status
-        // apiRequest already returns parsed JSON data
-        const appointmentData = await apiRequest('GET', `/api/appointments/${appointmentId}`);
-        
+        if (!token) {
+          setStatus('error');
+          setError('Missing confirmation token. Use the link from the cancellation email.');
+          return;
+        }
+
+        const statusUrl = `/api/public/appointments/${appointmentId}/deposit-status?token=${encodeURIComponent(token)}`;
+        const appointmentData = await apiRequest('GET', statusUrl);
+
         if (appointmentData.depositReturned) {
           setStatus('already-confirmed');
           setAppointment(appointmentData);
           return;
         }
 
-        // Update the deposit return status
-        // apiRequest returns the parsed response directly
-        const updatedAppointment = await apiRequest('PATCH', `/api/appointments/${appointmentId}/confirm-deposit-return`);
-        
+        const confirmUrl = `/api/public/appointments/${appointmentId}/confirm-deposit-return?token=${encodeURIComponent(token)}`;
+        const updatedAppointment = await apiRequest('PATCH', confirmUrl);
+
         if (updatedAppointment) {
           setAppointment(updatedAppointment);
           setStatus('success');
@@ -55,7 +60,7 @@ export default function ConfirmDepositReturn() {
   }, [params.id]);
 
   const handleBackToDashboard = () => {
-    setLocation('/dashboard');
+    setLocation('/');
   };
 
   if (status === 'loading') {
@@ -91,18 +96,9 @@ export default function ConfirmDepositReturn() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="bg-white p-4 rounded-md border border-green-200">
-              <h3 className="font-semibold text-green-800 mb-3">Appointment Details</h3>
-              <div className="space-y-2 text-sm">
-                <p><span className="font-medium">Client:</span> {appointment?.clientName || 'Not specified'}</p>
-                <p><span className="font-medium">Phone:</span> {appointment?.phoneNumber || 'Not provided'}</p>
-                <p><span className="font-medium">Original Date:</span> {appointment?.startDate}</p>
-                <p><span className="font-medium">Cancelled by:</span> {appointment?.whoCanceled === 'client' ? 'Client' : 'Provider'}</p>
-              </div>
-            </div>
-            
-            <div className="bg-white p-4 rounded-md border border-green-200">
               <h3 className="font-semibold text-green-800 mb-3">Deposit Information</h3>
               <div className="space-y-2 text-sm">
+                <p><span className="font-medium">Client:</span> {appointment?.clientName || 'Not specified'}</p>
                 <p><span className="font-medium">Original Deposit:</span> {formatCurrency(appointment?.clientDeposit || 0)}</p>
                 <p><span className="font-medium">Amount Returned:</span> {formatCurrency(appointment?.depositRefundedToClient || 0)}</p>
                 <p className="flex items-center gap-2">
@@ -143,17 +139,10 @@ export default function ConfirmDepositReturn() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="bg-white p-4 rounded-md border border-blue-200">
-              <h3 className="font-semibold text-blue-800 mb-3">Appointment Details</h3>
+              <h3 className="font-semibold text-blue-800 mb-3">Deposit Information</h3>
               <div className="space-y-2 text-sm">
                 <p><span className="font-medium">Client:</span> {appointment?.clientName || 'Not specified'}</p>
                 <p><span className="font-medium">Amount Returned:</span> {formatCurrency(appointment?.depositRefundedToClient || 0)}</p>
-                <p className="flex items-center gap-2">
-                  <span className="font-medium">Status:</span>
-                  <span className="inline-flex items-center gap-1 text-blue-600 font-medium">
-                    <CheckCircle className="h-4 w-4" />
-                    Previously Confirmed
-                  </span>
-                </p>
               </div>
             </div>
 

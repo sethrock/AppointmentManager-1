@@ -1,18 +1,21 @@
 import express, { type Request, Response, NextFunction } from "express";
 import type { Server } from "http";
+import helmet from "helmet";
 import { registerRoutes } from "./routes";
 import { log } from "./logger";
 import { serveStatic } from "./static";
 import { storage, DatabaseStorage } from "./storage";
 import { db } from "./db";
-import { getUploadRoot } from "./uploadPath";
 
 const app = express();
-app.use(express.json());
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+  }),
+);
+app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: false }));
-
-// Serve static files from uploads directory
-app.use("/uploads", express.static(getUploadRoot()));
 
 app.use((req, res, next) => {
   const start = Date.now();

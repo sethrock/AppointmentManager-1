@@ -1,16 +1,19 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
-import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { Calendar } from "lucide-react";
 
@@ -19,55 +22,46 @@ const loginSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
-const registerSchema = z.object({
-  username: z.string().min(2, "Username must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
-
 type LoginFormData = z.infer<typeof loginSchema>;
-type RegisterFormData = z.infer<typeof registerSchema>;
+type AuthStep = "login" | "mfa" | "setup" | "recovery";
 
 export default function AuthPage() {
-  const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { login } = useAuth();
-  const [activeTab, setActiveTab] = useState<"login" | "register">("login");
+  const { login, user, needsMfaSetup, mfaVerified, isLoading } = useAuth();
+  const [step, setStep] = useState<AuthStep>("login");
+  const [mfaToken, setMfaToken] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [setupSecret, setSetupSecret] = useState("");
+  const [qrDataUrl, setQrDataUrl] = useState("");
+  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
+  const [setupStarted, setSetupStarted] = useState(false);
 
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  });
-
-  const registerForm = useForm<RegisterFormData>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: {
-      username: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-    },
+    defaultValues: { email: "", password: "" },
   });
 
   const loginMutation = useMutation({
-    mutationFn: async (data: LoginFormData) => {
-      return await apiRequest("POST", "/api/auth/login", data);
-    },
+    mutationFn: async (data: LoginFormData) =>
+      apiRequest("POST", "/api/auth/login", data),
     onSuccess: async (data) => {
-      await login(data.user);
-      toast({
-        title: "Success",
-        description: "You have been logged in successfully.",
-      });
-      // Force a page reload to ensure authentication state is updated
-      window.location.href = "/";
+      if (data.mfaRequired && data.mfaToken) {
+        setMfaToken(data.mfaToken);
+        setStep("mfa");
+        setOtpCode("");
+        return;
+      }
+
+      if (data.needsMfaSetup && data.user) {
+        await login(data.user);
+        await beginMfaSetup();
+        return;
+      }
+
+      if (data.user) {
+        await login(data.user);
+        window.location.href = "/";
+      }
     },
     onError: (error: any) => {
       toast({
@@ -78,36 +72,74 @@ export default function AuthPage() {
     },
   });
 
-  const registerMutation = useMutation({
-    mutationFn: async (data: RegisterFormData) => {
-      const { confirmPassword, ...registrationData } = data;
-      return await apiRequest("POST", "/api/auth/register", registrationData);
-    },
+  const beginMfaSetup = async () => {
+    try {
+      const setup = await apiRequest("POST", "/api/auth/mfa/setup");
+      setQrDataUrl(setup.qrDataUrl);
+      setSetupSecret(setup.secret);
+      setStep("setup");
+      setOtpCode("");
+      setSetupStarted(true);
+    } catch (error: any) {
+      toast({
+        title: "MFA setup failed",
+        description: error.message || "Could not start authenticator setup",
+        variant: "destructive",
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (isLoading || setupStarted || step === "recovery") return;
+    if (user && needsMfaSetup && !mfaVerified) {
+      beginMfaSetup();
+    } else if (user && mfaVerified && !needsMfaSetup && step === "login") {
+      window.location.href = "/";
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, needsMfaSetup, mfaVerified, isLoading, setupStarted, step]);
+
+  const verifyMfaMutation = useMutation({
+    mutationFn: async () =>
+      apiRequest("POST", "/api/auth/mfa/verify", {
+        mfaToken,
+        code: otpCode,
+      }),
     onSuccess: async (data) => {
       await login(data.user);
-      toast({
-        title: "Success",
-        description: "Your account has been created successfully.",
-      });
-      // Force a page reload to ensure authentication state is updated
+      toast({ title: "Success", description: "Signed in successfully." });
       window.location.href = "/";
     },
     onError: (error: any) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to create account",
+        title: "Invalid code",
+        description: error.message || "Check your authenticator app and try again.",
         variant: "destructive",
       });
     },
   });
 
-  const onLoginSubmit = (data: LoginFormData) => {
-    loginMutation.mutate(data);
-  };
-
-  const onRegisterSubmit = (data: RegisterFormData) => {
-    registerMutation.mutate(data);
-  };
+  const enableMfaMutation = useMutation({
+    mutationFn: async () =>
+      apiRequest("POST", "/api/auth/mfa/enable", { code: otpCode }),
+    onSuccess: async (data) => {
+      await login(data.user);
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      setRecoveryCodes(data.recoveryCodes || []);
+      setStep("recovery");
+      toast({
+        title: "Authenticator enabled",
+        description: "Save your recovery codes before continuing.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Could not enable MFA",
+        description: error.message || "Invalid authentication code",
+        variant: "destructive",
+      });
+    },
+  });
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -118,153 +150,157 @@ export default function AuthPage() {
           </div>
           <CardTitle className="text-2xl font-bold">Appointment Manager</CardTitle>
           <CardDescription>
-            Sign in to manage your appointments and clients
+            {step === "login" && "Sign in with your admin account"}
+            {step === "mfa" && "Enter the code from Google Authenticator"}
+            {step === "setup" && "Scan this QR code with Google Authenticator"}
+            {step === "recovery" && "Save these recovery codes in a safe place"}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "login" | "register")}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Register</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="login">
-              <Form {...loginForm}>
-                <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
-                  <FormField
-                    control={loginForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="email" 
-                            placeholder="you@example.com" 
-                            {...field} 
-                            data-testid="input-login-email"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={loginForm.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Password</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="password" 
-                            placeholder="••••••••" 
-                            {...field} 
-                            data-testid="input-login-password"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
-                    disabled={loginMutation.isPending}
-                    data-testid="button-login"
-                  >
-                    {loginMutation.isPending ? "Signing in..." : "Sign In"}
-                  </Button>
-                </form>
-              </Form>
-            </TabsContent>
-            
-            <TabsContent value="register">
-              <Form {...registerForm}>
-                <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
-                  <FormField
-                    control={registerForm.control}
-                    name="username"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Username</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="johndoe" 
-                            {...field} 
-                            data-testid="input-username"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={registerForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="email" 
-                            placeholder="you@example.com"
-                            data-testid="input-register-email" 
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={registerForm.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Password</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="password" 
-                            placeholder="••••••••"
-                            data-testid="input-register-password" 
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={registerForm.control}
-                    name="confirmPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Confirm Password</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="password" 
-                            placeholder="••••••••"
-                            data-testid="input-confirm-password" 
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
-                    disabled={registerMutation.isPending}
-                    data-testid="button-register"
-                  >
-                    {registerMutation.isPending ? "Creating account..." : "Create Account"}
-                  </Button>
-                </form>
-              </Form>
-            </TabsContent>
-          </Tabs>
+        <CardContent className="space-y-4">
+          {step === "login" && (
+            <Form {...loginForm}>
+              <form
+                onSubmit={loginForm.handleSubmit((data) => loginMutation.mutate(data))}
+                className="space-y-4"
+              >
+                <FormField
+                  control={loginForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="email"
+                          placeholder="you@example.com"
+                          {...field}
+                          data-testid="input-login-email"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={loginForm.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="password"
+                          placeholder="••••••••"
+                          {...field}
+                          data-testid="input-login-password"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={loginMutation.isPending}
+                  data-testid="button-login"
+                >
+                  {loginMutation.isPending ? "Signing in..." : "Sign In"}
+                </Button>
+              </form>
+            </Form>
+          )}
+
+          {(step === "mfa" || step === "setup") && (
+            <div className="space-y-4">
+              {step === "setup" && (
+                <>
+                  {qrDataUrl && (
+                    <img
+                      src={qrDataUrl}
+                      alt="Authenticator QR code"
+                      className="mx-auto w-48 h-48 rounded-md border"
+                    />
+                  )}
+                  <p className="text-xs text-muted-foreground break-all text-center">
+                    Manual secret: <span className="font-mono">{setupSecret}</span>
+                  </p>
+                </>
+              )}
+
+              <div className="flex justify-center">
+                <InputOTP maxLength={6} value={otpCode} onChange={setOtpCode}>
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
+
+              {step === "mfa" && (
+                <Input
+                  placeholder="Or paste a recovery code"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value)}
+                  className="font-mono text-sm"
+                />
+              )}
+
+              <Button
+                className="w-full"
+                disabled={
+                  otpCode.replace(/\s/g, "").length < 6 ||
+                  verifyMfaMutation.isPending ||
+                  enableMfaMutation.isPending
+                }
+                onClick={() =>
+                  step === "mfa"
+                    ? verifyMfaMutation.mutate()
+                    : enableMfaMutation.mutate()
+                }
+                data-testid="button-mfa-submit"
+              >
+                {step === "mfa" ? "Verify and sign in" : "Enable authenticator"}
+              </Button>
+
+              {step === "mfa" && (
+                <Button
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => {
+                    setStep("login");
+                    setMfaToken("");
+                    setOtpCode("");
+                  }}
+                >
+                  Back to login
+                </Button>
+              )}
+            </div>
+          )}
+
+          {step === "recovery" && (
+            <div className="space-y-4">
+              <ul className="grid grid-cols-2 gap-2 font-mono text-sm bg-muted p-3 rounded-md">
+                {recoveryCodes.map((code) => (
+                  <li key={code}>{code}</li>
+                ))}
+              </ul>
+              <Button
+                className="w-full"
+                onClick={() => {
+                  window.location.href = "/";
+                }}
+                data-testid="button-recovery-continue"
+              >
+                I saved my codes — continue
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

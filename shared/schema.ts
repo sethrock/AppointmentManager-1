@@ -15,6 +15,9 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
+  totpSecret: text("totp_secret"),
+  totpEnabled: boolean("totp_enabled").notNull().default(false),
+  totpRecoveryCodes: json("totp_recovery_codes").$type<string[]>(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -28,6 +31,15 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
   password: z.string().min(6, { message: "Password must be at least 6 characters" }),
+});
+
+export const mfaVerifySchema = z.object({
+  mfaToken: z.string().min(1),
+  code: z.string().min(6).max(64),
+});
+
+export const mfaEnableSchema = z.object({
+  code: z.string().min(6).max(8),
 });
 
 // Provider schema - Expanded with HR fields

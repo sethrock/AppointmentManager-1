@@ -3,6 +3,7 @@ import { Appointment } from '@shared/schema';
 import { log } from '../logger';
 import { formatDate, formatTime } from '../../client/src/lib/format';
 import { getAppointmentTotalClientCollections } from '../../shared/appointmentFinancials.js';
+import { generateDepositConfirmToken } from '../middleware/depositToken';
 
 // Create reusable transporter object using SMTP transport
 const createTransporter = () => {
@@ -228,9 +229,13 @@ export function generateStatusUpdateEmail(
     
     case 'Cancel':
       const depositRefundedToClient = appointment.depositRefundedToClient || 0;
-      // Always use production URL for deposit confirmation links
-      const baseUrl = 'https://scheduleing.replit.app';
-      const confirmUrl = `${baseUrl}/confirm-deposit-return/${appointment.id}`;
+      const baseUrl =
+        process.env.APP_BASE_URL ||
+        (process.env.VERCEL_PROJECT_PRODUCTION_URL
+          ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+          : "https://serasomatic.vercel.app");
+      const token = generateDepositConfirmToken(appointment.id);
+      const confirmUrl = `${baseUrl}/confirm-deposit-return/${appointment.id}?token=${encodeURIComponent(token)}`;
       
       return `
         <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">

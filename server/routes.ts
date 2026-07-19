@@ -12,22 +12,140 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { setupSession } from "./middleware/session";
-import { registerHandler, loginHandler, logoutHandler, getCurrentUserHandler, isAuthenticated } from "./middleware/auth";
+import {
+  registerHandler,
+  loginHandler,
+  logoutHandler,
+  getCurrentUserHandler,
+  isAuthenticated,
+  createAdminUserHandler,
+  mfaVerifyHandler,
+  mfaSetupHandler,
+  mfaEnableHandler,
+} from "./middleware/auth";
+import { requireAuth, requireMfa } from "./middleware/requireAuth";
+import {
+  generateDepositConfirmToken,
+  validateDepositConfirmToken,
+} from "./middleware/depositToken";
 import { uploadPhoto, uploadDocument, handleUploadError } from "./middleware/upload";
 import { parseCSV, generateCSV, validateProviderRow, generateSampleCSV } from "./utils/csv";
 import { getUploadRoot } from "./uploadPath";
+import rateLimit from "express-rate-limit";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup session middleware
   setupSession(app);
+
+  // Global API auth + MFA gates
+  app.use(requireAuth);
+  app.use(requireMfa);
+
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many attempts, please try again later" },
+  });
   
   // API Routes - all prefixed with /api
   
   // ===== Authentication ===== //
-  app.post("/api/auth/register", registerHandler);
-  app.post("/api/auth/login", loginHandler);
+  app.post("/api/auth/register", authLimiter, registerHandler);
+  app.post("/api/auth/login", authLimiter, loginHandler);
   app.post("/api/auth/logout", logoutHandler);
   app.get("/api/auth/me", getCurrentUserHandler);
+  app.post("/api/auth/mfa/verify", authLimiter, mfaVerifyHandler);
+  app.post("/api/auth/mfa/setup", mfaSetupHandler);
+  app.post("/api/auth/mfa/enable", authLimiter, mfaEnableHandler);
+  app.post("/api/auth/users", createAdminUserHandler);
+
+  // Authenticated upload serving (replaces public /uploads static)
+  app.use("/api/uploads", (req: Request, res: Response) => {
+    try {
+      const relative = decodeURIComponent(req.path.replace(/^\/+/, ""));
+      if (!relative || relative.includes("..")) {
+        return res.status(400).json({ message: "Invalid path" });
+      }
+      const root = path.resolve(getUploadRoot());
+      const filePath = path.resolve(root, relative);
+      if (!filePath.startsWith(root + path.sep) && filePath !== root) {
+        return res.status(400).json({ message: "Invalid path" });
+      }
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: "File not found" });
+      }
+      return res.sendFile(filePath);
+    } catch (error) {
+      console.error("Error serving upload:", error);
+      return res.status(500).json({ message: "Failed to serve file" });
+    }
+  });
+
+  // ===== Public deposit confirmation (HMAC token) ===== //
+  app.get(
+    "/api/public/appointments/:id/deposit-status",
+    async (req: Request, res: Response) => {
+      try {
+        const id = parseInt(req.params.id);
+        const token = typeof req.query.token === "string" ? req.query.token : "";
+        if (isNaN(id) || !validateDepositConfirmToken(id, token)) {
+          return res.status(403).json({ message: "Invalid or expired token" });
+        }
+
+        const appointment = await storage.getAppointment(id);
+        if (!appointment) {
+          return res.status(404).json({ message: "Appointment not found" });
+        }
+
+        res.json({
+          id: appointment.id,
+          clientName: appointment.clientName,
+          clientDeposit: appointment.clientDeposit,
+          depositRefundedToClient: appointment.depositRefundedToClient,
+          depositReturned: appointment.depositReturned,
+        });
+      } catch (error) {
+        console.error("Error fetching deposit status:", error);
+        res.status(500).json({ message: "Failed to fetch deposit status" });
+      }
+    },
+  );
+
+  app.patch(
+    "/api/public/appointments/:id/confirm-deposit-return",
+    async (req: Request, res: Response) => {
+      try {
+        const id = parseInt(req.params.id);
+        const token =
+          typeof req.query.token === "string"
+            ? req.query.token
+            : typeof req.body?.token === "string"
+              ? req.body.token
+              : "";
+        if (isNaN(id) || !validateDepositConfirmToken(id, token)) {
+          return res.status(403).json({ message: "Invalid or expired token" });
+        }
+
+        const updatedAppointment = await storage.confirmDepositReturn(id);
+        if (!updatedAppointment) {
+          return res.status(404).json({ message: "Appointment not found" });
+        }
+
+        res.json({
+          id: updatedAppointment.id,
+          clientName: updatedAppointment.clientName,
+          clientDeposit: updatedAppointment.clientDeposit,
+          depositRefundedToClient: updatedAppointment.depositRefundedToClient,
+          depositReturned: updatedAppointment.depositReturned,
+        });
+      } catch (error) {
+        console.error("Error confirming deposit return:", error);
+        res.status(500).json({ message: "Failed to confirm deposit return" });
+      }
+    },
+  );
   
   // ===== Providers ===== //
   
@@ -238,7 +356,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Generate the relative URL path for the uploaded photo
-        const photoUrl = `/uploads/providers/${providerId}/photos/${req.file.filename}`;
+        const photoUrl = `/api/uploads/providers/${providerId}/photos/${req.file.filename}`;
         
         // Update provider's photoUrl in database
         const provider = await storage.updateProvider(providerId, { photoUrl });
@@ -613,7 +731,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Generate the relative URL path for the document
-        const filePath = `/uploads/providers/${providerId}/documents/${req.file.filename}`;
+        const filePath = `/api/uploads/providers/${providerId}/documents/${req.file.filename}`;
         
         // Create document record in database
         const { insertProviderDocumentsSchema } = await import("@shared/schema");
@@ -1322,6 +1440,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Test email notification
   app.post("/api/test/email", async (req: Request, res: Response) => {
+    if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
+      return res.status(404).json({ message: "Not found" });
+    }
     try {
       const success = await testEmailSending();
       if (success) {
@@ -1346,6 +1467,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Test Google Calendar connection
   app.post("/api/test/calendar", async (req: Request, res: Response) => {
+    if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
+      return res.status(404).json({ message: "Not found" });
+    }
     try {
       const success = await testCalendarConnection();
       if (success) {

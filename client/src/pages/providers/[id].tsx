@@ -34,6 +34,7 @@ import { Provider } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatCurrency } from "@/lib/format";
+import { authUploadUrl } from "@/lib/uploadUrl";
 import StatusBadge from "@/components/providers/StatusBadge";
 import CredentialsList from "@/components/providers/CredentialsList";
 import ProviderPhotoUpload from "@/components/providers/ProviderPhotoUpload";
@@ -218,7 +219,7 @@ export default function ProviderDetailPage() {
           <div className="flex flex-col md:flex-row gap-6">
             <div className="relative">
               <Avatar className="h-32 w-32 cursor-pointer" onClick={() => setShowPhotoUpload(true)}>
-                <AvatarImage src={provider.photoUrl || undefined} />
+                <AvatarImage src={authUploadUrl(provider.photoUrl)} />
                 <AvatarFallback className="text-2xl">
                   {getInitials(provider.name)}
                 </AvatarFallback>
@@ -226,7 +227,7 @@ export default function ProviderDetailPage() {
               {showPhotoUpload && (
                 <ProviderPhotoUpload
                   providerId={provider.id}
-                  currentPhotoUrl={provider.photoUrl}
+                  currentPhotoUrl={authUploadUrl(provider.photoUrl)}
                   onClose={() => setShowPhotoUpload(false)}
                   onSuccess={() => {
                     queryClient.invalidateQueries({ queryKey: [`/api/providers/${id}`] });
@@ -476,7 +477,7 @@ export default function ProviderDetailPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => window.open(doc.filePath, "_blank")}
+                            onClick={() => window.open(authUploadUrl(doc.filePath), "_blank")}
                           >
                             <Download className="h-4 w-4" />
                           </Button>

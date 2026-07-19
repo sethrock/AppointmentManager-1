@@ -35,6 +35,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowLeft, Save, Upload, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { authUploadUrl } from "@/lib/uploadUrl";
 import { Provider } from "@shared/schema";
 
 const formSchema = z.object({
@@ -102,7 +103,7 @@ export default function EditProviderPage() {
       });
       
       if (provider.photoUrl) {
-        setPhotoPreview(provider.photoUrl);
+        setPhotoPreview(authUploadUrl(provider.photoUrl) || null);
       }
     }
   }, [provider, form]);

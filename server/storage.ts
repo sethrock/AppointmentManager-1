@@ -38,6 +38,14 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUserTotp(
+    id: number,
+    data: {
+      totpSecret?: string | null;
+      totpEnabled?: boolean;
+      totpRecoveryCodes?: string[] | null;
+    },
+  ): Promise<User | undefined>;
   
   // Provider operations
   getProviders(): Promise<Provider[]>;
@@ -134,6 +142,22 @@ export class DatabaseStorage implements IStorage {
   
   async createUser(insertUser: InsertUser): Promise<User> {
     const result = await db.insert(users).values(insertUser).returning();
+    return result[0];
+  }
+
+  async updateUserTotp(
+    id: number,
+    data: {
+      totpSecret?: string | null;
+      totpEnabled?: boolean;
+      totpRecoveryCodes?: string[] | null;
+    },
+  ): Promise<User | undefined> {
+    const result = await db
+      .update(users)
+      .set(data)
+      .where(eq(users.id, id))
+      .returning();
     return result[0];
   }
   
