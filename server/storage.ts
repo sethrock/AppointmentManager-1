@@ -37,7 +37,7 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  createUser(user: InsertUser & { invitePending?: boolean }): Promise<User>;
   updateUserTotp(
     id: number,
     data: {
@@ -45,6 +45,11 @@ export interface IStorage {
       totpEnabled?: boolean;
       totpRecoveryCodes?: string[] | null;
     },
+  ): Promise<User | undefined>;
+  updateUserPassword(
+    id: number,
+    passwordHash: string,
+    options?: { clearInvitePending?: boolean },
   ): Promise<User | undefined>;
   
   // Provider operations
@@ -140,7 +145,9 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
   
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async createUser(
+    insertUser: InsertUser & { invitePending?: boolean },
+  ): Promise<User> {
     const result = await db.insert(users).values(insertUser).returning();
     return result[0];
   }
@@ -156,6 +163,22 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .update(users)
       .set(data)
+      .where(eq(users.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async updateUserPassword(
+    id: number,
+    passwordHash: string,
+    options?: { clearInvitePending?: boolean },
+  ): Promise<User | undefined> {
+    const result = await db
+      .update(users)
+      .set({
+        password: passwordHash,
+        ...(options?.clearInvitePending ? { invitePending: false } : {}),
+      })
       .where(eq(users.id, id))
       .returning();
     return result[0];

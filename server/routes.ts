@@ -18,7 +18,9 @@ import {
   logoutHandler,
   getCurrentUserHandler,
   isAuthenticated,
-  createAdminUserHandler,
+  createAdminInviteHandler,
+  getInviteHandler,
+  completeInviteHandler,
   mfaVerifyHandler,
   mfaSetupHandler,
   mfaEnableHandler,
@@ -59,7 +61,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/mfa/verify", authLimiter, mfaVerifyHandler);
   app.post("/api/auth/mfa/setup", mfaSetupHandler);
   app.post("/api/auth/mfa/enable", authLimiter, mfaEnableHandler);
-  app.post("/api/auth/users", createAdminUserHandler);
+  app.post("/api/auth/invites", createAdminInviteHandler);
+  app.get("/api/auth/invite", getInviteHandler);
+  app.post("/api/auth/invite/complete", authLimiter, completeInviteHandler);
 
   // Authenticated upload serving (replaces public /uploads static)
   app.use("/api/uploads", (req: Request, res: Response) => {

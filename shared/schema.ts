@@ -18,6 +18,8 @@ export const users = pgTable("users", {
   totpSecret: text("totp_secret"),
   totpEnabled: boolean("totp_enabled").notNull().default(false),
   totpRecoveryCodes: json("totp_recovery_codes").$type<string[]>(),
+  /** True until the user finishes invite onboarding (set password + MFA). */
+  invitePending: boolean("invite_pending").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -25,6 +27,20 @@ export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   email: true,
   password: true,
+});
+
+export const createInviteSchema = z.object({
+  email: z.string().email(),
+  username: z.string().min(2).max(64).optional(),
+});
+
+export const completeInviteSchema = z.object({
+  token: z.string().min(1),
+  password: z.string().min(8, { message: "Password must be at least 8 characters" }),
+  confirmPassword: z.string().min(8),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
 });
 
 // Authentication schemas

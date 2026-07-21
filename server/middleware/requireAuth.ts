@@ -9,6 +9,8 @@ const PUBLIC_API_ROUTES: PublicRoute[] = [
   { method: "GET", pattern: /^\/api\/auth\/me\/?$/ },
   { method: "POST", pattern: /^\/api\/auth\/register\/?$/ },
   { method: "POST", pattern: /^\/api\/auth\/mfa\/verify\/?$/ },
+  { method: "GET", pattern: /^\/api\/auth\/invite\/?$/ },
+  { method: "POST", pattern: /^\/api\/auth\/invite\/complete\/?$/ },
   {
     method: "GET",
     pattern: /^\/api\/public\/appointments\/[^/]+\/deposit-status\/?$/,

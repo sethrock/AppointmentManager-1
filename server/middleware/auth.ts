@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { fromZodError } from "zod-validation-error";
 import {
+  completeInviteSchema,
+  createInviteSchema,
   insertUserSchema,
   loginSchema,
   mfaEnableSchema,
@@ -20,7 +22,13 @@ import {
   verifyMfaChallengeToken,
   verifyTotpCode,
 } from "../services/totpService";
+import {
+  buildInviteUrl,
+  createInviteToken,
+  verifyInviteToken,
+} from "../services/inviteService";
 import { compare, hash } from "bcrypt";
+import crypto from "crypto";
 
 declare module "express-session" {
   interface SessionData {
@@ -97,10 +105,13 @@ export async function registerHandler(req: Request, res: Response) {
   }
 }
 
-/** Create additional admin users (authenticated + MFA). */
-export async function createAdminUserHandler(req: Request, res: Response) {
+/**
+ * Create an invited admin (authenticated + MFA).
+ * Returns a one-time onboarding URL; the invitee chooses their password, then MFA.
+ */
+export async function createAdminInviteHandler(req: Request, res: Response) {
   try {
-    const parsedData = insertUserSchema.safeParse(req.body);
+    const parsedData = createInviteSchema.safeParse(req.body);
     if (!parsedData.success) {
       const validationError = fromZodError(parsedData.error);
       return res.status(400).json({
@@ -109,26 +120,110 @@ export async function createAdminUserHandler(req: Request, res: Response) {
       });
     }
 
-    const { username, email, password } = parsedData.data;
+    const email = parsedData.data.email.toLowerCase().trim();
+    const username =
+      parsedData.data.username?.trim() || email.split("@")[0] || "admin";
 
     if (await storage.getUserByEmail(email)) {
       return res.status(400).json({ message: "Email already in use" });
     }
     if (await storage.getUserByUsername(username)) {
-      return res.status(400).json({ message: "Username already in use" });
+      return res.status(400).json({
+        message: "Username already in use — pass a different username",
+      });
     }
 
-    const hashedPassword = await hashPassword(password);
+    // Placeholder password; invitee sets a real one during onboarding
+    const placeholder = await hashPassword(crypto.randomBytes(32).toString("hex"));
     const user = await storage.createUser({
       username,
       email,
-      password: hashedPassword,
+      password: placeholder,
+      invitePending: true,
     });
 
-    res.status(201).json({ user: toPublicUser(user) });
+    const token = createInviteToken(user.id);
+    const inviteUrl = buildInviteUrl(token);
+
+    res.status(201).json({
+      user: toPublicUser(user),
+      inviteUrl,
+      expiresInDays: 7,
+    });
   } catch (error) {
-    console.error("Error creating admin user:", error);
-    res.status(500).json({ message: "Failed to create user" });
+    console.error("Error creating admin invite:", error);
+    res.status(500).json({ message: "Failed to create invite" });
+  }
+}
+
+/** Public: resolve invite token to email for the onboarding page. */
+export async function getInviteHandler(req: Request, res: Response) {
+  try {
+    const token = typeof req.query.token === "string" ? req.query.token : "";
+    const userId = verifyInviteToken(token);
+    if (!userId) {
+      return res.status(403).json({ message: "Invalid or expired invite link" });
+    }
+
+    const user = await storage.getUser(userId);
+    if (!user || !user.invitePending) {
+      return res.status(403).json({
+        message: "This invite is no longer valid",
+      });
+    }
+
+    res.json({
+      email: user.email,
+      username: user.username,
+    });
+  } catch (error) {
+    console.error("Error loading invite:", error);
+    res.status(500).json({ message: "Failed to load invite" });
+  }
+}
+
+/** Public: set password from invite, then start MFA enrollment session. */
+export async function completeInviteHandler(req: Request, res: Response) {
+  try {
+    const parsed = completeInviteSchema.safeParse(req.body);
+    if (!parsed.success) {
+      const validationError = fromZodError(parsed.error);
+      return res.status(400).json({
+        message: "Validation error",
+        errors: validationError.details,
+      });
+    }
+
+    const userId = verifyInviteToken(parsed.data.token);
+    if (!userId) {
+      return res.status(403).json({ message: "Invalid or expired invite link" });
+    }
+
+    const user = await storage.getUser(userId);
+    if (!user || !user.invitePending) {
+      return res.status(403).json({
+        message: "This invite is no longer valid",
+      });
+    }
+
+    const hashedPassword = await hashPassword(parsed.data.password);
+    const updated = await storage.updateUserPassword(user.id, hashedPassword, {
+      clearInvitePending: true,
+    });
+    if (!updated) {
+      return res.status(500).json({ message: "Failed to set password" });
+    }
+
+    req.session.userId = updated.id;
+    req.session.mfaVerified = false;
+
+    res.json({
+      user: toPublicUser(updated),
+      needsMfaSetup: true,
+    });
+  } catch (error) {
+    console.error("Error completing invite:", error);
+    res.status(500).json({ message: "Failed to complete onboarding" });
   }
 }
 
@@ -147,6 +242,13 @@ export async function loginHandler(req: Request, res: Response) {
     const user = await storage.getUserByEmail(email);
     if (!user) {
       return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    if (user.invitePending) {
+      return res.status(403).json({
+        message:
+          "Account setup is incomplete. Open the invite link to choose a password and set up authenticator.",
+      });
     }
 
     const passwordValid = await comparePassword(password, user.password);

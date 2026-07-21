@@ -16,6 +16,7 @@ import Settings from "./pages/settings";
 import Analytics from "./pages/analytics";
 import AuthPage from "./pages/auth";
 import ConfirmDepositReturn from "./pages/confirm-deposit-return";
+import OnboardPage from "./pages/onboard";
 import AppLayout from "@/components/layout/AppLayout";
 import Clients from "./pages/clients";
 import ProvidersIndex from "./pages/providers/index";
@@ -128,6 +129,7 @@ function Router() {
       <Route path="/resources" component={ProtectedResources} />
       <Route path="/settings" component={ProtectedSettings} />
       <Route path="/auth" component={AuthPage} />
+      <Route path="/onboard" component={OnboardPage} />
       <Route path="/confirm-deposit-return/:id" component={ConfirmDepositReturn} />
       <Route component={NotFound} />
     </Switch>

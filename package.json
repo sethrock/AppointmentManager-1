@@ -14,7 +14,8 @@
     "db:migrate-clients": "tsx --env-file=.env server/scripts/migrateClients.ts",
     "db:link-clients": "tsx --env-file=.env server/scripts/linkAppointmentsToClients.ts",
     "test:import-financials": "tsx server/scripts/testImportFinancials.ts",
-    "db:seed-admin": "tsx --env-file=.env server/scripts/seedAdmin.ts"
+    "db:seed-admin": "tsx --env-file=.env server/scripts/seedAdmin.ts",
+    "db:invite-admin": "tsx --env-file=.env server/scripts/createAdminInvite.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.37.0",
