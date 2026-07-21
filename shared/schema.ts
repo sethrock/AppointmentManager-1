@@ -15,6 +15,11 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
+  totpSecret: text("totp_secret"),
+  totpEnabled: boolean("totp_enabled").notNull().default(false),
+  totpRecoveryCodes: json("totp_recovery_codes").$type<string[]>(),
+  /** True until the user finishes invite onboarding (set password + MFA). */
+  invitePending: boolean("invite_pending").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -24,10 +29,33 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
 });
 
+export const createInviteSchema = z.object({
+  email: z.string().email(),
+  username: z.string().min(2).max(64).optional(),
+});
+
+export const completeInviteSchema = z.object({
+  token: z.string().min(1),
+  password: z.string().min(8, { message: "Password must be at least 8 characters" }),
+  confirmPassword: z.string().min(8),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+});
+
 // Authentication schemas
 export const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
   password: z.string().min(6, { message: "Password must be at least 6 characters" }),
+});
+
+export const mfaVerifySchema = z.object({
+  mfaToken: z.string().min(1),
+  code: z.string().min(6).max(64),
+});
+
+export const mfaEnableSchema = z.object({
+  code: z.string().min(6).max(8),
 });
 
 // Provider schema - Expanded with HR fields
@@ -162,16 +190,16 @@ export const appointments = pgTable("appointments", {
   endTime: text("end_time"),
   callDuration: doublePrecision("call_duration"),
   
-  // Appointment Financials
-  grossRevenue: doublePrecision("projected_revenue"),
+  // Appointment Financials (DB column names match Replit export)
+  contractPrice: doublePrecision("projected_revenue"),
   travelExpense: doublePrecision("travel_expense").default(0),
   hostingExpense: doublePrecision("hosting_expense").default(0),
   inOutGoesTo: text("in_out_goes_to"), // 'agency' or 'provider'
-  totalExpenses: doublePrecision("total_expenses").default(0),
-  depositAmount: doublePrecision("deposit_amount").default(0),
+  totalDirectCosts: doublePrecision("total_expenses").default(0),
+  clientDeposit: doublePrecision("deposit_amount").default(0),
   depositReceivedBy: text("deposit_received_by"),
   paymentProcessUsed: text("payment_process_used"),
-  dueToProvider: doublePrecision("due_to_provider").default(0),
+  providerBalanceDue: doublePrecision("due_to_provider").default(0),
   
   // Client Notes
   hasClientNotes: boolean("has_client_notes").default(false),
@@ -181,11 +209,11 @@ export const appointments = pgTable("appointments", {
   dispositionStatus: text("disposition_status"), // 'Complete', 'Reschedule', 'Cancel'
   
   // Complete fields
-  totalCollectedCash: doublePrecision("total_collected_cash").default(0),
-  totalCollectedDigital: doublePrecision("total_collected_digital").default(0),
-  totalCollected: doublePrecision("total_collected").default(0),
-  overageAmount: doublePrecision("overage_amount").default(0),
-  underpaymentAmount: doublePrecision("underpayment_amount").default(0),
+  cashCollections: doublePrecision("total_collected_cash").default(0),
+  electronicCollections: doublePrecision("total_collected_digital").default(0),
+  totalClientCollections: doublePrecision("total_collected").default(0),
+  excessCollections: doublePrecision("overage_amount").default(0),
+  uncollectedContractBalance: doublePrecision("underpayment_amount").default(0),
   recognizedRevenue: doublePrecision("recognized_revenue").default(0),
   deferredRevenue: doublePrecision("deferred_revenue").default(0),
   realizedRevenue: doublePrecision("realized_revenue").default(0),
@@ -204,8 +232,8 @@ export const appointments = pgTable("appointments", {
   // Cancel fields
   whoCanceled: text("who_canceled"), // 'client' or 'provider'
   cancellationDetails: text("cancellation_details"),
-  depositReturnAmount: doublePrecision("deposit_return_amount").default(0),
-  expenseReimbursementAmount: doublePrecision("expense_reimbursement_amount").default(0),
+  depositRefundedToClient: doublePrecision("deposit_return_amount").default(0),
+  expenseReimbursementToClient: doublePrecision("expense_reimbursement_amount").default(0),
   depositReturned: boolean("deposit_returned").default(false),
   
   // Calendar integration
@@ -221,11 +249,11 @@ export const insertAppointmentSchema = createInsertSchema(appointments).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-  totalExpenses: true,
-  dueToProvider: true,
-  totalCollected: true,
-  overageAmount: true,
-  underpaymentAmount: true,
+  totalDirectCosts: true,
+  providerBalanceDue: true,
+  totalClientCollections: true,
+  excessCollections: true,
+  uncollectedContractBalance: true,
   recognizedRevenue: true,
   deferredRevenue: true,
   realizedRevenue: true
@@ -252,7 +280,7 @@ export const clients = pgTable("clients", {
   internalNotes: text("internal_notes"),
   communicationPreference: text("communication_preference"), // email, phone, text
   photoUrl: text("photo_url"),
-  totalRevenue: doublePrecision("total_revenue").default(0),
+  lifetimeGrossCashCollections: doublePrecision("total_revenue").default(0),
   appointmentCount: integer("appointment_count").default(0),
   lastAppointmentDate: timestamp("last_appointment_date"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -263,7 +291,7 @@ export const insertClientSchema = createInsertSchema(clients).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-  totalRevenue: true,
+  lifetimeGrossCashCollections: true,
   appointmentCount: true,
   lastAppointmentDate: true,
 });

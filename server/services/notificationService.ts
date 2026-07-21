@@ -1,5 +1,5 @@
 import { Appointment } from '@shared/schema';
-import { log } from '../vite';
+import { log } from '../logger';
 import { sendNewAppointmentNotification, sendStatusUpdateNotification } from './emailService';
 import { handleAppointmentCreated, handleAppointmentUpdated } from './calendarService';
 

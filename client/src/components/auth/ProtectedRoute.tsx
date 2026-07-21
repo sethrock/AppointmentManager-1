@@ -7,14 +7,15 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, needsMfaSetup, mfaVerified } = useAuth();
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (isLoading) return;
+    if (!isAuthenticated || needsMfaSetup || !mfaVerified) {
       setLocation("/auth");
     }
-  }, [isAuthenticated, isLoading, setLocation]);
+  }, [isAuthenticated, isLoading, needsMfaSetup, mfaVerified, setLocation]);
 
   if (isLoading) {
     return (
@@ -24,7 +25,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || needsMfaSetup || !mfaVerified) {
     return null;
   }
 

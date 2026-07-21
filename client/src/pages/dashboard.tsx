@@ -17,7 +17,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { computeDashboardMetrics, getAppointmentTotalCollected } from "@/lib/appointmentFinancials";
+import { computeDashboardMetrics, getAppointmentTotalClientCollections } from "@/lib/appointmentFinancials";
 import CollectionStatusBadge from "@/components/appointment/CollectionStatusBadge";
 
 export default function Dashboard() {
@@ -75,9 +75,9 @@ export default function Dashboard() {
         case "providerDesc":
           return b.provider.localeCompare(a.provider);
         case "revenueDesc":
-          return (b.grossRevenue || 0) - (a.grossRevenue || 0);
+          return (b.contractPrice || 0) - (a.contractPrice || 0);
         case "revenueAsc":
-          return (a.grossRevenue || 0) - (b.grossRevenue || 0);
+          return (a.contractPrice || 0) - (b.contractPrice || 0);
         default:
           return 0;
       }
@@ -126,11 +126,11 @@ export default function Dashboard() {
         </div>
       ) : (
         <div className="mb-8">
-          {/* Money We Control - Primary headline */}
+          {/* Gross Cash Collections - Primary headline */}
           <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5 backdrop-blur-sm overflow-hidden mb-6 shadow-lg">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg font-semibold text-primary">
-                Money We Control
+                Gross Cash Collections
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
@@ -140,9 +140,9 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <p className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                    {formatCurrency(stats.moneyWeControl)}
+                    {formatCurrency(stats.grossCashCollections)}
                   </p>
-                  <p className="text-sm text-muted-foreground font-medium mt-1">Actual cash collected</p>
+                  <p className="text-sm text-muted-foreground font-medium mt-1">Cash-basis collections under agency control</p>
                 </div>
               </div>
             </CardContent>
@@ -210,7 +210,7 @@ export default function Dashboard() {
             <Card className="border-border bg-card/50 backdrop-blur-sm overflow-hidden">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Projected Gross
+                  Booked Contract Value
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-2">
@@ -219,8 +219,8 @@ export default function Dashboard() {
                     <DollarSign className="h-5 w-5 text-[hsl(142,76%,36%)]" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">{formatCurrency(stats.projectedGross)}</p>
-                    <p className="text-xs text-muted-foreground">Total quoted pipeline</p>
+                    <p className="text-2xl font-bold">{formatCurrency(stats.bookedContractValue)}</p>
+                    <p className="text-xs text-muted-foreground">Sum of contract prices</p>
                   </div>
                 </div>
               </CardContent>
@@ -229,7 +229,7 @@ export default function Dashboard() {
             <Card className="border-border bg-card/50 backdrop-blur-sm overflow-hidden">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Completed Revenue
+                  Completed Engagement Collections
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-2">
@@ -238,8 +238,8 @@ export default function Dashboard() {
                     <DollarSign className="h-5 w-5 text-[hsl(200,76%,36%)]" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">{formatCurrency(stats.completedRevenue)}</p>
-                    <p className="text-xs text-muted-foreground">Finished appointments</p>
+                    <p className="text-2xl font-bold">{formatCurrency(stats.completedEngagementCollections)}</p>
+                    <p className="text-xs text-muted-foreground">Collections on completed engagements</p>
                   </div>
                 </div>
               </CardContent>
@@ -248,7 +248,7 @@ export default function Dashboard() {
             <Card className="border-border bg-card/50 backdrop-blur-sm overflow-hidden">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Cancel Revenue Kept
+                  Nonrefundable Deposits Retained
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-2">
@@ -257,8 +257,8 @@ export default function Dashboard() {
                     <DollarSign className="h-5 w-5 text-[hsl(0,76%,36%)]" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">{formatCurrency(stats.cancelRevenueKept)}</p>
-                    <p className="text-xs text-muted-foreground">Net deposits on cancels</p>
+                    <p className="text-2xl font-bold">{formatCurrency(stats.nonrefundableDepositsRetained)}</p>
+                    <p className="text-xs text-muted-foreground">Net deposits retained on cancels</p>
                   </div>
                 </div>
               </CardContent>
@@ -437,10 +437,10 @@ export default function Dashboard() {
                   </div>
                   <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mt-4 pt-3 border-t border-border">
                     <span className="text-sm font-medium">
-                      Projected Revenue: {formatCurrency(appointment.grossRevenue || 0)}
+                      Contract Price: {formatCurrency(appointment.contractPrice || 0)}
                       {(appointment.dispositionStatus === "Complete" || appointment.dispositionStatus === "Cancel") && (
                         <div className="text-xs text-muted-foreground mt-0.5">
-                          Total Collected: {formatCurrency(getAppointmentTotalCollected(appointment))}
+                          Total Client Collections: {formatCurrency(getAppointmentTotalClientCollections(appointment))}
                         </div>
                       )}
                       {appointment.dispositionStatus === "Complete" && (

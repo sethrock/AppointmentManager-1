@@ -199,8 +199,8 @@ function CompleteForm({
   const form = useForm({
     defaultValues: {
       dispositionStatus: "Complete" as const,
-      totalCollectedCash: 0,
-      totalCollectedDigital: 0,
+      cashCollections: 0,
+      electronicCollections: 0,
       seeClientAgain: true,
       paymentProcessor: "",
       paymentNotes: "",
@@ -239,8 +239,8 @@ function CompleteForm({
   
   // Submit handler
   function onSubmit(data: any) {
-    const cashAmount = parseFloat(data.totalCollectedCash) || 0;
-    const digitalAmount = parseFloat(data.totalCollectedDigital) || 0;
+    const cashAmount = parseFloat(data.cashCollections) || 0;
+    const digitalAmount = parseFloat(data.electronicCollections) || 0;
     
     if (cashAmount <= 0 && digitalAmount <= 0) {
       toast({
@@ -252,11 +252,11 @@ function CompleteForm({
     }
     
     // Prepare data with proper number types
-    // Server recomputes totalCollected (deposit + cash + digital) via computeAppointmentFinancials
+    // Server recomputes totalClientCollections (deposit + cash + digital) via computeAppointmentFinancials
     const submissionData = {
       ...data,
-      totalCollectedCash: cashAmount,
-      totalCollectedDigital: digitalAmount,
+      cashCollections: cashAmount,
+      electronicCollections: digitalAmount,
     };
     
     updateMutation.mutate(submissionData);
@@ -268,7 +268,7 @@ function CompleteForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="totalCollectedCash"
+            name="cashCollections"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="font-medium">Cash Collected</FormLabel>
@@ -282,7 +282,7 @@ function CompleteForm({
           
           <FormField
             control={form.control}
-            name="totalCollectedDigital"
+            name="electronicCollections"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="font-medium">Digital Collected</FormLabel>
@@ -418,8 +418,8 @@ function CancelForm({
     defaultValues: {
       dispositionStatus: "Cancel" as const,
       whoCanceled: "",
-      depositReturnAmount: 0,
-      expenseReimbursementAmount: 0,
+      depositRefundedToClient: 0,
+      expenseReimbursementToClient: 0,
       cancellationDetails: "",
     }
   });
@@ -497,19 +497,19 @@ function CancelForm({
         
         <FormField
           control={form.control}
-          name="depositReturnAmount"
+          name="depositRefundedToClient"
           render={({ field }) => (
             <FormItem>
               <FormLabel className="font-medium">Amount of Deposit to Return</FormLabel>
               <FormDescription>
-                Original deposit amount: {formatCurrency(appointment.depositAmount || 0)}
+                Original deposit amount: {formatCurrency(appointment.clientDeposit || 0)}
               </FormDescription>
               <FormControl>
                 <Input 
                   type="number" 
                   step="0.01"
                   min="0"
-                  max={appointment.depositAmount || 0}
+                  max={appointment.clientDeposit || 0}
                   placeholder="0.00"
                   {...field}
                   onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
@@ -522,7 +522,7 @@ function CancelForm({
 
         <FormField
           control={form.control}
-          name="expenseReimbursementAmount"
+          name="expenseReimbursementToClient"
           render={({ field }) => (
             <FormItem>
               <FormLabel className="font-medium">Travel/Hosting Reimbursement</FormLabel>

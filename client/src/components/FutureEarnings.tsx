@@ -193,13 +193,13 @@ export default function FutureEarnings({ appointments }: FutureEarningsProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Projected Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">Booked Contract Value</CardTitle>
             <DollarSign className="h-5 w-5 text-green-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(summary.projectedRevenue)}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              Gross revenue from {summary.appointmentCount} appointments
+              Sum of contract prices for {summary.appointmentCount} appointments
             </p>
             <Progress value={100} className="h-2 mt-2" />
           </CardContent>
@@ -304,7 +304,7 @@ export default function FutureEarnings({ appointments }: FutureEarningsProps) {
                   <Tooltip 
                     formatter={(value, name) => [
                       formatCurrency(Number(value)),
-                      'Projected Revenue'
+                      'Contract Price'
                     ]}
                   />
                   <Bar dataKey="projectedRevenue" fill="#10b981" />

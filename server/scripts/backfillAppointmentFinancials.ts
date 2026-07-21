@@ -27,24 +27,24 @@ async function main() {
   let updated = 0;
   for (const row of rows) {
     const financials = computeAppointmentFinancials({
-      grossRevenue: Number(row.projected_revenue) || 0,
-      depositAmount: Number(row.deposit_amount) || 0,
-      totalCollectedCash: Number(row.total_collected_cash) || 0,
-      totalCollectedDigital: Number(row.total_collected_digital) || 0,
+      contractPrice: Number(row.projected_revenue) || 0,
+      clientDeposit: Number(row.deposit_amount) || 0,
+      cashCollections: Number(row.total_collected_cash) || 0,
+      electronicCollections: Number(row.total_collected_digital) || 0,
       travelExpense: Number(row.travel_expense) || 0,
       hostingExpense: Number(row.hosting_expense) || 0,
       dispositionStatus: row.disposition_status,
-      depositReturnAmount: Number(row.deposit_return_amount) || 0,
-      expenseReimbursementAmount: Number(row.expense_reimbursement_amount) || 0,
+      depositRefundedToClient: Number(row.deposit_return_amount) || 0,
+      expenseReimbursementToClient: Number(row.expense_reimbursement_amount) || 0,
     });
 
     await sql`
       UPDATE appointments SET
-        total_expenses = ${financials.totalExpenses},
-        due_to_provider = ${financials.dueToProvider},
-        total_collected = ${financials.totalCollected},
-        overage_amount = ${financials.overageAmount},
-        underpayment_amount = ${financials.underpaymentAmount},
+        total_expenses = ${financials.totalDirectCosts},
+        due_to_provider = ${financials.providerBalanceDue},
+        total_collected = ${financials.totalClientCollections},
+        overage_amount = ${financials.excessCollections},
+        underpayment_amount = ${financials.uncollectedContractBalance},
         recognized_revenue = ${financials.recognizedRevenue},
         deferred_revenue = ${financials.deferredRevenue},
         realized_revenue = ${financials.realizedRevenue},

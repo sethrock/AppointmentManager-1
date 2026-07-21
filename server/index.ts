@@ -1,15 +1,21 @@
 import express, { type Request, Response, NextFunction } from "express";
+import type { Server } from "http";
+import helmet from "helmet";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+import { log } from "./logger";
+import { serveStatic } from "./static";
 import { storage, DatabaseStorage } from "./storage";
 import { db } from "./db";
 
 const app = express();
-app.use(express.json());
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+  }),
+);
+app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: false }));
-
-// Serve static files from uploads directory
-app.use('/uploads', express.static('uploads'));
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -41,19 +47,63 @@ app.use((req, res, next) => {
   next();
 });
 
-(async () => {
+let resolveReady: () => void;
+const ready = new Promise<void>((resolve) => {
+  resolveReady = resolve;
+});
+
+// Hold requests until routes/static are registered (needed for Vercel cold start)
+app.use(async (_req, _res, next) => {
+  await ready;
+  next();
+});
+
+let httpServer: Server;
+
+async function bootstrap() {
   try {
-    // Push schema to database
+    httpServer = await registerRoutes(app);
+
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+
+      res.status(status).json({ message });
+      throw err;
+    });
+
+    const isDev =
+      app.get("env") === "development" || process.env.NODE_ENV === "development";
+
+    if (isDev && !process.env.VERCEL) {
+      // Expression import so esbuild does not bundle vite/rollup into dist/index.js
+      const { pathToFileURL } = await import("url");
+      const { join } = await import("path");
+      const { setupVite } = await import(
+        pathToFileURL(join(import.meta.dirname, "vite.ts")).href
+      );
+      await setupVite(app, httpServer);
+    } else {
+      serveStatic(app);
+    }
+  } catch (error) {
+    log(`Error during bootstrap: ${(error as Error).message}`);
+    console.error(error);
+  } finally {
+    // Always open the gate so requests do not hang forever on cold start
+    resolveReady!();
+  }
+
+  try {
     log("Pushing database schema...");
     await db.execute(
       `CREATE TABLE IF NOT EXISTS _drizzle_migrations (
         id SERIAL PRIMARY KEY,
         hash text NOT NULL,
         created_at timestamp with time zone DEFAULT now()
-      )`
+      )`,
     );
-    
-    // Initialize default data
+
     log("Initializing default data...");
     if (storage instanceof DatabaseStorage) {
       await storage.initializeDefaultProviders();
@@ -62,35 +112,30 @@ app.use((req, res, next) => {
     log(`Error initializing database: ${(error as Error).message}`);
     console.error(error);
   }
+}
 
-  const server = await registerRoutes(app);
+const bootstrapPromise = bootstrap();
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+export default app;
 
-    res.status(status).json({ message });
-    throw err;
-  });
-
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
-  }
-
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
-})();
+// Local `tsx server/index.ts` listen path.
+// Production/Vercel uses root `server.js` which imports this app and listens on PORT.
+if (!process.env.VERCEL && process.env.npm_lifecycle_event !== "start") {
+  bootstrapPromise
+    .then(() => {
+      const port = Number(process.env.PORT) || 5050;
+      httpServer.listen(
+        {
+          port,
+          host: "0.0.0.0",
+        },
+        () => {
+          log(`serving on port ${port}`);
+        },
+      );
+    })
+    .catch((err) => {
+      console.error("Failed to start server:", err);
+      process.exit(1);
+    });
+}

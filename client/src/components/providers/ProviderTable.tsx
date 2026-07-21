@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Mail, Phone, Edit, Eye } from "lucide-react";
 import { Provider } from "@shared/schema";
 import StatusBadge from "./StatusBadge";
+import { authUploadUrl } from "@/lib/uploadUrl";
 
 interface ProviderTableProps {
   providers: Provider[];
@@ -50,7 +51,7 @@ export default function ProviderTable({ providers }: ProviderTableProps) {
                 <Link href={`/providers/${provider.id}`}>
                   <div className="flex items-center gap-3 cursor-pointer hover:text-primary">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={provider.photoUrl || undefined} />
+                      <AvatarImage src={authUploadUrl(provider.photoUrl)} />
                       <AvatarFallback className="text-xs">
                         {getInitials(provider.name)}
                       </AvatarFallback>

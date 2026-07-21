@@ -1,6 +1,6 @@
 import { db } from '../db';
 import { appointments } from '@shared/schema';
-import { log } from '../vite';
+import { log } from '../logger';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -9,15 +9,17 @@ import path from 'path';
  */
 export async function createAppointmentsBackup(): Promise<string> {
   try {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const timestamp = new Date().toISOString().replace(/[-:.]/g, '_');
     const backupTableName = `appointments_backup_${timestamp}`;
     
-    // Create backup table with current data
-    await db.execute(`CREATE TABLE ${backupTableName} AS SELECT * FROM appointments`);
+    // Create backup table with current data (quote identifier for safety)
+    await db.execute(`CREATE TABLE "${backupTableName}" AS SELECT * FROM appointments`);
     
     // Also export to JSON file for additional safety
     const currentData = await db.select().from(appointments);
-    const backupFilePath = path.join(process.cwd(), 'server/data', `backup_${timestamp}.json`);
+    const backupDir = path.join(process.cwd(), 'server/data');
+    await fs.mkdir(backupDir, { recursive: true });
+    const backupFilePath = path.join(backupDir, `backup_${timestamp}.json`);
     
     await fs.writeFile(backupFilePath, JSON.stringify(currentData, null, 2));
     
@@ -38,7 +40,7 @@ export async function restoreFromBackup(backupTableName: string): Promise<void> 
     await db.delete(appointments);
     
     // Restore from backup
-    await db.execute(`INSERT INTO appointments SELECT * FROM ${backupTableName}`);
+    await db.execute(`INSERT INTO appointments SELECT * FROM "${backupTableName}"`);
     
     log(`Restored appointments from backup: ${backupTableName}`);
   } catch (error) {

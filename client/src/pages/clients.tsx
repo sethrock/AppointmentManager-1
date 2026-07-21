@@ -200,12 +200,12 @@ export default function ClientsPage() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+              <CardTitle className="text-sm font-medium">Lifetime Gross Cash Collections</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {formatCurrency(data.clients.reduce((sum: number, c: Client) => sum + (c.totalRevenue || 0), 0))}
+                {formatCurrency(data.clients.reduce((sum: number, c: Client) => sum + (c.lifetimeGrossCashCollections || 0), 0))}
               </div>
             </CardContent>
           </Card>
@@ -276,7 +276,7 @@ export default function ClientsPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>{client.appointmentCount || 0}</TableCell>
-                    <TableCell>{formatCurrency(client.totalRevenue || 0)}</TableCell>
+                    <TableCell>{formatCurrency(client.lifetimeGrossCashCollections || 0)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1 text-sm">
                         <Calendar className="h-3 w-3" />

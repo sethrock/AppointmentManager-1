@@ -62,7 +62,7 @@ async function validateAndImportDatabase() {
     for (const record of cleanedData) {
       try {
         const finalRecord = prepareImportRecord(record);
-        await db.insert(appointments).values(finalRecord);
+        await db.insert(appointments).values(finalRecord as typeof appointments.$inferInsert);
         importedCount++;
       } catch (error) {
         errors.push(`Failed to import record ID ${record.id}: ${error}`);
@@ -140,21 +140,21 @@ function transformData(data: any[]): any[] {
       endDate: record.end_date,
       endTime: record.end_time,
       callDuration: record.call_duration,
-      grossRevenue: record.projected_revenue,
+      contractPrice: record.projected_revenue,
       travelExpense: record.travel_expense || 0,
       hostingExpense: record.hosting_expense || 0,
       inOutGoesTo: record.in_out_goes_to,
-      totalExpenses: record.total_expenses || 0,
-      depositAmount: record.deposit_amount || 0,
+      totalDirectCosts: record.total_expenses || 0,
+      clientDeposit: record.deposit_amount || 0,
       depositReceivedBy: record.deposit_received_by,
       paymentProcessUsed: record.payment_process_used,
-      dueToProvider: record.due_to_provider || 0,
+      providerBalanceDue: record.due_to_provider || 0,
       hasClientNotes: record.has_client_notes || false,
       clientNotes: record.client_notes,
       dispositionStatus: record.disposition_status,
-      totalCollectedCash: record.total_collected_cash || 0,
-      totalCollectedDigital: record.total_collected_digital || 0,
-      totalCollected: record.total_collected || 0,
+      cashCollections: record.total_collected_cash || 0,
+      electronicCollections: record.total_collected_digital || 0,
+      totalClientCollections: record.total_collected || 0,
       recognizedRevenue: record.recognized_revenue || 0,
       deferredRevenue: record.deferred_revenue || 0,
       realizedRevenue: record.realized_revenue || 0,
@@ -168,7 +168,7 @@ function transformData(data: any[]): any[] {
       updatedEndTime: record.updated_end_time,
       whoCanceled: record.who_canceled,
       cancellationDetails: record.cancellation_details,
-      depositReturnAmount: record.deposit_return_amount || 0,
+      depositRefundedToClient: record.deposit_return_amount || 0,
       depositReturned: record.deposit_returned || false,
       calendarEventId: record.calendar_event_id
     };

@@ -129,29 +129,36 @@ async function migrateClientsFromAppointments() {
         }
       }
       
-      // Calculate metrics
+      // Calculate metrics (cash-basis: collections on completed engagements only)
       const appointmentCount = clientAppointments.length;
-      const totalRevenue = clientAppointments.reduce((sum, apt) => {
-        // Use recognized revenue if completed, otherwise use projected revenue
-        if (apt.dispositionStatus === 'Complete' && apt.recognizedRevenue) {
-          return sum + apt.recognizedRevenue;
-        } else if (apt.grossRevenue) {
-          return sum + apt.grossRevenue;
+      const lifetimeGrossCashCollections = clientAppointments.reduce((sum, apt) => {
+        if (apt.dispositionStatus === 'Complete') {
+          const collections =
+            (Number(apt.clientDeposit) || 0) +
+            (Number(apt.cashCollections) || 0) +
+            (Number(apt.electronicCollections) || 0);
+          return sum + collections;
         }
         return sum;
       }, 0);
       
-      // Find last appointment date
-      const lastAppointmentDate = clientAppointments
+      // Find last appointment date (skip invalid date strings from export)
+      const validDates = clientAppointments
         .map(apt => new Date(apt.updatedStartDate || apt.startDate))
-        .sort((a, b) => b.getTime() - a.getTime())[0];
+        .filter(d => !Number.isNaN(d.getTime()))
+        .sort((a, b) => b.getTime() - a.getTime());
+      const lastAppointmentDate = validDates[0] ?? null;
       
       // Determine client status based on activity
-      const daysSinceLastAppointment = (Date.now() - lastAppointmentDate.getTime()) / (1000 * 60 * 60 * 24);
       let status = 'active';
-      if (daysSinceLastAppointment > 180) {
-        status = 'inactive';
-      } else if (totalRevenue > 5000 || appointmentCount > 10) {
+      if (lastAppointmentDate) {
+        const daysSinceLastAppointment = (Date.now() - lastAppointmentDate.getTime()) / (1000 * 60 * 60 * 24);
+        if (daysSinceLastAppointment > 180) {
+          status = 'inactive';
+        } else if (lifetimeGrossCashCollections > 5000 || appointmentCount > 10) {
+          status = 'vip';
+        }
+      } else if (lifetimeGrossCashCollections > 5000 || appointmentCount > 10) {
         status = 'vip';
       }
       
@@ -183,7 +190,7 @@ async function migrateClientsFromAppointments() {
               zipCode: zipCode || existingClient.zipCode,
               marketingChannel: marketingChannel || existingClient.marketingChannel,
               status: status,
-              totalRevenue: totalRevenue,
+              lifetimeGrossCashCollections: lifetimeGrossCashCollections,
               appointmentCount: appointmentCount,
               lastAppointmentDate: lastAppointmentDate,
               internalNotes: hasNotes ? [...clientNotes, existingClient.internalNotes || ""].filter(Boolean).join("\n---\n") : existingClient.internalNotes,
@@ -208,7 +215,7 @@ async function migrateClientsFromAppointments() {
               zipCode: zipCode,
               marketingChannel: marketingChannel,
               status: status,
-              totalRevenue: totalRevenue,
+              lifetimeGrossCashCollections: lifetimeGrossCashCollections,
               appointmentCount: appointmentCount,
               lastAppointmentDate: lastAppointmentDate,
               internalNotes: hasNotes ? clientNotes.join("\n---\n") : null,
@@ -247,7 +254,7 @@ async function migrateClientsFromAppointments() {
         active: sql<number>`count(*) filter (where status = 'active')::int`,
         inactive: sql<number>`count(*) filter (where status = 'inactive')::int`,
         vip: sql<number>`count(*) filter (where status = 'vip')::int`,
-        totalRevenue: sql<number>`sum(total_revenue)`
+        lifetimeGrossCashCollections: sql<number>`sum(total_revenue)`
       })
       .from(clients);
     
@@ -256,7 +263,7 @@ async function migrateClientsFromAppointments() {
     console.log(`Active: ${clientStats[0].active}`);
     console.log(`Inactive: ${clientStats[0].inactive}`);
     console.log(`VIP: ${clientStats[0].vip}`);
-    console.log(`Total Revenue: $${clientStats[0].totalRevenue?.toFixed(2) || '0.00'}`);
+    console.log(`Lifetime Gross Cash Collections: $${clientStats[0].lifetimeGrossCashCollections?.toFixed(2) || '0.00'}`);
     
   } catch (error) {
     console.error("Migration failed:", error);

@@ -1,9 +1,8 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
+import { Pool, neon, neonConfig } from "@neondatabase/serverless";
+import { drizzle as drizzleWs } from "drizzle-orm/neon-serverless";
+import { drizzle as drizzleHttp } from "drizzle-orm/neon-http";
 import ws from "ws";
 import * as schema from "@shared/schema";
-
-neonConfig.webSocketConstructor = ws;
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -11,5 +10,18 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle(pool, { schema });
+const connectionString = process.env.DATABASE_URL;
+
+// Session store and any raw pool usage. On Vercel, force HTTP so WebSockets cannot hang.
+if (process.env.VERCEL) {
+  neonConfig.poolQueryViaFetch = true;
+} else {
+  neonConfig.webSocketConstructor = ws;
+}
+
+export const pool = new Pool({ connectionString });
+
+// Drizzle: HTTP on Vercel (serverless-safe), WebSocket Pool locally.
+export const db = process.env.VERCEL
+  ? drizzleHttp(neon(connectionString), { schema })
+  : drizzleWs(pool, { schema });

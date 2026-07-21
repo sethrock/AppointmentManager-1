@@ -27,7 +27,7 @@ import {
 } from "recharts";
 import { useState, useMemo } from "react";
 import FutureEarnings from "@/components/FutureEarnings";
-import { computeDashboardMetrics, getAppointmentTotalCollected } from "@/lib/appointmentFinancials";
+import { computeDashboardMetrics, getAppointmentTotalClientCollections } from "@/lib/appointmentFinancials";
 
 export default function Analytics() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
@@ -88,9 +88,9 @@ export default function Analytics() {
       ).length;
       
       const dash = computeDashboardMetrics(apts);
-      const revenue = dash.completedRevenue;
-      const projected = dash.projectedGross;
-      const recognized = dash.moneyWeControl;
+      const revenue = dash.completedEngagementCollections;
+      const projected = dash.bookedContractValue;
+      const recognized = dash.grossCashCollections;
       
       const avgValue = completed > 0 ? revenue / completed : 0;
       const completion = total > 0 ? (completed / total) * 100 : 0;
@@ -101,11 +101,11 @@ export default function Analytics() {
         completedAppointments: completed,
         cancelledAppointments: cancelled,
         scheduledAppointments: scheduled,
-        totalRevenue: revenue,
+        lifetimeGrossCashCollections: revenue,
         projectedRevenue: projected,
         recognizedRevenue: recognized,
-        moneyWeControl: recognized,
-        projectedGross: projected,
+        grossCashCollections: recognized,
+        bookedContractValue: projected,
         averageAppointmentValue: avgValue,
         completionRate: completion,
         uniqueClients: clients
@@ -130,7 +130,7 @@ export default function Analytics() {
         const date = new Date(apt.startDate);
         if (!isNaN(date.getTime())) {
           const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-          acc[monthKey] = (acc[monthKey] || 0) + getAppointmentTotalCollected(apt);
+          acc[monthKey] = (acc[monthKey] || 0) + getAppointmentTotalClientCollections(apt);
         }
       }
       return acc;
@@ -170,7 +170,7 @@ export default function Analytics() {
       acc[provider].totalDuration += apt.callDuration || 0;
       if (apt.dispositionStatus === 'Complete') {
         acc[provider].completed++;
-        acc[provider].revenue += getAppointmentTotalCollected(apt);
+        acc[provider].revenue += getAppointmentTotalClientCollections(apt);
       }
       return acc;
     }, {} as Record<string, any>);
@@ -190,7 +190,7 @@ export default function Analytics() {
       acc[channel].appointments++;
       if (apt.dispositionStatus === 'Complete') {
         acc[channel].completed++;
-        acc[channel].revenue += getAppointmentTotalCollected(apt);
+        acc[channel].revenue += getAppointmentTotalClientCollections(apt);
       }
       return acc;
     }, {} as Record<string, any>);
@@ -210,7 +210,7 @@ export default function Analytics() {
         }
         acc[day].appointments++;
         if (apt.dispositionStatus === 'Complete') {
-          acc[day].revenue += getAppointmentTotalCollected(apt);
+          acc[day].revenue += getAppointmentTotalClientCollections(apt);
         }
         return acc;
       }, {} as Record<string, any>);
@@ -296,14 +296,14 @@ export default function Analytics() {
 
   const kpiCards = [
     {
-      title: "Total Revenue",
-      value: formatCurrency(metrics.totalRevenue),
+      title: "Lifetime Gross Cash Collections",
+      value: formatCurrency(metrics.lifetimeGrossCashCollections),
       description: "Completed appointments",
       icon: DollarSign,
-      progress: metrics.projectedRevenue > 0 ? (metrics.totalRevenue / metrics.projectedRevenue) * 100 : 0,
+      progress: metrics.bookedContractValue > 0 ? (metrics.lifetimeGrossCashCollections / metrics.bookedContractValue) * 100 : 0,
       color: "text-green-600",
-      comparisonValue: comparisonMetrics ? formatCurrency(comparisonMetrics.totalRevenue) : null,
-      change: comparisonMetrics ? calculateChange(metrics.totalRevenue, comparisonMetrics.totalRevenue) : null
+      comparisonValue: comparisonMetrics ? formatCurrency(comparisonMetrics.lifetimeGrossCashCollections) : null,
+      change: comparisonMetrics ? calculateChange(metrics.lifetimeGrossCashCollections, comparisonMetrics.lifetimeGrossCashCollections) : null
     },
     {
       title: "Completion Rate",
@@ -496,24 +496,24 @@ export default function Analytics() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Total Collected</CardTitle>
+                  <CardTitle className="text-sm font-medium">Total Client Collections</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-green-600">
-                    {formatCurrency(metrics.totalRevenue)}
+                    {formatCurrency(metrics.lifetimeGrossCashCollections)}
                   </div>
                   <p className="text-xs text-muted-foreground">From completed appointments</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Projected Revenue</CardTitle>
+                  <CardTitle className="text-sm font-medium">Booked Contract Value</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-blue-600">
-                    {formatCurrency(metrics.projectedRevenue)}
+                    {formatCurrency(metrics.bookedContractValue)}
                   </div>
-                  <p className="text-xs text-muted-foreground">Total potential revenue</p>
+                  <p className="text-xs text-muted-foreground">Sum of contract prices</p>
                 </CardContent>
               </Card>
               <Card>
@@ -612,9 +612,9 @@ export default function Analytics() {
                   <div>
                     <div className="flex justify-between text-sm mb-1">
                       <span>Monthly Revenue Goal</span>
-                      <span>{formatCurrency(metrics.totalRevenue)} / {formatCurrency(100000)}</span>
+                      <span>{formatCurrency(metrics.lifetimeGrossCashCollections)} / {formatCurrency(100000)}</span>
                     </div>
-                    <Progress value={(metrics.totalRevenue / 100000) * 100} />
+                    <Progress value={(metrics.lifetimeGrossCashCollections / 100000) * 100} />
                   </div>
                   <div>
                     <div className="flex justify-between text-sm mb-1">
@@ -648,7 +648,7 @@ export default function Analytics() {
                     <CheckCircle className="h-5 w-5 text-green-600" />
                     <div>
                       <div className="font-medium text-green-900">Revenue Milestone</div>
-                      <div className="text-sm text-green-700">Collected {formatCurrency(metrics.totalRevenue)} total</div>
+                      <div className="text-sm text-green-700">Collected {formatCurrency(metrics.lifetimeGrossCashCollections)} total</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">

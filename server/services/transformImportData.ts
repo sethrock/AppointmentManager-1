@@ -40,18 +40,18 @@ export function transformAppointmentData(inputData: any[]): any[] {
       // Fix numeric fields with NaN values
       hostingExpense: isNaN(item.hostingExpense) ? 0 : item.hostingExpense,
       travelExpense: isNaN(item.travelExpense) ? 0 : item.travelExpense,
-      grossRevenue: isNaN(item.grossRevenue) ? 0 : item.grossRevenue,
-      depositAmount: isNaN(item.depositAmount) ? 0 : item.depositAmount,
+      contractPrice: isNaN(item.contractPrice) ? 0 : item.contractPrice,
+      clientDeposit: isNaN(item.clientDeposit) ? 0 : item.clientDeposit,
       
       // Ensure seeClientAgain is a boolean
       seeClientAgain: typeof item.seeClientAgain === 'string' ? 
                        item.seeClientAgain === 'Yes' : item.seeClientAgain,
       
       // Ensure all numeric values that should be strings are converted
-      totalCollectedCash: typeof item.totalCollectedCash === 'number' ? 
-                         String(item.totalCollectedCash) : item.totalCollectedCash,
-      totalCollectedDigital: typeof item.totalCollectedDigital === 'number' ? 
-                            String(item.totalCollectedDigital) : item.totalCollectedDigital
+      cashCollections: typeof item.cashCollections === 'number' ? 
+                         String(item.cashCollections) : item.cashCollections,
+      electronicCollections: typeof item.electronicCollections === 'number' ? 
+                            String(item.electronicCollections) : item.electronicCollections
     };
     
     return transformed;

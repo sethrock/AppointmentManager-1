@@ -37,7 +37,20 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  createUser(user: InsertUser & { invitePending?: boolean }): Promise<User>;
+  updateUserTotp(
+    id: number,
+    data: {
+      totpSecret?: string | null;
+      totpEnabled?: boolean;
+      totpRecoveryCodes?: string[] | null;
+    },
+  ): Promise<User | undefined>;
+  updateUserPassword(
+    id: number,
+    passwordHash: string,
+    options?: { clearInvitePending?: boolean },
+  ): Promise<User | undefined>;
   
   // Provider operations
   getProviders(): Promise<Provider[]>;
@@ -132,8 +145,42 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
   
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async createUser(
+    insertUser: InsertUser & { invitePending?: boolean },
+  ): Promise<User> {
     const result = await db.insert(users).values(insertUser).returning();
+    return result[0];
+  }
+
+  async updateUserTotp(
+    id: number,
+    data: {
+      totpSecret?: string | null;
+      totpEnabled?: boolean;
+      totpRecoveryCodes?: string[] | null;
+    },
+  ): Promise<User | undefined> {
+    const result = await db
+      .update(users)
+      .set(data)
+      .where(eq(users.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async updateUserPassword(
+    id: number,
+    passwordHash: string,
+    options?: { clearInvitePending?: boolean },
+  ): Promise<User | undefined> {
+    const result = await db
+      .update(users)
+      .set({
+        password: passwordHash,
+        ...(options?.clearInvitePending ? { invitePending: false } : {}),
+      })
+      .where(eq(users.id, id))
+      .returning();
     return result[0];
   }
   
@@ -637,11 +684,11 @@ export class DatabaseStorage implements IStorage {
 
     const result = await db.insert(appointments).values({
       ...insertAppointment,
-      totalExpenses: financials.totalExpenses,
-      dueToProvider: financials.dueToProvider,
-      totalCollected: financials.totalCollected,
-      overageAmount: financials.overageAmount,
-      underpaymentAmount: financials.underpaymentAmount,
+      totalDirectCosts: financials.totalDirectCosts,
+      providerBalanceDue: financials.providerBalanceDue,
+      totalClientCollections: financials.totalClientCollections,
+      excessCollections: financials.excessCollections,
+      uncollectedContractBalance: financials.uncollectedContractBalance,
       recognizedRevenue: financials.recognizedRevenue,
       deferredRevenue: financials.deferredRevenue,
       realizedRevenue: financials.realizedRevenue,
@@ -675,15 +722,15 @@ export class DatabaseStorage implements IStorage {
     }
 
     // If no deposit return amount is set, default to full deposit return
-    // Use deposit amount as the default return amount if depositReturnAmount is null or 0
-    const depositReturnAmount = (appointment.depositReturnAmount && appointment.depositReturnAmount > 0) 
-      ? appointment.depositReturnAmount 
-      : (appointment.depositAmount ?? 0);
+    // Use deposit amount as the default return amount if depositRefundedToClient is null or 0
+    const depositRefundedToClient = (appointment.depositRefundedToClient && appointment.depositRefundedToClient > 0) 
+      ? appointment.depositRefundedToClient 
+      : (appointment.clientDeposit ?? 0);
 
     // Update the appointment with proper financial calculations
     const updated = await this.updateAppointment(id, {
       depositReturned: true,
-      depositReturnAmount: depositReturnAmount,
+      depositRefundedToClient: depositRefundedToClient,
       dispositionStatus: 'Cancel' // Ensure it's marked as cancelled
     });
 
@@ -728,11 +775,11 @@ export class DatabaseStorage implements IStorage {
     const result = await db.update(appointments)
       .set({
         ...updateData,
-        totalExpenses: financials.totalExpenses,
-        dueToProvider: financials.dueToProvider,
-        totalCollected: financials.totalCollected,
-        overageAmount: financials.overageAmount,
-        underpaymentAmount: financials.underpaymentAmount,
+        totalDirectCosts: financials.totalDirectCosts,
+        providerBalanceDue: financials.providerBalanceDue,
+        totalClientCollections: financials.totalClientCollections,
+        excessCollections: financials.excessCollections,
+        uncollectedContractBalance: financials.uncollectedContractBalance,
         recognizedRevenue: financials.recognizedRevenue,
         deferredRevenue: financials.deferredRevenue,
         realizedRevenue: financials.realizedRevenue,
@@ -817,7 +864,7 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getClientByPhone(phone: string): Promise<Client | undefined> {
-    const result = await db.select().from(clients).where(eq(clients.phone, phone));
+    const result = await db.select().from(clients).where(eq(clients.phoneNumber, phone));
     return result[0];
   }
   
@@ -855,14 +902,14 @@ export class DatabaseStorage implements IStorage {
     const clientAppointments = await this.getClientAppointments(clientId);
     
     // Calculate total revenue and appointment count
-    let totalRevenue = 0;
+    let lifetimeGrossCashCollections = 0;
     let appointmentCount = 0;
     let lastAppointmentDate: Date | null = null;
     
     for (const appointment of clientAppointments) {
       if (appointment.dispositionStatus === 'Complete') {
         const f = computeAppointmentFinancials(appointment);
-        totalRevenue += f.completedRevenue;
+        lifetimeGrossCashCollections += f.completedEngagementCollections;
       }
       appointmentCount++;
       
@@ -876,7 +923,7 @@ export class DatabaseStorage implements IStorage {
     await db
       .update(clients)
       .set({
-        totalRevenue,
+        lifetimeGrossCashCollections,
         appointmentCount,
         lastAppointmentDate,
         updatedAt: new Date()

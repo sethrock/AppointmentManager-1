@@ -4,7 +4,7 @@ export {
   getCollectionStatus,
   applyAppointmentFinancials,
   prepareImportRecord,
-  getAppointmentTotalCollected,
+  getAppointmentTotalClientCollections,
   COMPUTED_FINANCIAL_KEYS,
   type ComputedFinancials,
   type DashboardMetrics,

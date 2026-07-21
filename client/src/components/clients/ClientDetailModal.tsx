@@ -240,9 +240,9 @@ export default function ClientDetailModal({
                 </CardHeader>
                 <CardContent className="grid grid-cols-2 gap-4">
                   <div>
-                    <div className="text-sm text-muted-foreground">Total Revenue</div>
+                    <div className="text-sm text-muted-foreground">Lifetime Gross Cash Collections</div>
                     <div className="text-2xl font-semibold">
-                      {formatCurrency(client.totalRevenue || 0)}
+                      {formatCurrency(client.lifetimeGrossCashCollections || 0)}
                     </div>
                   </div>
                   <div>
@@ -334,7 +334,7 @@ export default function ClientDetailModal({
                               Provider: {appointment.provider}
                             </div>
                             <div className="text-sm">
-                              Revenue: {formatCurrency(appointment.grossRevenue || 0)}
+                              Revenue: {formatCurrency(appointment.contractPrice || 0)}
                             </div>
                           </div>
                           <Button

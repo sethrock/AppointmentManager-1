@@ -19,7 +19,7 @@ import { AlertCircle, Calendar, Clock, ArrowLeft, Trash2 } from "lucide-react";
 import AppointmentDetail from "@/components/appointment/AppointmentDetail";
 import AppointmentStatus from "@/components/appointment/AppointmentStatus";
 import CollectionStatusBadge from "@/components/appointment/CollectionStatusBadge";
-import { computeAppointmentFinancials, getAppointmentTotalCollected } from "@/lib/appointmentFinancials";
+import { computeAppointmentFinancials, getAppointmentTotalClientCollections } from "@/lib/appointmentFinancials";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -232,18 +232,18 @@ export default function AppointmentDetailPage() {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Projected Revenue
+                  Contract Price
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-lg font-medium">
-                  {formatCurrency(appointment.grossRevenue || 0)}
+                  {formatCurrency(appointment.contractPrice || 0)}
                 </div>
-                {getAppointmentTotalCollected(appointment) > 0 && (
+                {getAppointmentTotalClientCollections(appointment) > 0 && (
                   <div className="mt-2 space-y-2">
-                    <div className="text-xs text-muted-foreground">Total Collected:</div>
+                    <div className="text-xs text-muted-foreground">Total Client Collections:</div>
                     <div className="text-sm font-medium">
-                      {formatCurrency(getAppointmentTotalCollected(appointment))}
+                      {formatCurrency(getAppointmentTotalClientCollections(appointment))}
                     </div>
                     <CollectionStatusBadge appointment={appointment} />
                   </div>
@@ -281,20 +281,20 @@ export default function AppointmentDetailPage() {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Projected Revenue</h3>
-                      <p className="text-lg font-medium">{formatCurrency(appointment.grossRevenue || 0)}</p>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Contract Price</h3>
+                      <p className="text-lg font-medium">{formatCurrency(appointment.contractPrice || 0)}</p>
                     </div>
                     
                     <div>
-                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Total Expenses</h3>
-                      <p className="text-lg font-medium">{formatCurrency(appointment.totalExpenses || 0)}</p>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Total Direct Costs</h3>
+                      <p className="text-lg font-medium">{formatCurrency(appointment.totalDirectCosts || 0)}</p>
                     </div>
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Deposit Amount</h3>
-                      <p className="text-lg font-medium">{formatCurrency(appointment.depositAmount || 0)}</p>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Client Deposit</h3>
+                      <p className="text-lg font-medium">{formatCurrency(appointment.clientDeposit || 0)}</p>
                       {appointment.depositReceivedBy && (
                         <p className="text-xs text-muted-foreground">
                           Received by: {appointment.depositReceivedBy}
@@ -309,7 +309,7 @@ export default function AppointmentDetailPage() {
                     
                     <div>
                       <h3 className="text-sm font-medium text-muted-foreground mb-1">Due To Provider</h3>
-                      <p className="text-lg font-medium">{formatCurrency(appointment.dueToProvider || 0)}</p>
+                      <p className="text-lg font-medium">{formatCurrency(appointment.providerBalanceDue || 0)}</p>
                     </div>
                   </div>
                   
@@ -320,17 +320,17 @@ export default function AppointmentDetailPage() {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                           <h4 className="text-sm font-medium text-muted-foreground mb-1">Cash Collected</h4>
-                          <p className="text-lg font-medium">{formatCurrency(appointment.totalCollectedCash || 0)}</p>
+                          <p className="text-lg font-medium">{formatCurrency(appointment.cashCollections || 0)}</p>
                         </div>
                         
                         <div>
                           <h4 className="text-sm font-medium text-muted-foreground mb-1">Digital Collected</h4>
-                          <p className="text-lg font-medium">{formatCurrency(appointment.totalCollectedDigital || 0)}</p>
+                          <p className="text-lg font-medium">{formatCurrency(appointment.electronicCollections || 0)}</p>
                         </div>
                         
                         <div>
-                          <h4 className="text-sm font-medium text-muted-foreground mb-1">Total Collected</h4>
-                          <p className="text-lg font-medium">{formatCurrency(getAppointmentTotalCollected(appointment))}</p>
+                          <h4 className="text-sm font-medium text-muted-foreground mb-1">Total Client Collections</h4>
+                          <p className="text-lg font-medium">{formatCurrency(getAppointmentTotalClientCollections(appointment))}</p>
                         </div>
                       </div>
 
@@ -338,16 +338,16 @@ export default function AppointmentDetailPage() {
                         const f = computeAppointmentFinancials(appointment);
                         return (
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                            {f.overageAmount > 0 && (
+                            {f.excessCollections > 0 && (
                               <div>
-                                <h4 className="text-sm font-medium text-muted-foreground mb-1">Overage</h4>
-                                <p className="text-lg font-medium text-emerald-600">+{formatCurrency(f.overageAmount)}</p>
+                                <h4 className="text-sm font-medium text-muted-foreground mb-1">Excess Collections</h4>
+                                <p className="text-lg font-medium text-emerald-600">+{formatCurrency(f.excessCollections)}</p>
                               </div>
                             )}
-                            {f.isUnderpayment && (
+                            {f.hasUncollectedBalance && (
                               <div>
-                                <h4 className="text-sm font-medium text-muted-foreground mb-1">Underpayment</h4>
-                                <p className="text-lg font-medium text-destructive">−{formatCurrency(f.underpaymentAmount)}</p>
+                                <h4 className="text-sm font-medium text-muted-foreground mb-1">Uncollected Contract Balance</h4>
+                                <p className="text-lg font-medium text-destructive">−{formatCurrency(f.uncollectedContractBalance)}</p>
                               </div>
                             )}
                           </div>
@@ -407,12 +407,12 @@ export default function AppointmentDetailPage() {
                         <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
                           <h4 className="text-sm font-medium text-yellow-800 mb-2">Deposit Return Information</h4>
                           <div className="space-y-1 text-sm">
-                            <p><span className="text-muted-foreground">Original Deposit:</span> {formatCurrency(appointment.depositAmount || 0)}</p>
-                            <p><span className="text-muted-foreground">Deposit Return:</span> {formatCurrency(appointment.depositReturnAmount || 0)}</p>
-                            {(appointment.expenseReimbursementAmount || 0) > 0 && (
-                              <p><span className="text-muted-foreground">Expense Reimbursement:</span> {formatCurrency(appointment.expenseReimbursementAmount || 0)}</p>
+                            <p><span className="text-muted-foreground">Original Deposit:</span> {formatCurrency(appointment.clientDeposit || 0)}</p>
+                            <p><span className="text-muted-foreground">Deposit Return:</span> {formatCurrency(appointment.depositRefundedToClient || 0)}</p>
+                            {(appointment.expenseReimbursementToClient || 0) > 0 && (
+                              <p><span className="text-muted-foreground">Expense Reimbursement to Client:</span> {formatCurrency(appointment.expenseReimbursementToClient || 0)}</p>
                             )}
-                            <p><span className="text-muted-foreground">Revenue Kept:</span> {formatCurrency(computeAppointmentFinancials(appointment).cancelRevenueKept)}</p>
+                            <p><span className="text-muted-foreground">Revenue Kept:</span> {formatCurrency(computeAppointmentFinancials(appointment).nonrefundableDepositsRetained)}</p>
                             <p className="flex items-center gap-1">
                               <span className="text-muted-foreground">Refund Status:</span>
                               {appointment.depositReturned ? (

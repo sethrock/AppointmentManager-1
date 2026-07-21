@@ -20,8 +20,8 @@ export interface ExtractedAppointmentData {
   endDate?: string;
   endTime?: string;
   callDuration?: number;
-  grossRevenue?: number;
-  depositAmount?: number;
+  contractPrice?: number;
+  clientDeposit?: number;
   clientNotes?: string;
   marketingChannel?: string;
   provider?: string;
@@ -60,8 +60,8 @@ Here are the fields you need to extract (use null for any field you cannot deter
 - endDate: The appointment end date in YYYY-MM-DD format (same as startDate if not specified)
 - endTime: The appointment end time in HH:MM format (24-hour)
 - callDuration: Duration in hours (e.g., 1, 1.5, 2, 2.5, 3)
-- grossRevenue: The total price/rate discussed (number only, no $ sign)
-- depositAmount: The deposit amount if mentioned (number only)
+- contractPrice: The total price/rate discussed (number only, no $ sign)
+- clientDeposit: The deposit amount if mentioned (number only)
 - clientNotes: Any special requests, preferences, or important notes about the client
 - marketingChannel: The platform the conversation originated from. Must be one of: "Private Delights", "Eros", "Tryst", "P411", "Slixa", "Instagram", "X", "Referral". Infer from context clues if possible.
 - provider: The provider's name if mentioned
@@ -252,8 +252,8 @@ function parseAIResponse(responseText: string): ExtractedAppointmentData {
   if (parsed.endDate) result.endDate = String(parsed.endDate);
   if (parsed.endTime) result.endTime = String(parsed.endTime);
   if (parsed.callDuration != null) result.callDuration = Number(parsed.callDuration);
-  if (parsed.grossRevenue != null) result.grossRevenue = Number(parsed.grossRevenue);
-  if (parsed.depositAmount != null) result.depositAmount = Number(parsed.depositAmount);
+  if (parsed.contractPrice != null) result.contractPrice = Number(parsed.contractPrice);
+  if (parsed.clientDeposit != null) result.clientDeposit = Number(parsed.clientDeposit);
   if (parsed.clientNotes) {
     result.clientNotes = String(parsed.clientNotes);
     result.hasClientNotes = true;

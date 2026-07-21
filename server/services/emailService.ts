@@ -1,7 +1,9 @@
 import nodemailer from 'nodemailer';
 import { Appointment } from '@shared/schema';
-import { log } from '../vite';
+import { log } from '../logger';
 import { formatDate, formatTime } from '../../client/src/lib/format';
+import { getAppointmentTotalClientCollections } from '../../shared/appointmentFinancials.js';
+import { generateDepositConfirmToken } from '../middleware/depositToken';
 
 // Create reusable transporter object using SMTP transport
 const createTransporter = () => {
@@ -77,8 +79,8 @@ export function generateNewAppointmentEmail(appointment: Appointment): string {
     : "No notes provided";
   
   // Calculate due to provider (if not directly available)
-  const dueToProvider = appointment.dueToProvider || 
-    ((appointment.grossRevenue || 0) - (appointment.depositAmount || 0));
+  const providerBalanceDue = appointment.providerBalanceDue || 
+    ((appointment.contractPrice || 0) - (appointment.clientDeposit || 0));
   
   return `
     <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
@@ -88,7 +90,7 @@ export function generateNewAppointmentEmail(appointment: Appointment): string {
       <p><strong>Date:</strong> ${formatDate(appointment.startDate)}</p>
       <p><strong>Time:</strong> ${formatTime(appointment.startTime)} - ${formatTime(endTime)}</p>
       <p><strong>Duration:</strong> ${appointment.callDuration || 1} hour(s)</p>
-      <p><strong>Revenue:</strong> $${appointment.grossRevenue || 0}</p>
+      <p><strong>Revenue:</strong> $${appointment.contractPrice || 0}</p>
       
       <div style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; margin: 20px 0;">
         <h3 style="margin-top: 0; color: #2c3e50;">Location Information:</h3>
@@ -105,8 +107,8 @@ export function generateNewAppointmentEmail(appointment: Appointment): string {
       
       <div style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; margin: 20px 0;">
         <h3 style="margin-top: 0; color: #2c3e50;">Financial Details:</h3>
-        <p><strong>Deposit Received:</strong> $${appointment.depositAmount || 0} via ${appointment.paymentProcessUsed || 'Not specified'}</p>
-        <p><strong>Balance Due:</strong> $${dueToProvider}</p>
+        <p><strong>Deposit Received:</strong> $${appointment.clientDeposit || 0} via ${appointment.paymentProcessUsed || 'Not specified'}</p>
+        <p><strong>Balance Due:</strong> $${providerBalanceDue}</p>
         <p><strong>Travel Expenses:</strong> $${appointment.travelExpense || 0}</p>
         <p><strong>Hosting Expenses:</strong> $${appointment.hostingExpense || 0}</p>
       </div>
@@ -156,8 +158,8 @@ export function generateStatusUpdateEmail(
     : "No notes provided";
   
   // Calculate due to provider (if not directly available)
-  const dueToProvider = appointment.dueToProvider || 
-    ((appointment.grossRevenue || 0) - (appointment.depositAmount || 0));
+  const providerBalanceDue = appointment.providerBalanceDue || 
+    ((appointment.contractPrice || 0) - (appointment.clientDeposit || 0));
   
   // Determine if deposit should be applied to future booking based on cancellation details
   const applyToFutureBooking = appointment.cancellationDetails && 
@@ -186,7 +188,7 @@ export function generateStatusUpdateEmail(
             <p><strong>Date:</strong> ${formatDate(appointment.updatedStartDate || '')}</p>
             <p><strong>Time:</strong> ${formatTime(appointment.updatedStartTime || '')} - ${formatTime(updatedEndTime)}</p>
             <p><strong>Duration:</strong> ${appointment.callDuration || 1} hour(s)</p>
-            <p><strong>Revenue:</strong> $${appointment.grossRevenue || 0}</p>
+            <p><strong>Revenue:</strong> $${appointment.contractPrice || 0}</p>
           </div>
           
           <div style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; margin: 20px 0;">
@@ -204,8 +206,8 @@ export function generateStatusUpdateEmail(
           
           <div style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; margin: 20px 0;">
             <h3 style="margin-top: 0; color: #2c3e50;">Financial Details:</h3>
-            <p><strong>Deposit Received:</strong> $${appointment.depositAmount || 0} via ${appointment.paymentProcessUsed || 'Not specified'}</p>
-            <p><strong>Balance Due:</strong> $${dueToProvider}</p>
+            <p><strong>Deposit Received:</strong> $${appointment.clientDeposit || 0} via ${appointment.paymentProcessUsed || 'Not specified'}</p>
+            <p><strong>Balance Due:</strong> $${providerBalanceDue}</p>
             <p><strong>Travel Expenses:</strong> $${appointment.travelExpense || 0}</p>
             <p><strong>Hosting Expenses:</strong> $${appointment.hostingExpense || 0}</p>
           </div>
@@ -226,10 +228,14 @@ export function generateStatusUpdateEmail(
       `;
     
     case 'Cancel':
-      const depositReturnAmount = appointment.depositReturnAmount || 0;
-      // Always use production URL for deposit confirmation links
-      const baseUrl = 'https://scheduleing.replit.app';
-      const confirmUrl = `${baseUrl}/confirm-deposit-return/${appointment.id}`;
+      const depositRefundedToClient = appointment.depositRefundedToClient || 0;
+      const baseUrl =
+        process.env.APP_BASE_URL ||
+        (process.env.VERCEL_PROJECT_PRODUCTION_URL
+          ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+          : "https://serasomatic.vercel.app");
+      const token = generateDepositConfirmToken(appointment.id);
+      const confirmUrl = `${baseUrl}/confirm-deposit-return/${appointment.id}?token=${encodeURIComponent(token)}`;
       
       return `
         <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
@@ -247,9 +253,9 @@ export function generateStatusUpdateEmail(
           
           <div style="background-color: #fff3cd; padding: 15px; border-radius: 4px; margin: 20px 0; border-left: 4px solid #ffc107;">
             <h3 style="margin-top: 0; color: #856404;">Deposit Return Information:</h3>
-            <p><strong>Original Deposit Amount:</strong> $${appointment.depositAmount || 0}</p>
-            <p><strong>Amount of Deposit to be Returned:</strong> $${depositReturnAmount}</p>
-            ${depositReturnAmount > 0 ? `
+            <p><strong>Original Client Deposit:</strong> $${appointment.clientDeposit || 0}</p>
+            <p><strong>Amount of Deposit to be Returned:</strong> $${depositRefundedToClient}</p>
+            ${depositRefundedToClient > 0 ? `
               <p style="margin-top: 15px;">
                 <strong>Please <a href="${confirmUrl}" style="color: #007bff; text-decoration: none; font-weight: bold;">Click Here</a> to confirm that the client has been refunded.</strong>
               </p>
@@ -278,9 +284,9 @@ export function generateStatusUpdateEmail(
           
           <div style="background-color: #f8f9fa; padding: 15px; border-radius: 4px; margin: 20px 0;">
             <h3 style="margin-top: 0; color: #2c3e50;">Financial Summary:</h3>
-            <p><strong>Total Collected:</strong> $${appointment.totalCollected || 0}</p>
-            <p><strong>Cash Payment:</strong> $${appointment.totalCollectedCash || 0}</p>
-            <p><strong>Digital Payment:</strong> $${appointment.totalCollectedDigital || 0}</p>
+            <p><strong>Total Client Collections:</strong> $${getAppointmentTotalClientCollections(appointment)}</p>
+            <p><strong>Cash Payment:</strong> $${appointment.cashCollections || 0}</p>
+            <p><strong>Digital Payment:</strong> $${appointment.electronicCollections || 0}</p>
             <p><strong>Payment Method:</strong> ${appointment.paymentProcessor || 'Not specified'}</p>
             <p><strong>Payment Notes:</strong> ${appointment.paymentNotes || 'None'}</p>
           </div>

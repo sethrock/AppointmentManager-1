@@ -1,7 +1,7 @@
 
 import { Appointment, insertAppointmentSchema } from '@shared/schema';
 import { storage } from '../storage';
-import { log } from '../vite';
+import { log } from '../logger';
 import fs from 'fs/promises';
 import path from 'path';
 import { z } from 'zod';
